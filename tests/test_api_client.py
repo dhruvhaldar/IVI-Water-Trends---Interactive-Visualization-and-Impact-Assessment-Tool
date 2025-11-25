@@ -375,6 +375,55 @@ class TestCoREStackClient:
         with pytest.raises(ValueError, match="location_id must be a non-empty string"):
             client.get_elevation_data('')
 
+    def test_get_elevation_data_other_datatype(self):
+        """Test elevation data with invalid datatype."""
+        client = CoREStackClient(api_key='test')
+        
+        # Patch the internal _make_request to simulate invalid 'data' type (list instead of dict)
+        with patch.object(client, '_make_request', return_value={"data": ["invalid", "list"]}) as mock_request:
+            # Patch the logger to verify warnings
+            with patch.object(client.logger, 'warning') as mock_warning:
+                result = client.get_elevation_data("V001")
+                
+                # It should log a warning about unexpected data type
+                mock_warning.assert_called_with("Expected dict from elevation endpoint, got <class 'list'>")
+                
+                # The returned result should be empty dict
+                assert result == {}
+                
+                # The underlying request method should be called with correct params
+                mock_request.assert_called_once_with("elevation", {"location_id": "V001"})
+
+    def test_get_elevation_data_invalid_elevation_grid_format(self):
+        client = CoREStackClient(api_key='test')
+        
+        # Simulate response with elevation_grid as invalid type (int)
+        invalid_data = {
+            "data": {
+                "elevation_grid": 12345,  # Invalid type, should be dict or list
+                "bounds": [0, 0, 1, 1],
+                "resolution": 10,
+                "metadata": {"source": "simulated"}
+            }
+        }
+
+        with patch.object(client, '_make_request', return_value=invalid_data) as mock_request:
+            with patch.object(client.logger, 'warning') as mock_warning:
+                result = client.get_elevation_data("V002")
+                # Should log warning about invalid elevation_grid format
+                mock_warning.assert_called_with("Invalid elevation_grid format: <class 'int'>")
+
+                # elevation_grid should be replaced with empty dict in the returned data
+                assert isinstance(result, dict)
+                assert isinstance(result.get("elevation_grid"), dict)
+                assert result["elevation_grid"] == {}
+
+                # Other keys remain intact
+                assert "bounds" in result
+                assert "metadata" in result
+
+                mock_request.assert_called_once_with("elevation", {"location_id": "V002"})
+        
     def test_clear_cache(self):
         """Test cache clearing."""
         client = CoREStackClient(api_key='test')
