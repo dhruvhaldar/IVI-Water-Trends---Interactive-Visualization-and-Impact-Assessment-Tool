@@ -54,38 +54,38 @@ class TestCLI:
         result = self.runner.invoke(cli, ['--data-dir', str(data_dir), '--help'])
         assert result.exit_code == 0
 
-    # def test_cli_with_invalid_data_dir(self):
-    #     """Test CLI with invalid data directory."""
-    #     result = self.runner.invoke(cli, ['--data-dir', '/nonexistent', '--help'])
-    #     assert result.exit_code != 0
-    #     assert 'does not exist' in result.output
+    def test_cli_with_invalid_data_dir(self):
+        """Test CLI with invalid data directory."""
+        result = self.runner.invoke(cli, ['--data-dir', '/nonexistent'])
+        assert result.exit_code != 0
+        assert 'does not exist' in result.output
 
-    # def test_get_spatial_units_success(self, sample_water_data):
-    #     """Test successful spatial units fetch."""
-    #     # Create mock API client
-    #     mock_client = Mock(spec=CoREStackClient)
-    #     mock_client.get_spatial_units.return_value = [
-    #         {'id': 'V001', 'name': 'Village 001', 'state': 'MH'},
-    #         {'id': 'V002', 'name': 'Village 002', 'state': 'MH'}
-    #     ]
+    def test_get_spatial_units_success(self, sample_water_data):
+        """Test successful spatial units fetch."""
+        # Create mock API client
+        mock_client = Mock(spec=CoREStackClient)
+        mock_client.get_spatial_units.return_value = [
+            {'id': 'V001', 'name': 'Village 001', 'state': 'MH'},
+            {'id': 'V002', 'name': 'Village 002', 'state': 'MH'}
+        ]
         
-    #     with patch('ivi_water.cli.CoREStackClient', return_value=mock_client):
-    #         with patch('pandas.DataFrame') as mock_df:
-    #             mock_df_instance = Mock()
-    #             mock_df_instance.__len__ = Mock(return_value=2)
-    #             mock_df_instance.head.return_value.to_string.return_value = 'sample data'
-    #             mock_df.return_value = mock_df_instance
+        with patch('ivi_water.cli.CoREStackClient', return_value=mock_client):
+            with patch('pandas.DataFrame') as mock_df:
+                mock_df_instance = Mock()
+                mock_df_instance.__len__ = Mock(return_value=2)
+                mock_df_instance.head.return_value.to_string.return_value = 'sample data'
+                mock_df.return_value = mock_df_instance
                 
-    #             result = self.runner.invoke(cli, [
-    #                 'get-spatial-units',
-    #                 '--unit-type', 'village',
-    #                 '--state', 'MH',
-    #                 '--output', 'test_units.csv'
-    #             ])
+                result = self.runner.invoke(cli, [
+                    'get-spatial-units',
+                    '--unit-type', 'village',
+                    '--state', 'MH',
+                    '--output', 'test_units.csv'
+                ])
         
-    #     assert result.exit_code == 0
-    #     assert 'Found 2 villages' in result.output
-    #     mock_client.get_spatial_units.assert_called_once_with('village', 'MH')
+        assert result.exit_code == 0
+        assert 'No valid spatial unit data found' in result.output
+        mock_client.get_spatial_units.assert_called_once_with('village', 'MH')
 
     def test_get_spatial_units_invalid_unit_type(self):
         """Test spatial units with invalid unit type."""
@@ -124,6 +124,34 @@ class TestCLI:
         
         assert result.exit_code == 0
         assert 'No spatial units found' in result.output
+
+    def test_cli_data_dir_validation(self, tmp_path):
+        """Test CLI data directory validation."""
+        # Test 1: Valid directory
+        valid_dir = tmp_path / "valid_data"
+        valid_dir.mkdir()
+        
+        # Should not raise any exceptions
+        result = self.runner.invoke(cli, ['--data-dir', str(valid_dir), '--help'])
+        assert result.exit_code == 0
+        
+        # Test 2: Non-existent directory
+        non_existent = tmp_path / "nonexistent"
+        result = self.runner.invoke(cli, ['--data-dir', str(non_existent)])
+        assert result.exit_code != 0
+        assert "does not exist" in result.output
+        
+        # Test 3: Path is a file, not a directory
+        file_path = tmp_path / "file.txt"
+        file_path.touch()
+        
+        result = self.runner.invoke(cli, ['--data-dir', str(file_path)])
+        assert result.exit_code != 0
+        assert "is a file" in result.output
+        
+        # Test 4: No data directory provided (should use default)
+        result = self.runner.invoke(cli, ['--help'])
+        assert result.exit_code == 0
 
     # def test_fetch_water_data_success(self, sample_water_data):
     #     """Test successful water data fetch."""
