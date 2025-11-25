@@ -3,14 +3,16 @@ Unit tests for CLI module.
 """
 
 import pytest
+import os
 import pandas as pd
 from unittest.mock import Mock, patch, MagicMock
 from click.testing import CliRunner
 from pathlib import Path
 import tempfile
 import shutil
+import json
 
-from ivi_water.cli import cli, get_spatial_units, fetch_water_data, merge_data
+from ivi_water.cli import cli, get_spatial_units, fetch_water_data, merge_data, create_basic_notebook, create_advanced_notebook
 from ivi_water.data_processor import DataProcessor
 from ivi_water.api_client import CoREStackClient
 
@@ -444,3 +446,143 @@ class TestCLI:
             result = self.runner.invoke(cli, [command, '--help'])
             assert result.exit_code == 0
             assert 'Usage:' in result.output
+
+    def test_setup_notebooks(self, tmp_path):
+        """Test setup_notebooks CLI command."""
+        # Test 1: Default behavior (both notebooks)
+        result = self.runner.invoke(cli, ['setup-notebooks', '--output-dir', str(tmp_path)])
+        assert result.exit_code == 0
+        assert "Notebooks created in" in result.output
+        assert (tmp_path / "basic_analysis.ipynb").exists()
+        assert (tmp_path / "advanced_analysis.ipynb").exists()
+
+        # Test 2: Basic template only
+        basic_dir = tmp_path / "basic_only"
+        basic_dir.mkdir()
+        result = self.runner.invoke(cli, ['setup-notebooks', '--template', 'basic', '--output-dir', str(basic_dir)])
+        assert result.exit_code == 0
+        assert (basic_dir / "basic_analysis.ipynb").exists()
+        assert not (basic_dir / "advanced_analysis.ipynb").exists()
+
+        # Test 3: Advanced template only
+        adv_dir = tmp_path / "adv_only"
+        adv_dir.mkdir()
+        result = self.runner.invoke(cli, ['setup-notebooks', '--template', 'advanced', '--output-dir', str(adv_dir)])
+        assert result.exit_code == 0
+        assert not (adv_dir / "basic_analysis.ipynb").exists()
+        assert (adv_dir / "advanced_analysis.ipynb").exists()
+
+        # Test 4: Default output directory (creates 'notebooks' in current dir)
+        with tempfile.TemporaryDirectory() as temp_dir:
+            original_dir = os.getcwd()
+            try:
+                os.chdir(temp_dir)
+                result = self.runner.invoke(cli, ['setup-notebooks'])
+                assert result.exit_code == 0
+                assert (Path(temp_dir) / "notebooks" / "basic_analysis.ipynb").exists()
+                assert (Path(temp_dir) / "notebooks" / "advanced_analysis.ipynb").exists()
+            finally:
+                os.chdir(original_dir)
+
+        # Test 5: Invalid template (should default to both)
+        invalid_dir = tmp_path / "invalid"
+        invalid_dir.mkdir()
+        result = self.runner.invoke(cli, ['setup-notebooks', '--template', 'invalid', '--output-dir', str(invalid_dir)])
+        assert result.exit_code == 2
+        assert not (invalid_dir / "basic_analysis.ipynb").exists()
+        assert not (invalid_dir / "advanced_analysis.ipynb").exists()
+
+    def test_create_basic_notebook(self, tmp_path):
+        """Test creation of basic analysis notebook."""
+        # Create a temporary directory for the notebook
+        notebook_dir = tmp_path / "notebooks"
+        notebook_dir.mkdir()
+        
+        # Call the function to create the notebook
+        create_basic_notebook(notebook_dir)
+        
+        # Verify the notebook file was created
+        notebook_path = notebook_dir / "basic_analysis.ipynb"
+        assert notebook_path.exists()
+        
+        # Load and verify the notebook content
+        with open(notebook_path, 'r', encoding='utf-8') as f:
+            notebook = json.load(f)
+        
+        # Verify basic notebook structure
+        assert 'cells' in notebook
+        assert 'metadata' in notebook
+        assert notebook['nbformat'] == 4
+        assert notebook['nbformat_minor'] == 4
+        
+        # Get all cell sources for debugging
+        cell_sources = []
+        for cell in notebook['cells']:
+            if cell['source'] and isinstance(cell['source'], list):
+                cell_sources.extend(cell['source'])
+        
+        # Print cell sources for debugging
+        print("\nCell sources in notebook:")
+        for i, source in enumerate(cell_sources, 1):
+            print(f"Cell {i}: {source[:100]}...")  # Print first 100 chars of each cell
+        
+        # Check for key content (using more lenient matching)
+        has_title = any("IVI Water" in source for source in cell_sources)
+        has_pandas = any("import pandas" in source for source in cell_sources)
+        has_viz = any("fig" in source for source in cell_sources)  # More general check for visualization
+        
+        assert has_title, "Notebook is missing title"
+        assert has_pandas, "Notebook is missing pandas import"
+        assert has_viz, "Notebook is missing visualization code"
+        
+        # Verify kernel specification
+        assert notebook['metadata']['kernelspec']['name'] == 'python3'
+        assert notebook['metadata']['language_info']['name'] == 'python'
+
+    def test_create_advanced_notebook(self, tmp_path):
+        """Test creation of advanced analysis notebook."""
+        # Create a temporary directory for the notebook
+        notebook_dir = tmp_path / "notebooks"
+        notebook_dir.mkdir()
+        
+        # Call the function to create the notebook
+        create_advanced_notebook(notebook_dir)
+        
+        # Verify the notebook file was created
+        notebook_path = notebook_dir / "advanced_analysis.ipynb"
+        assert notebook_path.exists()
+        
+        # Load and verify the notebook content
+        with open(notebook_path, 'r', encoding='utf-8') as f:
+            notebook = json.load(f)
+        
+        # Verify basic notebook structure
+        assert 'cells' in notebook
+        assert 'metadata' in notebook
+        assert notebook['nbformat'] == 4
+        assert notebook['nbformat_minor'] == 4
+        
+        # Get all cell sources for debugging
+        cell_sources = []
+        for cell in notebook['cells']:
+            if cell['source'] and isinstance(cell['source'], list):
+                cell_sources.extend(cell['source'])
+        
+        # Print cell sources for debugging
+        print("\nAdvanced notebook cell sources:")
+        for i, source in enumerate(cell_sources, 1):
+            print(f"Cell {i}: {source[:100]}...")  # Print first 100 chars of each cell
+        
+        # Check for key content
+        has_title = any("IVI Water Trends - Advanced" in source for source in cell_sources)
+        has_imports = all(imp in ' '.join(cell_sources) 
+                        for imp in ["import pandas", "import numpy", "plotly"])
+        has_analysis = any("Statistical Analysis" in source for source in cell_sources)
+        
+        assert has_title, "Advanced notebook is missing title"
+        assert has_imports, "Advanced notebook is missing required imports"
+        assert has_analysis, "Advanced notebook is missing analysis section"
+        
+        # Verify kernel specification
+        assert notebook['metadata']['kernelspec']['name'] == 'python3'
+        assert notebook['metadata']['language_info']['name'] == 'python'
