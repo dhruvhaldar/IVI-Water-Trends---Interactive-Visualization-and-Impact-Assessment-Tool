@@ -1,5 +1,6 @@
 """
-Unit tests for DataProcessor class.
+Comprehensive unit tests for DataProcessor class.
+
 """
 
 import pytest
@@ -14,13 +15,24 @@ from ivi_water.data_processor import DataProcessor
 
 
 class TestDataProcessor:
-    """Test cases for DataProcessor class."""
+    """Test cases for DataProcessor class.
+    
+    This class combines tests from both test_working_methods.py and test_data_processor.py
+    to provide comprehensive test coverage for the DataProcessor class.
+    """
 
+    # Initialization Tests
     def test_init_with_valid_directory(self, temp_dir):
         """Test DataProcessor initialization with valid directory."""
         processor = DataProcessor(str(temp_dir))
         assert processor.data_dir == temp_dir.resolve()
         assert processor.logger is not None
+        
+    def test_data_processor_init(self, temp_dir):
+        """Test DataProcessor initialization (from test_working_methods)."""
+        processor = DataProcessor(str(temp_dir))
+        assert processor.data_dir == temp_dir.resolve()
+        assert hasattr(processor, 'logger')
 
     # def test_init_with_nonexistent_directory(self):
     #     """Test DataProcessor initialization with nonexistent directory."""
@@ -157,10 +169,99 @@ class TestDataProcessor:
     #     assert 'intervention_type' in agg.columns
     #     assert len(agg) == 2  # Should have intervention and no intervention groups
 
-    def test_aggregate_by_intervention_missing_column(self, data_processor, sample_water_data):
+    # Data Processing Tests
+    def test_data_processor_clean_water_data(self, temp_dir):
+        """Test water data cleaning."""
+        processor = DataProcessor(str(temp_dir))
+        
+        # Create sample data with all required columns and valid data types
+        dirty_data = pd.DataFrame({
+            'location_id': ['V001', 'V002', 'V003'],  # No empty strings
+            'year': [2020, 2021, 2022],
+            'season': ['perennial', 'winter', 'monsoon'],
+            'water_area_ha': [50.0, 30.5, 60.0],  # No NaN values
+            'water_body_count': [5, 4, 6],
+            'data_quality': ['good', 'good', 'good']  # Must be one of the valid quality values
+        })
+        
+        # Add some dirty data
+        dirty_data = pd.concat([
+            dirty_data,
+            pd.DataFrame({
+                'location_id': ['', 'V004', 'V005'],
+                'year': [2023, 2024, 2025],
+                'season': ['summer', 'invalid', 'monsoon'],
+                'water_area_ha': [np.nan, -10.0, 10000.0],
+                'water_body_count': [0, -1, 1000],
+                'data_quality': ['good', 'poor', 'excellent']
+            })
+        ], ignore_index=True)
+        
+        cleaned = processor._clean_water_data(dirty_data)
+        
+        # Verify the cleaned data
+        assert isinstance(cleaned, pd.DataFrame)
+        assert len(cleaned) > 0  # At least some rows should pass validation
+        assert 'location_id' in cleaned.columns
+        assert 'year' in cleaned.columns
+        assert 'season' in cleaned.columns
+        assert 'water_area_ha' in cleaned.columns
+        assert 'water_body_count' in cleaned.columns
+        assert 'data_quality' in cleaned.columns
+        
+        # Verify data quality
+        assert all(cleaned['location_id'].str.strip() != '')
+        assert all(cleaned['year'].between(1900, 2100))
+        assert all(cleaned['season'].isin(VALID_SEASONS))
+        assert all(cleaned['water_area_ha'] >= 0)
+        assert all(cleaned['water_body_count'] >= 0)
+
+    # Dataset Operations Tests
+    def test_data_processor_merge_datasets(self, temp_dir, sample_water_data, sample_nrm_data):
+        """Test dataset merging."""
+        processor = DataProcessor(str(temp_dir))
+        
+        merged = processor.merge_datasets(sample_water_data, sample_nrm_data)
+        
+        assert isinstance(merged, pd.DataFrame)
+        assert len(merged) > 0
+        assert 'pond_presence' in merged.columns
+
+    # Aggregation Tests
+    def test_aggregate_by_intervention(self, temp_dir, sample_merged_data):
+        """Test intervention aggregation."""
+        processor = DataProcessor(str(temp_dir))
+        
+        agg = processor.aggregate_by_intervention(sample_merged_data)
+        
+        assert isinstance(agg, pd.DataFrame)
+        assert 'intervention_type' in agg.columns
+        
+    def test_aggregate_by_intervention_missing_column(self, temp_dir, sample_water_data):
         """Test aggregation by intervention with missing intervention column."""
+        processor = DataProcessor(str(temp_dir))
         with pytest.raises(ValueError, match="Intervention column.*not found"):
-            data_processor.aggregate_by_intervention(sample_water_data)
+            processor.aggregate_by_intervention(sample_water_data)
+
+    # Export Tests
+    def test_data_processor_export_processed_data(self, temp_dir, sample_water_data):
+        """Test data export."""
+        processor = DataProcessor(str(temp_dir))
+        
+        output_path = processor.export_processed_data(sample_water_data, 'test_data', 'csv')
+        
+        assert Path(output_path).exists()
+        assert output_path.endswith('.csv')
+        
+        # Verify file content
+        exported_df = pd.read_csv(output_path)
+        assert len(exported_df) == len(sample_water_data)
+        
+    def test_export_processed_data_invalid_format(self, temp_dir, sample_water_data):
+        """Test exporting data with invalid format."""
+        processor = DataProcessor(str(temp_dir))
+        with pytest.raises(ValueError, match="Unsupported export format"):
+            processor.export_processed_data(sample_water_data, 'test', 'invalid')
 
     # def test_export_processed_data_csv(self, data_processor, sample_water_data, temp_dir):
     #     """Test exporting data to CSV format."""
