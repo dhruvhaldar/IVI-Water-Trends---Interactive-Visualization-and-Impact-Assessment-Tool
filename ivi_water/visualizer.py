@@ -17,7 +17,7 @@ import pandas as pd
 import plotly.graph_objects as go
 import plotly.express as px
 from plotly.subplots import make_subplots
-import plotly.offline as pyo
+# import plotly.offline as pyo
 
 # Optional 3D visualization
 try:

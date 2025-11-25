@@ -78,24 +78,30 @@ class CoREStackClient:
             ...     base_url="https://custom.api.example.com/v1"
             ... )
         """
+        # Get and validate API key first
         self.api_key = api_key or os.getenv('CORE_API_KEY')
-        self.base_url = base_url or os.getenv('CORE_API_BASE_URL', DEFAULT_BASE_URL)
         
-        # Validate API key
+        # Validate API key before proceeding
         if not self.api_key:
             raise ValueError(
                 "API key is required. Set CORE_API_KEY environment variable "
                 "or pass api_key parameter."
             )
         
-        if not isinstance(self.api_key, str) or len(self.api_key.strip()) == 0:
+        if not isinstance(self.api_key, str) or not self.api_key.strip():
             raise ValueError("API key must be a non-empty string")
         
-        # Validate base URL
-        if not isinstance(self.base_url, str) or not self.base_url.strip():
-            raise ValueError("Base URL must be a non-empty string")
-        
-        self.base_url = self.base_url.rstrip('/')  # Remove trailing slash
+        # If base_url is provided, validate it
+        if base_url is not None:
+            if not isinstance(base_url, str) or not base_url.strip():
+                raise ValueError("Base URL must be a non-empty string")
+            self.base_url = base_url.rstrip('/')
+        else:
+            # If base_url is not provided, get it from environment or use default
+            base_url = os.getenv('CORE_API_BASE_URL', DEFAULT_BASE_URL)
+            if not isinstance(base_url, str) or not base_url.strip():
+                raise ValueError("Base URL must be a non-empty string")
+            self.base_url = base_url.rstrip('/')
         
         self.logger = logging.getLogger(__name__)
         

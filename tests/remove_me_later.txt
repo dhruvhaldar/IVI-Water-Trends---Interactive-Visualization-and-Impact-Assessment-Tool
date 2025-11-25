@@ -1,0 +1,1 @@
+e:/Misc/IVIAT/venv/Scripts/python.exe -m pytest tests/test_api_client.py --cov=ivi_water.api_client --cov-report=term --cov=ivi_water/api_client.py

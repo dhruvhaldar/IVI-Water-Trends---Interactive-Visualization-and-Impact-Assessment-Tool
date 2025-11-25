@@ -1,27 +1,48 @@
+# IVI Water Trends - Comprehensive Water Analysis System
+# Updated with enhanced security, testing, and development tools
+
 # Core dependencies
-requests>=2.31.0
-pandas>=2.0.0
-numpy>=1.24.0
-plotly>=5.15.0
-jupyter>=1.0.0
-python-dotenv>=1.0.0
+requests>=2.31.0          # HTTP client for API communication
+pandas>=2.0.0            # Data manipulation and analysis
+numpy>=1.24.0            # Numerical computing
+plotly>=5.15.0           # Interactive visualizations
+kaleido>=0.2.1           # Static image export for Plotly
+jupyter>=1.0.0            # Notebook support
+python-dotenv>=1.0.0     # Environment variable management
 
 # CLI and utilities
-click>=8.1.0
+click>=8.1.0             # Command-line interface framework
+rich>=13.0.0             # Rich text and beautiful formatting for CLI
 
 # Data export and reporting
-matplotlib>=3.7.0
-reportlab>=4.0.0
-openpyxl>=3.1.0
+matplotlib>=3.7.0        # Static plotting and visualization
+reportlab>=4.0.0         # PDF report generation
+openpyxl>=3.1.0          # Excel file support
+xlsxwriter>=3.1.0        # Alternative Excel engine
+pyarrow>=12.0.0          # Parquet file support
+fastparquet>=0.8.0       # Alternative Parquet engine
 
 # Optional 3D visualization
-pyvista>=0.40.0
+pyvista>=0.40.0          # 3D visualization and mesh processing
 
-# Testing
-pytest>=7.4.0
-pytest-cov>=4.1.0
+# Testing and quality assurance
+pytest>=7.4.0            # Testing framework
+pytest-cov>=4.1.0        # Coverage reporting
+pytest-mock>=3.11.0      # Mocking support for tests
+pytest-xdist>=3.3.0      # Parallel test execution
+hypothesis>=6.80.0       # Property-based testing
 
-# Development
-black>=23.0.0
-flake8>=6.0.0
-mypy>=1.5.0
+# Development tools
+black>=23.0.0            # Code formatting
+flake8>=6.0.0            # Linting
+mypy>=1.5.0              # Static type checking
+isort>=5.12.0            # Import sorting
+pre-commit>=3.4.0        # Git hooks for code quality
+
+# Documentation
+sphinx>=7.1.0            # Documentation generation
+sphinx-rtd-theme>=1.3.0  # ReadTheDocs theme
+
+# Performance and monitoring
+memory-profiler>=0.61.0   # Memory usage profiling
+psutil>=5.9.0             # System and process utilities

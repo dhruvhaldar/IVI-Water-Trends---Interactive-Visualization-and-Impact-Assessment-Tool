@@ -116,40 +116,7 @@ class ExportUtils:
             f"figure_size={self.figure_size}, dpi={self.dpi}"
         )
     
-    def export_data_table(
-        self, 
-        df: pd.DataFrame, 
-        filename: str, 
-        format: str = 'csv'
-    ) -> str:
-        """
-        Export data table to various formats with comprehensive validation.
-        
-        This method exports DataFrames to multiple formats including CSV, Excel,
-        Parquet, and JSON, with automatic summary generation for Excel exports
-        and robust error handling for all operations.
-        
-        Args:
-            df: DataFrame to export. Must not be empty.
-            filename: Output filename without extension. Will be sanitized.
-            format: Export format. Supported formats are in SUPPORTED_EXPORT_FORMATS.
-                   Default is 'csv'.
-                   
-        Returns:
-            Absolute path to the exported file as string
-            
-        Raises:
-            ValueError: If DataFrame is empty, filename is invalid, or format unsupported
-            OSError: If unable to write to output directory
-            PermissionError: If insufficient permissions to write file
-            
-        Example:
-            >>> exporter = ExportUtils('./reports')
-            >>> filepath = exporter.export_data_table(
-            ...     df, 'water_data', format='excel'
-            ... )
-            >>> print(f"Exported to: {filepath}")
-        """
+    def export_data_table(self, df: pd.DataFrame, filename: str, format: str = 'csv') -> str:
         # Input validation
         if df.empty:
             raise ValueError("DataFrame cannot be empty")
@@ -159,7 +126,6 @@ class ExportUtils:
         
         # Sanitize filename
         filename = filename.strip()
-        # Remove invalid characters and replace spaces with underscores
         filename = ''.join(c if c.isalnum() or c in '-_' else '_' for c in filename)
         filename = filename.replace(' ', '_')
         
@@ -194,42 +160,62 @@ class ExportUtils:
             if filepath.exists():
                 self.logger.warning(f"Overwriting existing file: {filepath}")
             
+            # Make a copy to avoid modifying original dataframe
+            df_export = df.copy()
+            
+            # Ensure numeric columns are properly typed and handle None/NA values
+            numeric_cols = df_export.select_dtypes(include=['number']).columns
+            for col in numeric_cols:
+                # Convert column to numeric, coercing errors
+                df_export[col] = pd.to_numeric(df_export[col], errors='coerce')
+                # If integer dtype and contains NAs, convert to float64 for Excel compatibility
+                if pd.api.types.is_integer_dtype(df_export[col]) and df_export[col].isna().any():
+                    df_export[col] = df_export[col].astype('float64')
+                else:
+                    # Otherwise, use nullable Int64 dtype to preserve integer data with NAs
+                    df_export[col] = df_export[col].astype('Int64', errors='ignore')
+            
             # Export based on format
             if format == 'csv':
-                df.to_csv(filepath, index=False, encoding='utf-8')
+                df_export.to_csv(filepath, index=False, encoding='utf-8')
                 
             elif format == 'excel':
-                try:
-                    with pd.ExcelWriter(filepath, engine='openpyxl') as writer:
-                        # Main data sheet
-                        df.to_excel(writer, sheet_name='Data', index=False)
+                with pd.ExcelWriter(filepath, engine='openpyxl') as writer:
+                    # Make a deep copy to avoid modifying the original dataframe
+                    df_export = df.copy(deep=True)
+                    
+                    # Ensure all numeric columns are properly typed
+                    for col in df_export.select_dtypes(include=['number']).columns:
+                        # Convert to float first to handle potential None/NA values
+                        df_export[col] = pd.to_numeric(df_export[col], errors='coerce')
+                        # Convert to appropriate type
+                        if pd.api.types.is_integer_dtype(df[col]):
+                            if df_export[col].isna().any():
+                                df_export[col] = df_export[col].astype('float64')
+                            else:
+                                df_export[col] = df_export[col].astype('Int64')
+                        else:
+                            df_export[col] = df_export[col].astype('float64')
+                    
+                    # Export to Excel
+                    df_export.to_excel(writer, sheet_name='Data', index=False)
+                    
+                    # Create and export summary sheet
+                    try:
+                        summary_df = self._create_summary_table(df_export)
+                        summary_df.to_excel(writer, sheet_name='Summary', index=False)
+                    except Exception as e:
+                        self.logger.warning(f"Failed to create summary sheet: {e}")
                         
-                        # Summary sheet
-                        try:
-                            summary_df = self._create_summary_table(df)
-                            summary_df.to_excel(writer, sheet_name='Summary', index=False)
-                        except Exception as e:
-                            self.logger.warning(f"Failed to create summary sheet: {e}")
-                            
-                except ImportError:
-                    # Fallback to xlsxwriter if openpyxl not available
-                    with pd.ExcelWriter(filepath, engine='xlsxwriter') as writer:
-                        df.to_excel(writer, sheet_name='Data', index=False)
-                        try:
-                            summary_df = self._create_summary_table(df)
-                            summary_df.to_excel(writer, sheet_name='Summary', index=False)
-                        except Exception as e:
-                            self.logger.warning(f"Failed to create summary sheet: {e}")
-                            
             elif format == 'parquet':
                 try:
-                    df.to_parquet(filepath, index=False, engine='pyarrow')
+                    df_export.to_parquet(filepath, index=False, engine='pyarrow')
                 except ImportError:
                     # Fallback to fastparquet if pyarrow not available
-                    df.to_parquet(filepath, index=False, engine='fastparquet')
+                    df_export.to_parquet(filepath, index=False, engine='fastparquet')
                     
             elif format == 'json':
-                df.to_json(filepath, orient='records', indent=2, date_format='iso')
+                df_export.to_json(filepath, orient='records', indent=2, date_format='iso')
             
             # Verify file was created and get size
             if not filepath.exists():
@@ -238,21 +224,24 @@ class ExportUtils:
             file_size = filepath.stat().st_size
             
             self.logger.info(
-                f"Successfully exported {len(df)} rows to {filepath} "
-                f"({file_size:,} bytes)"
+                f"Successfully exported {len(df_export)} rows to {filepath} "
+                f"({file_size/1024:.1f} KB)"
             )
             
-            return str(filepath.absolute())
+            return str(filepath)
             
-        except PermissionError:
-            self.logger.error(f"Permission denied when writing to {filepath}")
-            raise PermissionError(f"Permission denied: {filepath}")
+        except PermissionError as e:
+            error_msg = f"Permission denied: {filepath if 'filepath' in locals() else 'unknown file'}"
+            self.logger.error(error_msg)
+            raise PermissionError(error_msg)
         except OSError as e:
-            self.logger.error(f"OS error during export: {e}")
-            raise OSError(f"Failed to export data: {e}")
+            error_msg = f"OS error during export: {e}"
+            self.logger.error(error_msg)
+            raise OSError(error_msg)
         except Exception as e:
-            self.logger.error(f"Unexpected error during export: {e}", exc_info=True)
-            raise ValueError(f"Export failed: {e}")
+            error_msg = f"Export failed: {str(e)}"
+            self.logger.error(f"Unexpected error during export: {error_msg}", exc_info=True)
+            raise ValueError(error_msg) from e
     
     def _create_summary_table(self, df: pd.DataFrame) -> pd.DataFrame:
         """Create summary statistics table."""
@@ -260,23 +249,41 @@ class ExportUtils:
         
         # Basic statistics
         summary_data.append(['Total Records', len(df)])
-        summary_data.append(['Unique Locations', df['location_id'].nunique() if 'location_id' in df.columns else 'N/A'])
-        summary_data.append(['Year Range', f"{df['year'].min()}-{df['year'].max()}" if 'year' in df.columns else 'N/A'])
+        
+        # Safely get unique locations
+        if 'location_id' in df.columns:
+            unique_locs = df['location_id'].nunique()
+            summary_data.append(['Unique Locations', unique_locs])
+        else:
+            summary_data.append(['Unique Locations', 'N/A'])
+        
+        # Safely get year range
+        if 'year' in df.columns:
+            try:
+                years = pd.to_numeric(df['year'].dropna())
+                if len(years) > 0:
+                    year_range = f"{int(years.min())}-{int(years.max())}"
+                    summary_data.append(['Year Range', year_range])
+                else:
+                    summary_data.append(['Year Range', 'N/A'])
+            except Exception:
+                summary_data.append(['Year Range', 'N/A'])
+        else:
+            summary_data.append(['Year Range', 'N/A'])
         
         # Water statistics
         if 'water_area_ha' in df.columns:
-            summary_data.append(['Mean Water Area (ha)', f"{df['water_area_ha'].mean():.2f}"])
-            summary_data.append(['Max Water Area (ha)', f"{df['water_area_ha'].max():.2f}"])
-            summary_data.append(['Min Water Area (ha)', f"{df['water_area_ha'].min():.2f}"])
-        
-        # Intervention statistics
-        if 'pond_presence' in df.columns:
-            with_pond = df[df['pond_presence'] == 1].shape[0]
-            summary_data.append(['Records with Pond', with_pond])
-            summary_data.append(['Records without Pond', len(df) - with_pond])
+            try:
+                water_areas = pd.to_numeric(df['water_area_ha'].dropna())
+                if len(water_areas) > 0:
+                    summary_data.append(['Mean Water Area (ha)', f"{water_areas.mean():.2f}"])
+                    summary_data.append(['Max Water Area (ha)', f"{water_areas.max():.2f}"])
+                    summary_data.append(['Min Water Area (ha)', f"{water_areas.min():.2f}"])
+            except Exception:
+                pass  # Skip water stats if there's an error
         
         return pd.DataFrame(summary_data, columns=['Metric', 'Value'])
-    
+        
     def generate_summary_report(
         self, 
         df: pd.DataFrame, 
