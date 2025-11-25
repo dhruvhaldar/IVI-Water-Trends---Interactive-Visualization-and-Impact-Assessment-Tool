@@ -5,12 +5,15 @@ This module provides interactive and static visualizations for water trends
 analysis using Plotly and optional 3D visualization with PyVista.
 """
 
+# Standard library imports
 import os
 import logging
-from typing import Dict, List, Optional, Union, Tuple
+from typing import Dict, List, Optional, Union, Tuple, Any
+from pathlib import Path
+
+# Third-party imports
 import numpy as np
 import pandas as pd
-
 import plotly.graph_objects as go
 import plotly.express as px
 from plotly.subplots import make_subplots
@@ -23,6 +26,20 @@ try:
 except ImportError:
     PYVISTA_AVAILABLE = False
 
+# Constants
+DEFAULT_CHART_THEME = 'plotly_white'
+DEFAULT_CHART_HEIGHT = 600
+DEFAULT_CHART_WIDTH = 1000
+VALID_THEMES = ['plotly_white', 'plotly_dark', 'plotly', 'ggplot2', 'seaborn', 'simple_white']
+SEASON_COLORS = {
+    'perennial': '#1f77b4',  # Blue
+    'winter': '#ff7f0e',      # Orange
+    'monsoon': '#2ca02c',    # Green
+    'summer': '#d62728'       # Red
+}
+SEASON_ORDER = ['perennial', 'winter', 'monsoon', 'summer']
+
+# Logger setup
 logger = logging.getLogger(__name__)
 
 
@@ -30,25 +47,90 @@ class WaterTrendsVisualizer:
     """
     Creates interactive visualizations for water trends analysis.
     
-    This class provides methods to create various types of charts and
-    visualizations for seasonal surface water data and NRM impact assessment.
+    This class provides comprehensive methods to create various types of charts
+    and visualizations for seasonal surface water data and NRM impact assessment.
+    It supports 2D visualizations using Plotly and optional 3D visualizations
+    using PyVista when available.
+    
+    Attributes:
+        theme (str): Plotly theme for charts
+        height (int): Default chart height in pixels
+        width (int): Default chart width in pixels
+        logger (logging.Logger): Logger instance for this class
+        
+    Example:
+        >>> viz = WaterTrendsVisualizer(theme='plotly_dark', height=800)
+        >>> fig = viz.create_seasonal_stacked_area_chart(water_df)
+        >>> viz.save_figure(fig, 'water_trends.html')
     """
     
-    def __init__(self, theme: Optional[str] = None, height: Optional[int] = None, width: Optional[int] = None):
+    def __init__(
+        self, 
+        theme: Optional[str] = None, 
+        height: Optional[int] = None, 
+        width: Optional[int] = None
+    ) -> None:
         """
-        Initialize the visualizer.
+        Initialize the visualizer with configuration parameters.
+        
+        This method sets up the visualization environment with specified
+        theme, dimensions, and validates the configuration.
         
         Args:
-            theme: Plotly theme ('plotly_white', 'plotly_dark', etc.)
-            height: Default chart height
-            width: Default chart width
+            theme: Plotly theme for charts. Valid options are in VALID_THEMES.
+                   If None, uses DEFAULT_CHART_THEME or environment variable.
+            height: Default chart height in pixels. If None, uses DEFAULT_CHART_HEIGHT
+                   or environment variable.
+            width: Default chart width in pixels. If None, uses DEFAULT_CHART_WIDTH
+                  or environment variable.
+                  
+        Raises:
+            ValueError: If theme is invalid or dimensions are out of reasonable range
+            
+        Example:
+            >>> viz = WaterTrendsVisualizer(
+            ...     theme='plotly_dark', 
+            ...     height=800, 
+            ...     width=1200
+            ... )
         """
-        self.theme = theme or os.getenv('DEFAULT_CHART_THEME', 'plotly_white')
-        self.height = height or int(os.getenv('CHART_HEIGHT', '600'))
-        self.width = width or int(os.getenv('CHART_WIDTH', '1000'))
+        # Validate theme
+        theme = theme or os.getenv('DEFAULT_CHART_THEME', DEFAULT_CHART_THEME)
+        if theme not in VALID_THEMES:
+            raise ValueError(
+                f"Invalid theme '{theme}'. Valid options: {VALID_THEMES}"
+            )
+        
+        # Validate dimensions
+        height = height or int(os.getenv('CHART_HEIGHT', str(DEFAULT_CHART_HEIGHT)))
+        width = width or int(os.getenv('CHART_WIDTH', str(DEFAULT_CHART_WIDTH)))
+        
+        if not isinstance(height, int) or height < 200 or height > 2000:
+            raise ValueError(f"Chart height must be between 200-2000 pixels, got {height}")
+        
+        if not isinstance(width, int) or width < 400 or width > 4000:
+            raise ValueError(f"Chart width must be between 400-4000 pixels, got {width}")
+        
+        # Set attributes
+        self.theme = theme
+        self.height = height
+        self.width = width
+        self.logger = logging.getLogger(__name__)
         
         # Set default theme
-        px.defaults.template = self.theme
+        try:
+            px.defaults.template = theme
+            self.logger.info(f"Set Plotly theme to '{theme}'")
+        except Exception as e:
+            self.logger.warning(f"Failed to set Plotly theme '{theme}': {e}")
+            # Fallback to default theme
+            px.defaults.template = DEFAULT_CHART_THEME
+            self.theme = DEFAULT_CHART_THEME
+        
+        self.logger.info(
+            f"Initialized WaterTrendsVisualizer: theme='{self.theme}', "
+            f"dimensions={self.width}x{self.height}px"
+        )
     
     def create_seasonal_stacked_area_chart(
         self, 
@@ -59,53 +141,175 @@ class WaterTrendsVisualizer:
         """
         Create interactive stacked area chart of seasonal water availability.
         
+        This method generates a stacked area chart showing water area trends
+        across different seasons over time, with support for individual locations
+        or aggregated data across all locations.
+        
         Args:
-            df: DataFrame with water data
-            location_id: Specific location to plot. If None, plots all locations.
-            title: Chart title
-            
+            df: DataFrame with water data. Must contain columns: year, season,
+                water_area_ha, and optionally location_id.
+            location_id: Specific location to plot. If None, aggregates across all
+                       locations. Must be a valid location_id from the DataFrame.
+            title: Custom chart title. If None, generates default title.
+                   
         Returns:
-            Plotly Figure object
+            Plotly Figure object with interactive stacked area chart
+            
+        Raises:
+            ValueError: If DataFrame is empty, missing required columns, or location_id is invalid
+            
+        Example:
+            >>> viz = WaterTrendsVisualizer()
+            >>> fig = viz.create_seasonal_stacked_area_chart(
+            ...     water_df, location_id='V001',
+            ...     title='Water Trends for Village V001'
+            ... )
+            >>> fig.show()
         """
-        if location_id:
-            df_filtered = df[df['location_id'] == location_id]
-            title = title or f"Seasonal Water Trends - {location_id}"
-        else:
-            df_filtered = df.groupby(['year', 'season'])['water_area_ha'].mean().reset_index()
-            title = title or "Average Seasonal Water Trends - All Locations"
+        # Input validation
+        if df.empty:
+            raise ValueError("DataFrame cannot be empty")
         
-        # Pivot data for stacked area chart
-        pivot_df = df_filtered.pivot(index='year', columns='season', values='water_area_ha').fillna(0)
+        required_columns = ['year', 'season', 'water_area_ha']
+        missing_columns = [col for col in required_columns if col not in df.columns]
+        if missing_columns:
+            raise ValueError(f"DataFrame missing required columns: {missing_columns}")
         
-        # Create stacked area chart
-        fig = go.Figure()
+        # Validate location_id if provided
+        if location_id is not None:
+            if 'location_id' not in df.columns:
+                raise ValueError("DataFrame must contain 'location_id' column when location_id is specified")
+            
+            if location_id not in df['location_id'].values:
+                available_locations = df['location_id'].unique().tolist()
+                raise ValueError(
+                    f"Location '{location_id}' not found in DataFrame. "
+                    f"Available locations: {available_locations[:10]}..."
+                )
         
-        seasons = ['perennial', 'winter', 'monsoon']
-        colors = ['#1f77b4', '#ff7f0e', '#2ca02c']  # Blue, orange, green
+        self.logger.info(
+            f"Creating seasonal stacked area chart: location_id={location_id}, "
+            f"data_points={len(df)}"
+        )
         
-        for i, season in enumerate(seasons):
-            if season in pivot_df.columns:
+        try:
+            # Filter data based on location_id
+            if location_id:
+                df_filtered = df[df['location_id'] == location_id].copy()
+                title = title or f"Seasonal Water Trends - {location_id}"
+                self.logger.debug(f"Filtered data for location {location_id}: {len(df_filtered)} records")
+            else:
+                # Aggregate across all locations
+                df_filtered = df.groupby(['year', 'season'])['water_area_ha'].mean().reset_index()
+                title = title or "Average Seasonal Water Trends - All Locations"
+                self.logger.debug(f"Aggregated data across {df['location_id'].nunique()} locations")
+            
+            if df_filtered.empty:
+                raise ValueError("No data available after filtering/aggregation")
+            
+            # Validate data quality
+            if (df_filtered['water_area_ha'] < 0).any():
+                self.logger.warning("Found negative water area values, these will be displayed as-is")
+            
+            # Pivot data for stacked area chart
+            try:
+                pivot_df = df_filtered.pivot(
+                    index='year', 
+                    columns='season', 
+                    values='water_area_ha'
+                ).fillna(0)
+            except Exception as e:
+                self.logger.error(f"Failed to pivot data: {e}")
+                raise ValueError(f"Unable to create seasonal chart: {e}")
+            
+            if pivot_df.empty:
+                raise ValueError("No data available after pivoting")
+            
+            # Create stacked area chart
+            fig = go.Figure()
+            
+            # Add traces for each season in defined order
+            available_seasons = [s for s in SEASON_ORDER if s in pivot_df.columns]
+            
+            if not available_seasons:
+                raise ValueError(
+                    f"No valid seasons found in data. Available seasons in data: {list(pivot_df.columns)}"
+                )
+            
+            for season in available_seasons:
+                season_data = pivot_df[season]
+                color = SEASON_COLORS.get(season, '#7f7f7f')  # Default gray if color not defined
+                
                 fig.add_trace(go.Scatter(
                     x=pivot_df.index,
-                    y=pivot_df[season],
+                    y=season_data,
                     mode='lines',
                     stackgroup='one',
                     name=season.capitalize(),
-                    line=dict(color=colors[i]),
-                    fillcolor=colors[i]
+                    line=dict(color=color, width=2),
+                    fillcolor=color,
+                    fill='tonexty',
+                    hovertemplate=f'<b>{season.capitalize()}</b><br>' +
+                                  'Year: %{x}<br>' +
+                                  'Water Area: %{y:.2f} ha<extra></extra>'
                 ))
-        
-        fig.update_layout(
-            title=title,
-            xaxis_title="Year",
-            yaxis_title="Water Area (hectares)",
-            height=self.height,
-            width=self.width,
-            hovermode='x unified',
-            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
-        )
-        
-        return fig
+            
+            # Update layout with comprehensive styling
+            fig.update_layout(
+                title=dict(
+                    text=title,
+                    x=0.5,
+                    xanchor='center',
+                    font=dict(size=16, family='Arial, sans-serif')
+                ),
+                xaxis_title=dict(
+                    text='Year',
+                    font=dict(size=12, family='Arial, sans-serif')
+                ),
+                yaxis_title=dict(
+                    text='Water Area (hectares)',
+                    font=dict(size=12, family='Arial, sans-serif')
+                ),
+                height=self.height,
+                width=self.width,
+                template=self.theme,
+                legend=dict(
+                    orientation="h",
+                    yanchor="bottom",
+                    y=1.02,
+                    xanchor="right",
+                    x=1,
+                    font=dict(size=11)
+                ),
+                hovermode='x unified',
+                margin=dict(l=60, r=20, t=80, b=60)
+            )
+            
+            # Add axis formatting
+            fig.update_xaxes(
+                tickmode='linear',
+                tickformat='d',  # Integer format for years
+                gridcolor='lightgray',
+                gridwidth=1
+            )
+            
+            fig.update_yaxes(
+                gridcolor='lightgray',
+                gridwidth=1,
+                tickformat=',.0f'  # Comma-separated integers
+            )
+            
+            # Log completion
+            self.logger.info(
+                f"Successfully created seasonal stacked area chart: "
+                f"{len(available_seasons)} seasons, {len(pivot_df)} years"
+            )
+            
+            return fig
+            
+        except Exception as e:
+            self.logger.error(f"Error creating seasonal stacked area chart: {e}", exc_info=True)
+            raise ValueError(f"Failed to create seasonal chart: {e}")
     
     def create_comparison_line_plot(
         self, 

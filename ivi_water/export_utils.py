@@ -2,15 +2,17 @@
 Export Utilities Module
 
 This module provides functions to generate reports, export data,
-and create Short-friendly summaries.
+and create PDF-friendly summaries.
 """
 
+# Standard library imports
 import os
 import logging
-from typing import Dict, List, Optional, Union
+from typing import Dict, List, Optional, Union, Any, Tuple
 from datetime import datetime
 from pathlib import Path
 
+# Third-party imports
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
@@ -27,6 +29,15 @@ try:
 except ImportError:
     REPORTLAB_AVAILABLE = False
 
+# Constants
+DEFAULT_OUTPUT_DIR = './outputs'
+DEFAULT_EXPORT_DPI = 300
+DEFAULT_FIGURE_SIZE = (12, 8)
+SUPPORTED_EXPORT_FORMATS = ['csv', 'excel', 'parquet', 'json']
+SUPPORTED_IMAGE_FORMATS = ['png', 'jpg', 'jpeg', 'pdf', 'svg']
+PDF_PAGE_SIZES = {'letter': letter, 'A4': A4}
+
+# Logger setup
 logger = logging.getLogger(__name__)
 
 
@@ -34,24 +45,76 @@ class ExportUtils:
     """
     Utility class for exporting data and generating reports.
     
-    This class provides methods to export data in various formats
-    and generate comprehensive reports including Short-friendly summaries.
+    This class provides comprehensive methods to export data in various formats,
+    generate statistical reports, create visualizations, and produce PDF documents
+    with professional formatting and error handling.
+    
+    Attributes:
+        output_dir (Path): Directory for output files
+        figure_size (Tuple[int, int]): Default figure dimensions for plots
+        dpi (int): Resolution for exported images
+        logger (logging.Logger): Logger instance for this class
+        
+    Example:
+        >>> exporter = ExportUtils('./reports')
+        >>> filepath = exporter.export_data_table(df, 'water_data', 'excel')
+        >>> report_path = exporter.generate_pdf_report(df, 'Water Analysis Report')
     """
     
-    def __init__(self, output_dir: Optional[str] = None):
+    def __init__(self, output_dir: Optional[str] = None) -> None:
         """
-        Initialize export utilities.
+        Initialize export utilities with configuration.
+        
+        This method sets up the export environment, creates output directories,
+        and configures default settings for data export and report generation.
         
         Args:
-            output_dir: Directory for output files
+            output_dir: Directory for output files. If None, uses OUTPUT_DIR
+                       environment variable or DEFAULT_OUTPUT_DIR.
+                       
+        Raises:
+            OSError: If unable to create output directory
+            ValueError: If output_dir path is invalid
+            
+        Example:
+            >>> exporter = ExportUtils('./my_reports')
+            >>> print(exporter.output_dir)
+            PosixPath('./my_reports')
         """
-        self.output_dir = Path(output_dir or os.getenv('OUTPUT_DIR', './outputs'))
-        self.output_dir.mkdir(parents=True, exist_ok=True)
+        # Validate and set output directory
+        if output_dir is None:
+            output_dir = os.getenv('OUTPUT_DIR', DEFAULT_OUTPUT_DIR)
         
-        # Set matplotlib style
-        plt.style.use('default')
-        self.figure_size = (12, 8)
-        self.dpi = int(os.getenv('EXPORT_DPI', '300'))
+        if not isinstance(output_dir, str) or not output_dir.strip():
+            raise ValueError("Output directory must be a non-empty string")
+        
+        try:
+            self.output_dir = Path(output_dir).resolve()
+            self.output_dir.mkdir(parents=True, exist_ok=True)
+        except (OSError, ValueError) as e:
+            raise OSError(f"Failed to create output directory '{output_dir}': {e}")
+        
+        # Set matplotlib configuration
+        try:
+            plt.style.use('default')
+        except Exception as e:
+            logger.warning(f"Failed to set matplotlib style: {e}")
+        
+        # Set figure and export parameters
+        self.figure_size = DEFAULT_FIGURE_SIZE
+        self.dpi = int(os.getenv('EXPORT_DPI', str(DEFAULT_EXPORT_DPI)))
+        
+        # Validate DPI
+        if not isinstance(self.dpi, int) or self.dpi < 72 or self.dpi > 600:
+            logger.warning(f"DPI {self.dpi} is out of reasonable range, using default")
+            self.dpi = DEFAULT_EXPORT_DPI
+        
+        self.logger = logging.getLogger(__name__)
+        
+        self.logger.info(
+            f"Initialized ExportUtils: output_dir='{self.output_dir}', "
+            f"figure_size={self.figure_size}, dpi={self.dpi}"
+        )
     
     def export_data_table(
         self, 
@@ -60,35 +123,136 @@ class ExportUtils:
         format: str = 'csv'
     ) -> str:
         """
-        Export data table to various formats.
+        Export data table to various formats with comprehensive validation.
+        
+        This method exports DataFrames to multiple formats including CSV, Excel,
+        Parquet, and JSON, with automatic summary generation for Excel exports
+        and robust error handling for all operations.
         
         Args:
-            df: DataFrame to export
-            filename: Output filename (without extension)
-            format: Export format ('csv', 'excel', 'parquet')
-            
+            df: DataFrame to export. Must not be empty.
+            filename: Output filename without extension. Will be sanitized.
+            format: Export format. Supported formats are in SUPPORTED_EXPORT_FORMATS.
+                   Default is 'csv'.
+                   
         Returns:
-            Path to exported file
+            Absolute path to the exported file as string
+            
+        Raises:
+            ValueError: If DataFrame is empty, filename is invalid, or format unsupported
+            OSError: If unable to write to output directory
+            PermissionError: If insufficient permissions to write file
+            
+        Example:
+            >>> exporter = ExportUtils('./reports')
+            >>> filepath = exporter.export_data_table(
+            ...     df, 'water_data', format='excel'
+            ... )
+            >>> print(f"Exported to: {filepath}")
         """
-        if format == 'csv':
-            filepath = self.output_dir / f"{filename}.csv"
-            df.to_csv(filepath, index=False)
-        elif format == 'excel':
-            filepath = self.output_dir / f"{filename}.xlsx"
-            with pd.ExcelWriter(filepath, engine='openpyxl') as writer:
-                df.to_excel(writer, sheet_name='Data', index=False)
-                
-                # Add summary sheet
-                summary_df = self._create_summary_table(df)
-                summary_df.to_excel(writer, sheet_name='Summary', index=False)
-        elif format == 'parquet':
-            filepath = self.output_dir / f"{filename}.parquet"
-            df.to_parquet(filepath, index=False)
-        else:
-            raise ValueError(f"Unsupported format: {format}")
+        # Input validation
+        if df.empty:
+            raise ValueError("DataFrame cannot be empty")
         
-        logger.info(f"Data exported to {filepath}")
-        return str(filepath)
+        if not isinstance(filename, str) or not filename.strip():
+            raise ValueError("Filename must be a non-empty string")
+        
+        # Sanitize filename
+        filename = filename.strip()
+        # Remove invalid characters and replace spaces with underscores
+        filename = ''.join(c if c.isalnum() or c in '-_' else '_' for c in filename)
+        filename = filename.replace(' ', '_')
+        
+        if not filename:
+            raise ValueError("Filename contains no valid characters after sanitization")
+        
+        # Validate format
+        if not isinstance(format, str) or format not in SUPPORTED_EXPORT_FORMATS:
+            raise ValueError(
+                f"Unsupported format '{format}'. "
+                f"Supported formats: {SUPPORTED_EXPORT_FORMATS}"
+            )
+        
+        self.logger.info(
+            f"Exporting DataFrame ({len(df)} rows, {len(df.columns)} columns) "
+            f"to {format} format as '{filename}'"
+        )
+        
+        try:
+            # Determine file extension and path
+            extensions = {
+                'csv': '.csv',
+                'excel': '.xlsx',
+                'parquet': '.parquet',
+                'json': '.json'
+            }
+            
+            extension = extensions[format]
+            filepath = self.output_dir / f"{filename}{extension}"
+            
+            # Check if file exists and warn
+            if filepath.exists():
+                self.logger.warning(f"Overwriting existing file: {filepath}")
+            
+            # Export based on format
+            if format == 'csv':
+                df.to_csv(filepath, index=False, encoding='utf-8')
+                
+            elif format == 'excel':
+                try:
+                    with pd.ExcelWriter(filepath, engine='openpyxl') as writer:
+                        # Main data sheet
+                        df.to_excel(writer, sheet_name='Data', index=False)
+                        
+                        # Summary sheet
+                        try:
+                            summary_df = self._create_summary_table(df)
+                            summary_df.to_excel(writer, sheet_name='Summary', index=False)
+                        except Exception as e:
+                            self.logger.warning(f"Failed to create summary sheet: {e}")
+                            
+                except ImportError:
+                    # Fallback to xlsxwriter if openpyxl not available
+                    with pd.ExcelWriter(filepath, engine='xlsxwriter') as writer:
+                        df.to_excel(writer, sheet_name='Data', index=False)
+                        try:
+                            summary_df = self._create_summary_table(df)
+                            summary_df.to_excel(writer, sheet_name='Summary', index=False)
+                        except Exception as e:
+                            self.logger.warning(f"Failed to create summary sheet: {e}")
+                            
+            elif format == 'parquet':
+                try:
+                    df.to_parquet(filepath, index=False, engine='pyarrow')
+                except ImportError:
+                    # Fallback to fastparquet if pyarrow not available
+                    df.to_parquet(filepath, index=False, engine='fastparquet')
+                    
+            elif format == 'json':
+                df.to_json(filepath, orient='records', indent=2, date_format='iso')
+            
+            # Verify file was created and get size
+            if not filepath.exists():
+                raise OSError(f"Failed to create output file: {filepath}")
+            
+            file_size = filepath.stat().st_size
+            
+            self.logger.info(
+                f"Successfully exported {len(df)} rows to {filepath} "
+                f"({file_size:,} bytes)"
+            )
+            
+            return str(filepath.absolute())
+            
+        except PermissionError:
+            self.logger.error(f"Permission denied when writing to {filepath}")
+            raise PermissionError(f"Permission denied: {filepath}")
+        except OSError as e:
+            self.logger.error(f"OS error during export: {e}")
+            raise OSError(f"Failed to export data: {e}")
+        except Exception as e:
+            self.logger.error(f"Unexpected error during export: {e}", exc_info=True)
+            raise ValueError(f"Export failed: {e}")
     
     def _create_summary_table(self, df: pd.DataFrame) -> pd.DataFrame:
         """Create summary statistics table."""
