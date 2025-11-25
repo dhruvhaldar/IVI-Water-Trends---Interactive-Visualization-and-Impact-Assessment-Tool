@@ -1,0 +1,7 @@
+location_id,year,pond_presence,crop_yield_ton_per_ha,drought_sensitivity
+V001,2020,1,2.8,low
+V001,2021,1,3.1,low
+V001,2022,1,3.4,low
+V002,2020,0,1.9,high
+V002,2021,0,2.1,medium
+V002,2022,0,2.3,medium
