@@ -239,8 +239,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 - **Documentation**: Check the `docs/` folder
 - **Issues**: Report bugs on GitHub Issues
-- **Email**: haldardhruv@gmail.com
-
+  
 ## 🙏 Acknowledgments
 
 - **CoRE Stack**: For providing the water data APIs
