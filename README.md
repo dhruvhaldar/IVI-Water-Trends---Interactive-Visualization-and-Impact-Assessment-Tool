@@ -239,8 +239,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 - **Documentation**: Check the `docs/` folder
 - **Issues**: Report bugs on GitHub Issues
-- **Community**: Join our discussion forum
-- **Email**: contact@ivi-water.org
+- **Email**: haldardhruv@gmail.com
 
 ## 🙏 Acknowledgments
 
