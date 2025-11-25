@@ -10,7 +10,7 @@ from datetime import datetime
 import requests
 from requests.adapters import HTTPAdapter
 
-from ivi_water.api_client import CoREStackClient, RequestException
+from ivi_water.api_client import CoREStackClient, RequestException, get_spatial_units, get_seasonal_water_data
 
 
 class TestCoREStackClient:
@@ -423,6 +423,28 @@ class TestCoREStackClient:
                 assert "metadata" in result
 
                 mock_request.assert_called_once_with("elevation", {"location_id": "V002"})
+
+    def test_get_elevation_data_exception_logging(self):
+
+        client = CoREStackClient(api_key='test')
+
+        # Mock _make_request to raise an exception
+        with patch.object(client, '_make_request', side_effect=Exception("API failure")) as mock_request:
+            with patch.object(client.logger, 'error') as mock_error:
+                with pytest.raises(Exception) as exc_info:
+                    _ = client.get_elevation_data("V003")
+
+                # Check logger.error called with message containing the exception text and exc_info=True
+                args, kwargs = mock_error.call_args
+                logged_message = args[0] if args else ""
+                assert "Failed to fetch elevation data" in logged_message
+                assert "API failure" in logged_message
+                assert kwargs.get('exc_info') is True
+
+                # The raised exception is propagated and matched
+                assert str(exc_info.value) == "API failure"
+
+                mock_request.assert_called_once_with("elevation", {"location_id": "V003"})
         
     def test_clear_cache(self):
         """Test cache clearing."""
@@ -463,3 +485,46 @@ class TestCoREStackClient:
         
         assert info['cache_size'] == 0
         assert info['cache_ttl'] == client.cache_ttl
+
+    def test_get_spatial_units(self):
+        client = CoREStackClient(api_key='test')
+
+        mock_response = [
+            {'id': 'V001', 'name': 'Village 001', 'state': 'MH'},
+            {'id': 'V002', 'name': 'Village 002', 'state': 'MH'}
+        ]
+
+        with patch.object(client, 'get_spatial_units', return_value=mock_response) as mock_method:
+            # Call your function (uses default client internally)
+            result = client.get_spatial_units('village', 'MH')
+
+            # Assert the client method was called with correct params
+            mock_method.assert_called_once_with('village', 'MH')
+
+            # Assert the function returns the mocked data correctly
+            assert result == mock_response
+
+    def test_get_seasonal_water_data(self):
+        client = CoREStackClient(api_key='test')
+        location_id = 'V001'
+        start_year = 2018
+        end_year = 2020
+
+        mock_response = {
+            'data': {
+                'timeseries': [
+                    {'year': 2018, 'season': 'perennial', 'water_area_ha': 10.5},
+                    {'year': 2019, 'season': 'winter', 'water_area_ha': 8.7},
+                    {'year': 2020, 'season': 'monsoon', 'water_area_ha': 12.3},
+                ]
+            }
+        }
+        with patch.object(client, '_make_request', return_value=mock_response) as mock_request:
+            result = client.get_seasonal_water_data(location_id, start_year, end_year)
+            mock_request.assert_called_once_with(
+                'water-trends/seasonal',
+                {'location_id': location_id, 'start_year': start_year, 'end_year': end_year}
+            )
+            assert isinstance(result, dict)
+            assert 'timeseries' in result
+            assert len(result['timeseries']) == 3
