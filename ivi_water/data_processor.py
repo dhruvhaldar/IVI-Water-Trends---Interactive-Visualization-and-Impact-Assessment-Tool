@@ -16,6 +16,9 @@ from typing import Dict, List, Optional, Union, Tuple, Any
 import pandas as pd
 import numpy as np
 
+# Local imports
+from .export_utils import sanitize_dataframe
+
 # Constants
 DEFAULT_DATA_DIR = './data'
 DEFAULT_OUTPUT_DIR = './outputs'
@@ -1401,6 +1404,11 @@ class DataProcessor:
             if final_path.exists():
                 self.logger.warning(f"Overwriting existing file: {final_path}")
             
+            # Sanitize data before export to prevent injection
+            # Only needed for CSV and Excel
+            if format in ['csv', 'excel']:
+                df = sanitize_dataframe(df)
+
             # Export based on format
             if format == 'csv':
                 df.to_csv(final_path, index=False, encoding='utf-8')
