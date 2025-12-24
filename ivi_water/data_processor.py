@@ -847,7 +847,10 @@ class DataProcessor:
         if df.empty:
             raise ValueError("DataFrame cannot be empty for trend calculation")
         
-        required_columns = ['water_area_ha', 'year'] + group_by
+        # Ensure group_by is a list
+        group_by_list = [group_by] if isinstance(group_by, str) else list(group_by)
+
+        required_columns = ['water_area_ha', 'year'] + group_by_list
         missing_columns = [col for col in required_columns if col not in df.columns]
         if missing_columns:
             raise ValueError(f"Missing required columns for trend calculation: {missing_columns}")
@@ -864,14 +867,20 @@ class DataProcessor:
         successful_calculations = 0
         
         try:
-            for group_name, group_df in df.groupby(group_by):
+            # Sort once by group columns and year to avoid sorting in each loop iteration
+            # This significantly improves performance for large datasets
+            # Ensure group_by is a list for concatenation
+            group_cols = [group_by] if isinstance(group_by, str) else list(group_by)
+            sort_cols = group_cols + ['year']
+
+            # Using mergesort as it is stable
+            df_sorted = df.sort_values(sort_cols, kind='mergesort')
+
+            for group_name, group_df in df_sorted.groupby(group_by, sort=False):
                 total_groups += 1
                 
                 try:
-                    # Sort by year for consistent trend calculation
-                    group_df = group_df.sort_values('year')
-                    
-                    # Extract data arrays
+                    # Extract data arrays (already sorted by year)
                     water_areas = group_df['water_area_ha'].values
                     years = group_df['year'].values
                     
@@ -943,9 +952,24 @@ class DataProcessor:
                                 successful_calculations += 1
                     
                     # Calculate comprehensive statistics
+                    # Handle group identifiers safely for both list and string group_by
+                    if isinstance(group_by, str):
+                        group_identifiers = {group_by: group_name}
+                    else:
+                        # Ensure group_name is a tuple if it's not (e.g. single item list groupby might return scalar)
+                        # But pandas groupby usually returns tuple for multiple keys, scalar for single key
+                        if not isinstance(group_name, tuple) and len(group_by) > 1:
+                            # Should not happen with multiple keys
+                            pass
+                        elif not isinstance(group_name, tuple):
+                             # Single key list groupby returns scalar
+                             group_name = (group_name,)
+
+                        group_identifiers = {group_by[i]: group_name[i] for i in range(len(group_by))}
+
                     stats = {
                         # Group identifiers
-                        **{group_by[i]: group_name[i] for i in range(len(group_by))},
+                        **group_identifiers,
                         
                         # Basic statistics
                         'mean_water_area_ha': float(np.mean(water_areas)),
