@@ -32,6 +32,7 @@ except ImportError:
 # Constants
 DEFAULT_OUTPUT_DIR = './outputs'
 DEFAULT_EXPORT_DPI = 300
+CSV_INJECTION_CHARS = ('=', '+', '-', '@')
 DEFAULT_FIGURE_SIZE = (12, 8)
 SUPPORTED_EXPORT_FORMATS = ['csv', 'excel', 'parquet', 'json']
 SUPPORTED_IMAGE_FORMATS = ['png', 'jpg', 'jpeg', 'pdf', 'svg']
@@ -39,6 +40,30 @@ PDF_PAGE_SIZES = {'letter': letter, 'A4': A4}
 
 # Logger setup
 logger = logging.getLogger(__name__)
+
+
+def sanitize_dataframe(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Sanitize DataFrame to prevent CSV Injection (Formula Injection).
+
+    Prepends a single quote to any string value starting with =, +, -, or @
+    to prevent Excel from interpreting it as a formula.
+    """
+    if df.empty:
+        return df
+
+    df_clean = df.copy()
+
+    # Identify object (string) columns
+    string_cols = df_clean.select_dtypes(include=['object', 'string']).columns
+
+    for col in string_cols:
+        # Apply sanitization to string columns
+        mask = df_clean[col].astype(str).str.startswith(CSV_INJECTION_CHARS, na=False)
+        if mask.any():
+            df_clean.loc[mask, col] = "'" + df_clean.loc[mask, col].astype(str)
+
+    return df_clean
 
 
 class ExportUtils:
@@ -178,6 +203,11 @@ class ExportUtils:
             f"to {format} format as '{filename}'"
         )
         
+        # Sanitize data before export to prevent injection
+        # Only needed for CSV and Excel to avoid corrupting machine-readable formats
+        if format in ['csv', 'excel']:
+            df = sanitize_dataframe(df)
+
         try:
             # Determine file extension and path
             extensions = {
@@ -602,7 +632,7 @@ For questions or support, contact: IVI Water Trends Team"""
         with open(index_path, 'w', encoding='utf-8') as f:
             f.write(index_content)
         
-        return str(index_file)
+        return str(index_path)
     
     def create_visualization_exports(
         self, 

@@ -22,7 +22,7 @@ from dotenv import load_dotenv
 from .api_client import CoREStackClient
 from .data_processor import DataProcessor
 from .visualizer import WaterTrendsVisualizer
-from .export_utils import ExportUtils
+from .export_utils import ExportUtils, sanitize_dataframe
 
 # Constants
 DEFAULT_DATA_DIR = './data'
@@ -231,7 +231,8 @@ def get_spatial_units(
         # Save to file
         try:
             output_path = Path(ctx.obj['output_dir']) / output
-            df.to_csv(output_path, index=False, encoding='utf-8')
+            # Sanitize data before saving
+            sanitize_dataframe(df).to_csv(output_path, index=False, encoding='utf-8')
             
             file_size = output_path.stat().st_size
             logger.info(f"Saved {len(df)} spatial units to {output_path} ({file_size} bytes)")
@@ -398,7 +399,8 @@ def fetch_water_data(
         # Save to file
         try:
             output_path = Path(ctx.obj['output_dir']) / output
-            water_df.to_csv(output_path, index=False, encoding='utf-8')
+            # Sanitize data before saving
+            sanitize_dataframe(water_df).to_csv(output_path, index=False, encoding='utf-8')
             
             file_size = output_path.stat().st_size
             logger.info(f"Saved {len(water_df)} water records to {output_path} ({file_size} bytes)")
@@ -470,7 +472,8 @@ def merge_data(ctx, water_data, nrm_data, output):
         
         # Save merged data
         output_path = Path(ctx.obj['output_dir']) / output
-        merged_df.to_csv(output_path, index=False)
+        # Sanitize data before saving
+        sanitize_dataframe(merged_df).to_csv(output_path, index=False)
         
         click.echo(f"Merged data saved to {output_path}")
         click.echo(f"Total records: {len(merged_df)}")
