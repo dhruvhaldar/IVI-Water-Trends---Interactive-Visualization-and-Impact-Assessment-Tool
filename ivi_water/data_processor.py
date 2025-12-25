@@ -1406,9 +1406,12 @@ class DataProcessor:
         
         # Sanitize filename
         filename = filename.strip()
-        if not filename.replace('_', '').replace('-', '').replace('.', '').isalnum():
-            self.logger.warning(f"Filename '{filename}' contains special characters")
+        # Remove invalid characters and replace spaces with underscores to prevent path traversal
+        filename = ''.join(c if c.isalnum() or c in '-_' else '_' for c in filename)
         
+        if not filename:
+             raise ValueError("Filename contains no valid characters after sanitization")
+
         supported_formats = ['csv', 'excel', 'parquet']
         if format not in supported_formats:
             raise ValueError(
