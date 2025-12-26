@@ -865,155 +865,148 @@ class DataProcessor:
             f"Calculating water trends for {len(df)} records grouped by: {group_by}"
         )
         
-        trend_stats: List[Dict[str, Any]] = []
-        total_groups = 0
-        successful_calculations = 0
-        
         try:
-            # Sort once by group columns and year to avoid sorting in each loop iteration
-            # This significantly improves performance for large datasets
-            # Ensure group_by is a list for concatenation
-            group_cols = [group_by] if isinstance(group_by, str) else list(group_by)
-            sort_cols = group_cols + ['year']
+            # 1. Filter invalid data first (copy to avoid modification)
+            valid_mask = ~df['water_area_ha'].isna() & (df['water_area_ha'] >= 0)
+            df_valid = df[valid_mask].copy()
 
-            # Using mergesort as it is stable
-            df_sorted = df.sort_values(sort_cols, kind='mergesort')
+            if df_valid.empty:
+                 raise ValueError("No valid trend statistics could be calculated")
 
-            for group_name, group_df in df_sorted.groupby(group_by, sort=False):
-                total_groups += 1
-                
-                try:
-                    # Extract data arrays (already sorted by year)
-                    water_areas = group_df['water_area_ha'].values
-                    years = group_df['year'].values
-                    
-                    # Basic validation
-                    if len(water_areas) == 0:
-                        self.logger.warning(f"Empty group for {group_name}")
-                        continue
-                    
-                    # Check for valid water area values
-                    valid_mask = ~np.isnan(water_areas) & (water_areas >= 0)
-                    if not np.any(valid_mask):
-                        self.logger.warning(f"No valid water area data for group {group_name}")
-                        continue
-                    
-                    water_areas = water_areas[valid_mask]
-                    years = years[valid_mask]
-                    
-                    # Calculate linear trend (slope) with improved numerical stability
-                    slope = 0.0
-                    trend_quality = 'insufficient_data'
-                    
-                    if len(water_areas) >= MIN_DATA_POINTS_FOR_TREND and len(np.unique(years)) > 1:
-                        try:
-                            # Use robust linear regression to handle outliers
-                            if len(water_areas) >= 3:
-                                # For sufficient data points, use robust fitting
-                                # Scale years to improve numerical stability
-                                year_mean = np.mean(years)
-                                year_std = np.std(years)
-                                
-                                if year_std > 0:
-                                    years_scaled = (years - year_mean) / year_std
-                                    
-                                    # Use numpy's polyfit with full output to get diagnostics
-                                    coeffs, residuals, rank, singular_values, rcond = np.polyfit(
-                                        years_scaled, water_areas, 1, full=True
-                                    )
-                                    
-                                    # Check numerical stability
-                                    if rank == 2 and np.all(singular_values > rcond):
-                                        slope = coeffs[0] / year_std  # Scale back to original units
-                                        trend_quality = 'good'
-                                        successful_calculations += 1
-                                    else:
-                                        self.logger.debug(
-                                            f"Poorly conditioned fit for group {group_name}: "
-                                            f"rank={rank}, singular_values={singular_values}"
-                                        )
-                                        trend_quality = 'poor_fit'
-                                        # Fall back to simple linear regression
-                                        slope = self._simple_linear_regression(years, water_areas)
-                                else:
-                                    # All years are the same, cannot calculate trend
-                                    trend_quality = 'constant_year'
-                            else:
-                                # For minimal data points, use simple calculation
-                                if len(water_areas) == 2:
-                                    year_diff = years[1] - years[0]
-                                    if year_diff != 0:
-                                        slope = (water_areas[1] - water_areas[0]) / year_diff
-                                        trend_quality = 'minimal_data'
-                                        successful_calculations += 1
-                        except (np.RankWarning, np.linalg.LinAlgError, ValueError) as e:
-                            self.logger.debug(f"Trend calculation failed for group {group_name}: {e}")
-                            # Fall back to simple method
-                            slope = self._simple_linear_regression(years, water_areas)
-                            trend_quality = 'fallback'
-                            if slope != 0:
-                                successful_calculations += 1
-                    
-                    # Calculate comprehensive statistics
-                    # Handle group identifiers safely for both list and string group_by
-                    if isinstance(group_by, str):
-                        group_identifiers = {group_by: group_name}
-                    else:
-                        # Ensure group_name is a tuple if it's not (e.g. single item list groupby might return scalar)
-                        # But pandas groupby usually returns tuple for multiple keys, scalar for single key
-                        if not isinstance(group_name, tuple) and len(group_by) > 1:
-                            # Should not happen with multiple keys
-                            pass
-                        elif not isinstance(group_name, tuple):
-                             # Single key list groupby returns scalar
-                             group_name = (group_name,)
+            # Calculate total observations per group using the original dataframe
+            # This accounts for NaN or negative values that we filtered out
+            # We use size() to count rows in each group
+            total_observations = df.groupby(group_by_list).size().reset_index(name='total_observations')
 
-                        group_identifiers = {group_by[i]: group_name[i] for i in range(len(group_by))}
+            # 2. Pre-calculate columns for vectorized linear regression
+            # Center years to avoid floating point issues with large numbers (e.g. 2020^2)
+            global_year_min = df_valid['year'].min()
+            df_valid['year_offset'] = df_valid['year'] - global_year_min
 
-                    stats = {
-                        # Group identifiers
-                        **group_identifiers,
-                        
-                        # Basic statistics
-                        'mean_water_area_ha': float(np.mean(water_areas)),
-                        'std_water_area_ha': float(np.std(water_areas, ddof=1)),
-                        'min_water_area_ha': float(np.min(water_areas)),
-                        'max_water_area_ha': float(np.max(water_areas)),
-                        'median_water_area_ha': float(np.median(water_areas)),
-                        
-                        # Trend information
-                        'trend_slope_ha_per_year': float(slope),
-                        'trend_quality': trend_quality,
-                        
-                        # Data coverage
-                        'data_points': len(water_areas),
-                        'start_year': int(np.min(years)),
-                        'end_year': int(np.max(years)),
-                        'year_span': int(np.max(years) - np.min(years)),
-                        
-                        # Additional metrics
-                        'coefficient_of_variation': float(np.std(water_areas, ddof=1) / np.mean(water_areas)) if np.mean(water_areas) > 0 else 0.0,
-                        'total_observations': len(group_df),  # Original group size
-                    }
-                    
-                    trend_stats.append(stats)
-                    
-                except Exception as e:
-                    self.logger.error(f"Error processing group {group_name}: {e}", exc_info=True)
-                    continue
+            # Calculate cross terms
+            df_valid['xy'] = df_valid['year_offset'] * df_valid['water_area_ha']
+            df_valid['xx'] = df_valid['year_offset'] ** 2
+
+            # 3. Group by and aggregate all necessary statistics in one pass
+            # This replaces the Python loop over groups
+            agg_spec = {
+                'water_area_ha': ['count', 'mean', 'std', 'min', 'max', 'median', 'sum'],
+                'year': ['min', 'max', 'nunique'],
+                'year_offset': ['sum'],
+                'xy': ['sum'],
+                'xx': ['sum']
+            }
+
+            grouped = df_valid.groupby(group_by_list)
+            agg_df = grouped.agg(agg_spec)
+
+            # Flatten column index
+            agg_df.columns = ['_'.join(col).strip() for col in agg_df.columns.values]
+
+            # 4. Calculate Slope using the formula:
+            # slope = (Sum(xy) - Sum(x)*Sum(y)/n) / (Sum(x^2) - Sum(x)^2/n)
+            # where x is year_offset, y is water_area_ha
+
+            n = agg_df['water_area_ha_count']
+            sum_x = agg_df['year_offset_sum']
+            sum_y = agg_df['water_area_ha_sum']
+            sum_xy = agg_df['xy_sum']
+            sum_xx = agg_df['xx_sum']
+
+            numerator = sum_xy - (sum_x * sum_y / n)
+            denominator = sum_xx - (sum_x ** 2 / n)
+
+            # Handle division by zero (denominator == 0 implies constant x, i.e., variance of x is 0)
+            # Also set slope to 0 where n < 2
+            with np.errstate(divide='ignore', invalid='ignore'):
+                slope = np.where(denominator != 0, numerator / denominator, 0.0)
+                slope = np.where(n >= 2, slope, 0.0)
+
+            # 5. Determine Trend Quality
+            # Logic mapped from original implementation:
+            # - insufficient_data: n < MIN_DATA_POINTS_FOR_TREND
+            # - constant_year: std(year) == 0 (which corresponds to denominator == 0 approx)
+            # - minimal_data: n == 2 (and year_diff != 0)
+            # - good: n >= 3 and year_std > 0
+
+            year_span = agg_df['year_max'] - agg_df['year_min']
+
+            conditions = [
+                n < MIN_DATA_POINTS_FOR_TREND,
+                year_span == 0,
+                n == 2
+            ]
+            choices = [
+                'insufficient_data',
+                'constant_year',
+                'minimal_data'
+            ]
+
+            trend_quality = np.select(conditions, choices, default='good')
+
+            # Handle NaN slopes that might have slipped through (e.g. n=0)
+            slope = np.nan_to_num(slope)
+
+            # 6. Assemble Result DataFrame
+            # Reset index to get group keys as columns
+            result_df = agg_df.reset_index()
+
+            # Rename and assign computed columns
+            result_df['trend_slope_ha_per_year'] = slope
+            result_df['trend_quality'] = trend_quality
+
+            # Map aggregated columns to expected output names
+            column_mapping = {
+                'water_area_ha_mean': 'mean_water_area_ha',
+                'water_area_ha_std': 'std_water_area_ha',
+                'water_area_ha_min': 'min_water_area_ha',
+                'water_area_ha_max': 'max_water_area_ha',
+                'water_area_ha_median': 'median_water_area_ha',
+                'water_area_ha_count': 'data_points',
+                'year_min': 'start_year',
+                'year_max': 'end_year'
+            }
+            result_df = result_df.rename(columns=column_mapping)
+
+            # Calculate additional metrics
+            result_df['year_span'] = result_df['end_year'] - result_df['start_year']
             
-            if not trend_stats:
-                raise ValueError("No valid trend statistics could be calculated")
+            # Merge total_observations from original dataframe
+            # Merge on group_by_list
+            result_df = pd.merge(result_df, total_observations, on=group_by_list, how='left')
+            result_df['total_observations'] = result_df['total_observations'].fillna(0).astype(int)
+
+            # Coefficient of variation
+            # Handle division by zero if mean is 0
+            with np.errstate(divide='ignore', invalid='ignore'):
+                 cv = result_df['std_water_area_ha'] / result_df['mean_water_area_ha']
+                 result_df['coefficient_of_variation'] = np.where(
+                     result_df['mean_water_area_ha'] > 0, cv, 0.0
+                 )
             
-            # Create result DataFrame
-            result_df = pd.DataFrame(trend_stats)
+            # Fill NaN std with 0 (happens when count=1)
+            result_df['std_water_area_ha'] = result_df['std_water_area_ha'].fillna(0.0)
+            result_df['coefficient_of_variation'] = result_df['coefficient_of_variation'].fillna(0.0)
+
+            # Select only required columns
+            output_columns = group_by_list + [
+                'mean_water_area_ha', 'std_water_area_ha', 'min_water_area_ha',
+                'max_water_area_ha', 'median_water_area_ha', 'trend_slope_ha_per_year',
+                'trend_quality', 'data_points', 'start_year', 'end_year',
+                'year_span', 'coefficient_of_variation', 'total_observations'
+            ]
+
+            result_df = result_df[output_columns]
             
             # Sort results for consistent ordering
-            result_df = result_df.sort_values(group_by).reset_index(drop=True)
+            result_df = result_df.sort_values(group_by_list).reset_index(drop=True)
+
+            total_groups = len(result_df)
+            successful_calculations = len(result_df[result_df['trend_quality'].isin(['good', 'minimal_data'])])
             
             # Log summary statistics
             self.logger.info(
-                f"Trend calculation completed:\n"
+                f"Trend calculation completed (vectorized):\n"
                 f"- Total groups processed: {total_groups}\n"
                 f"- Successful trend calculations: {successful_calculations}\n"
                 f"- Success rate: {(successful_calculations/total_groups)*100:.1f}%\n"
