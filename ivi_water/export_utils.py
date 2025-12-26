@@ -66,6 +66,39 @@ def sanitize_dataframe(df: pd.DataFrame) -> pd.DataFrame:
     return df_clean
 
 
+def sanitize_filename(filename: str) -> str:
+    """
+    Sanitize filename to prevent path traversal and ensure validity.
+
+    Args:
+        filename: Input filename
+
+    Returns:
+        Sanitized filename
+
+    Raises:
+        ValueError: If filename is empty after sanitization
+    """
+    if not isinstance(filename, str):
+        raise ValueError("Filename must be a string")
+
+    # Remove directory separators and null bytes
+    filename = os.path.basename(filename).strip()
+
+    # Allow alphanumeric, dashes, underscores, and dots
+    # This is a strict whitelist approach
+    cleaned = ''.join(c for c in filename if c.isalnum() or c in '-_.')
+
+    if not cleaned:
+        raise ValueError("Filename contains no valid characters after sanitization")
+
+    # Prevent directory traversal indicators (though basename handles most)
+    if '..' in cleaned:
+        cleaned = cleaned.replace('..', '')
+
+    return cleaned
+
+
 class ExportUtils:
     """
     Utility class for exporting data and generating reports.
@@ -183,13 +216,7 @@ class ExportUtils:
             raise ValueError("Filename must be a non-empty string")
         
         # Sanitize filename
-        filename = filename.strip()
-        # Remove invalid characters and replace spaces with underscores
-        filename = ''.join(c if c.isalnum() or c in '-_' else '_' for c in filename)
-        filename = filename.replace(' ', '_')
-        
-        if not filename:
-            raise ValueError("Filename contains no valid characters after sanitization")
+        filename = sanitize_filename(filename)
         
         # Validate format
         if not isinstance(format, str) or format not in SUPPORTED_EXPORT_FORMATS:

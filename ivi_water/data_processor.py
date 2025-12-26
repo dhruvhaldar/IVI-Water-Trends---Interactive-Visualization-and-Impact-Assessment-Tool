@@ -17,7 +17,7 @@ import pandas as pd
 import numpy as np
 
 # Local imports
-from .export_utils import sanitize_dataframe
+from .export_utils import sanitize_dataframe, sanitize_filename
 
 # Constants
 DEFAULT_DATA_DIR = './data'
@@ -1405,12 +1405,7 @@ class DataProcessor:
             raise ValueError("Filename must be a non-empty string")
         
         # Sanitize filename
-        filename = filename.strip()
-        # Remove invalid characters and replace spaces with underscores to prevent path traversal
-        filename = ''.join(c if c.isalnum() or c in '-_' else '_' for c in filename)
-        
-        if not filename:
-             raise ValueError("Filename contains no valid characters after sanitization")
+        filename = sanitize_filename(filename)
 
         supported_formats = ['csv', 'excel', 'parquet']
         if format not in supported_formats:

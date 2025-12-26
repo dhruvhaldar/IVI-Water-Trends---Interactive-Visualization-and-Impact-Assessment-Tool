@@ -4,7 +4,12 @@ import shutil
 import pytest
 import pandas as pd
 from pathlib import Path
+from click.testing import CliRunner
+from unittest.mock import patch, MagicMock
+
 from ivi_water.data_processor import DataProcessor
+from ivi_water.export_utils import sanitize_filename
+from ivi_water.cli import cli
 
 @pytest.fixture
 def temp_data_dir():
@@ -15,6 +20,57 @@ def temp_data_dir():
     yield data_dir
     if data_dir.exists():
         shutil.rmtree(data_dir)
+
+def test_sanitize_filename():
+    """Test the filename sanitization logic."""
+    assert sanitize_filename("normal_file.csv") == "normal_file.csv"
+    assert sanitize_filename("../evil_file.csv") == "evil_file.csv"
+    assert sanitize_filename("dir/file.csv") == "file.csv"
+    assert sanitize_filename("file with spaces.csv") == "filewithspaces.csv"
+    assert sanitize_filename("file$name.csv") == "filename.csv"
+
+    with pytest.raises(ValueError):
+        sanitize_filename("")
+
+    with pytest.raises(ValueError):
+        sanitize_filename("   ")
+
+    with pytest.raises(ValueError):
+        sanitize_filename("$$$")
+
+def test_cli_path_traversal(temp_data_dir):
+    """
+    Test that CLI commands prevent path traversal in output filenames.
+    """
+    runner = CliRunner()
+    output_dir = temp_data_dir / "outputs"
+    output_dir.mkdir()
+
+    # Mock the CoREStackClient
+    with patch('ivi_water.cli.CoREStackClient') as MockClient:
+        mock_instance = MockClient.return_value
+        mock_instance.get_spatial_units.return_value = [{'id': 'V001', 'name': 'Test Village'}]
+
+        # Try path traversal
+        result = runner.invoke(cli, [
+            '--output-dir', str(output_dir),
+            'get-spatial-units',
+            '--unit-type', 'village',
+            '--output', '../evil_file'
+        ])
+
+        # Should succeed but write to sanitized path
+        assert result.exit_code == 0
+
+        # Check that file was NOT created outside
+        outside_file = temp_data_dir / "evil_file.csv"
+        assert not outside_file.exists(), "File should not exist outside output directory"
+
+        # Check that file WAS created inside with sanitized name
+        # sanitize_filename("../evil_file") -> "evil_file"
+        # cli appends .csv if missing -> "evil_file.csv"
+        expected_file = output_dir / "evil_file.csv"
+        assert expected_file.exists(), f"File should exist at sanitized path: {expected_file}"
 
 def test_export_processed_data_path_traversal(temp_data_dir):
     """
@@ -33,8 +89,8 @@ def test_export_processed_data_path_traversal(temp_data_dir):
     assert not outside_file.exists(), "File should not exist outside processed directory"
 
     # Check that it wrote to sanitized path
-    # ../outside_file -> ___outside_file
-    sanitized_filename = "___outside_file.csv"
+    # sanitize_filename("../outside_file") -> "outside_file"
+    sanitized_filename = "outside_file.csv"
     processed_file = temp_data_dir / "processed" / sanitized_filename
 
     assert processed_file.exists(), f"File should exist at sanitized path: {processed_file}"
