@@ -66,6 +66,42 @@ def sanitize_dataframe(df: pd.DataFrame) -> pd.DataFrame:
     return df_clean
 
 
+def sanitize_filename(filename: str) -> str:
+    """
+    Sanitize filename to prevent path traversal and remove invalid characters.
+
+    Args:
+        filename: Original filename
+
+    Returns:
+        Sanitized filename containing only alphanumeric characters, dashes, underscores, and dots.
+
+    Raises:
+        ValueError: If filename is empty or contains no valid characters
+    """
+    if not isinstance(filename, str) or not filename.strip():
+        raise ValueError("Filename must be a non-empty string")
+
+    # Strip whitespace
+    filename = filename.strip()
+
+    # Remove directory separators to prevent path traversal
+    filename = os.path.basename(filename)
+
+    # Remove invalid characters and replace spaces with underscores
+    # Allow alphanumeric, dot, underscore, and dash
+    clean_filename = ''.join(c if c.isalnum() or c in '-_.' else '_' for c in filename)
+
+    # Prevent leading dots (hidden files)
+    while clean_filename.startswith('.'):
+        clean_filename = clean_filename[1:]
+
+    if not clean_filename:
+        raise ValueError("Filename contains no valid characters after sanitization")
+
+    return clean_filename
+
+
 class ExportUtils:
     """
     Utility class for exporting data and generating reports.
@@ -183,13 +219,7 @@ class ExportUtils:
             raise ValueError("Filename must be a non-empty string")
         
         # Sanitize filename
-        filename = filename.strip()
-        # Remove invalid characters and replace spaces with underscores
-        filename = ''.join(c if c.isalnum() or c in '-_' else '_' for c in filename)
-        filename = filename.replace(' ', '_')
-        
-        if not filename:
-            raise ValueError("Filename contains no valid characters after sanitization")
+        filename = sanitize_filename(filename)
         
         # Validate format
         if not isinstance(format, str) or format not in SUPPORTED_EXPORT_FORMATS:

@@ -22,7 +22,7 @@ from dotenv import load_dotenv
 from .api_client import CoREStackClient
 from .data_processor import DataProcessor
 from .visualizer import WaterTrendsVisualizer
-from .export_utils import ExportUtils, sanitize_dataframe
+from .export_utils import ExportUtils, sanitize_dataframe, sanitize_filename
 
 # Constants
 DEFAULT_DATA_DIR = './data'
@@ -189,6 +189,11 @@ def get_spatial_units(
         if not output or not isinstance(output, str):
             raise click.ClickException("Output filename must be a non-empty string")
         
+        try:
+            output = sanitize_filename(output)
+        except ValueError as e:
+            raise click.ClickException(f"Invalid output filename: {e}")
+
         if not output.endswith('.csv'):
             output += '.csv'
         
@@ -359,6 +364,11 @@ def fetch_water_data(
         if not output or not isinstance(output, str):
             raise click.ClickException("Output filename must be a non-empty string")
         
+        try:
+            output = sanitize_filename(output)
+        except ValueError as e:
+            raise click.ClickException(f"Invalid output filename: {e}")
+
         if not output.endswith('.csv'):
             output += '.csv'
         
@@ -471,6 +481,11 @@ def merge_data(ctx, water_data, nrm_data, output):
             merged_df['nrm_data_available'] = False
         
         # Save merged data
+        try:
+            output = sanitize_filename(output)
+        except ValueError as e:
+            raise click.ClickException(f"Invalid output filename: {e}")
+
         output_path = Path(ctx.obj['output_dir']) / output
         # Sanitize data before saving
         sanitize_dataframe(merged_df).to_csv(output_path, index=False)
@@ -507,6 +522,11 @@ def visualize(ctx, data, location_id, chart_type, output, format):
             location_suffix = f"_{location_id}" if location_id else ""
             output = f"{chart_type}_chart{location_suffix}"
         
+        try:
+            output = sanitize_filename(output)
+        except ValueError as e:
+            raise click.ClickException(f"Invalid output filename: {e}")
+
         # Create appropriate chart
         if chart_type == 'seasonal':
             fig = viz.create_seasonal_stacked_area_chart(df, location_id)
@@ -550,6 +570,11 @@ def dashboard(ctx, data, locations, output):
         
         fig = viz.create_multi_location_dashboard(df_filtered, location_list)
         
+        try:
+            output = sanitize_filename(output)
+        except ValueError as e:
+            raise click.ClickException(f"Invalid output filename: {e}")
+
         output_path = Path(ctx.obj['output_dir']) / f"{output}.html"
         fig.write_html(output_path)
         
@@ -577,6 +602,11 @@ def generate_report(ctx, data, report_type, output):
         if not output:
             output = f"{report_type}_report"
         
+        try:
+            output = sanitize_filename(output)
+        except ValueError as e:
+            raise click.ClickException(f"Invalid output filename: {e}")
+
         if report_type == 'summary':
             output_path = export_utils.generate_summary_report(
                 df, ctx.obj['output_dir'], output
