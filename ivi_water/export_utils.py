@@ -8,6 +8,7 @@ and create PDF-friendly summaries.
 # Standard library imports
 import os
 import logging
+import html
 from typing import Dict, List, Optional, Union, Any, Tuple
 from datetime import datetime
 from pathlib import Path
@@ -468,7 +469,7 @@ class ExportUtils:
             
             <h2>Data Overview</h2>
             <p>Total records: {len(df)}</p>
-            <p>Columns: {', '.join(df.columns.tolist())}</p>
+            <p>Columns: {html.escape(', '.join(df.columns.tolist()))}</p>
         </body>
         </html>
         """
