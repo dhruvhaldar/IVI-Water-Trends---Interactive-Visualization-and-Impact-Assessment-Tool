@@ -33,8 +33,8 @@ def test_export_processed_data_path_traversal(temp_data_dir):
     assert not outside_file.exists(), "File should not exist outside processed directory"
 
     # Check that it wrote to sanitized path
-    # ../outside_file -> ___outside_file
-    sanitized_filename = "___outside_file.csv"
+    # ../outside_file -> outside_file (because of os.path.basename)
+    sanitized_filename = "outside_file.csv"
     processed_file = temp_data_dir / "processed" / sanitized_filename
 
     assert processed_file.exists(), f"File should exist at sanitized path: {processed_file}"
