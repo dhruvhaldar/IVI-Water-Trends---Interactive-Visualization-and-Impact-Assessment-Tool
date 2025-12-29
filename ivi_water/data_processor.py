@@ -1179,8 +1179,7 @@ class DataProcessor:
             # Group by intervention presence and calculate comprehensive statistics
             agg_dict = {
                 'water_area_ha': [
-                    'mean', 'std', 'min', 'max', 'count', 'median',
-                    lambda x: (x >= 0).sum()  # Count of non-negative values
+                    'mean', 'std', 'min', 'max', 'count', 'median'
                 ],
                 'water_body_count': ['mean', 'std', 'min', 'max', 'sum'] if 'water_body_count' in df_clean.columns else ['mean'],
                 'location_id': 'nunique'
@@ -1203,6 +1202,11 @@ class DataProcessor:
                     new_columns.append(f"{col[0]}_valid_count")
             
             agg_stats.columns = new_columns
+
+            # Ensure water_area_ha_valid_count exists (previously attempted via lambda but often resulted in obscure names)
+            # Since we filtered for water_area_ha >= 0, count is equivalent to valid_count
+            if 'water_area_ha_count' in agg_stats.columns:
+                agg_stats['water_area_ha_valid_count'] = agg_stats['water_area_ha_count']
             agg_stats = agg_stats.reset_index()
             
             # Add intervention labels
