@@ -354,41 +354,57 @@ class DataProcessor:
             df_clean['water_area_ha'] = pd.to_numeric(df_clean['water_area_ha'], errors='coerce')
             df_clean['water_body_count'] = pd.to_numeric(df_clean['water_body_count'], errors='coerce')
             
-            # Validate year range
-            invalid_years = df_clean[(df_clean['year'] < 1900) | (df_clean['year'] > 2100)]
-            if not invalid_years.empty:
-                self.logger.warning(f"Removing {len(invalid_years)} records with invalid years")
-                df_clean = df_clean[(df_clean['year'] >= 1900) & (df_clean['year'] <= 2100)]
+            # Initialize keep mask for efficient filtering
+            keep_mask = np.ones(len(df_clean), dtype=bool)
             
-            # Validate seasons
-            invalid_seasons = df_clean[~df_clean['season'].isin(VALID_SEASONS)]
-            if not invalid_seasons.empty:
-                self.logger.warning(f"Removing {len(invalid_seasons)} records with invalid seasons")
-                df_clean = df_clean[df_clean['season'].isin(VALID_SEASONS)]
+            # 1. Validate year range
+            # Note: NaN year compares False to both < 1900 and > 2100, so we use inverse logic to preserve NaNs for dropna step
+            invalid_years_mask = (df_clean['year'] < 1900) | (df_clean['year'] > 2100)
+            valid_years = ~invalid_years_mask
             
-            # Remove rows with missing critical data
-            before_na_removal = len(df_clean)
-            df_clean = df_clean.dropna(subset=['year', 'season', 'water_area_ha'])
-            na_removed = before_na_removal - len(df_clean)
-            if na_removed > 0:
-                self.logger.warning(f"Removed {na_removed} records with missing critical data")
+            # Calculate removed items for logging (items currently kept AND invalid)
+            removed_mask = keep_mask & invalid_years_mask
+            if removed_mask.any():
+                count = removed_mask.sum()
+                self.logger.warning(f"Removing {count} records with invalid years")
+                keep_mask &= valid_years
             
-            # Remove invalid water areas (negative or unreasonably large)
-            before_area_filter = len(df_clean)
-            df_clean = df_clean[
-                (df_clean['water_area_ha'] >= MIN_WATER_AREA_HA) & 
-                (df_clean['water_area_ha'] <= MAX_WATER_AREA_HA)
-            ]
-            area_filtered = before_area_filter - len(df_clean)
-            if area_filtered > 0:
-                self.logger.warning(f"Removed {area_filtered} records with invalid water areas")
+            # 2. Validate seasons
+            valid_seasons = df_clean['season'].isin(VALID_SEASONS)
+            removed_mask = keep_mask & (~valid_seasons)
+            if removed_mask.any():
+                count = removed_mask.sum()
+                self.logger.warning(f"Removing {count} records with invalid seasons")
+                keep_mask &= valid_seasons
+
+            # 3. Remove rows with missing critical data
+            # Equivalent to dropna(subset=['year', 'season', 'water_area_ha'])
+            not_na = ~df_clean[['year', 'season', 'water_area_ha']].isna().any(axis=1)
+            removed_mask = keep_mask & (~not_na)
+            if removed_mask.any():
+                count = removed_mask.sum()
+                self.logger.warning(f"Removed {count} records with missing critical data")
+                keep_mask &= not_na
             
-            # Remove negative water body counts
-            before_count_filter = len(df_clean)
-            df_clean = df_clean[df_clean['water_body_count'] >= 0]
-            count_filtered = before_count_filter - len(df_clean)
-            if count_filtered > 0:
-                self.logger.warning(f"Removed {count_filtered} records with negative water body counts")
+            # 4. Remove invalid water areas (negative or unreasonably large)
+            valid_area = (df_clean['water_area_ha'] >= MIN_WATER_AREA_HA) & \
+                         (df_clean['water_area_ha'] <= MAX_WATER_AREA_HA)
+            removed_mask = keep_mask & (~valid_area)
+            if removed_mask.any():
+                count = removed_mask.sum()
+                self.logger.warning(f"Removed {count} records with invalid water areas")
+                keep_mask &= valid_area
+
+            # 5. Remove negative water body counts
+            valid_count = df_clean['water_body_count'] >= 0
+            removed_mask = keep_mask & (~valid_count)
+            if removed_mask.any():
+                count = removed_mask.sum()
+                self.logger.warning(f"Removed {count} records with negative water body counts")
+                keep_mask &= valid_count
+
+            # Apply all filters at once to minimize DataFrame copies
+            df_clean = df_clean[keep_mask]
             
             # Remove exact duplicates
             before_dedup = len(df_clean)
