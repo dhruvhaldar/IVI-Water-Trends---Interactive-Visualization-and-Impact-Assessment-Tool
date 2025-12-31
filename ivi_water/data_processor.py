@@ -128,7 +128,7 @@ class DataProcessor:
             f"from {start_year} to {end_year} for seasons: {seasons}"
         )
         
-        all_data: List[pd.DataFrame] = []
+        all_rows: List[Dict[str, Any]] = []
         successful_locations = 0
         
         for location_id in location_ids:
@@ -144,21 +144,22 @@ class DataProcessor:
                     self.logger.warning(f"No data returned for location {location_id}")
                     continue
                 
-                # Convert API response to DataFrame format
-                df_data = self._convert_api_response_to_df(water_data, location_id)
+                # Optimization: Collect rows in a list instead of creating DataFrames in loop
+                # This significantly reduces overhead for large numbers of locations
+                rows = self._convert_api_response_to_rows(water_data, location_id)
                 
-                if not df_data.empty:
-                    all_data.append(df_data)
+                if rows:
+                    all_rows.extend(rows)
                     successful_locations += 1
-                    self.logger.debug(f"Successfully loaded {len(df_data)} records for {location_id}")
+                    self.logger.debug(f"Successfully loaded {len(rows)} records for {location_id}")
                 else:
-                    self.logger.warning(f"Empty DataFrame created for location {location_id}")
+                    self.logger.warning(f"No valid rows created for location {location_id}")
                 
             except Exception as e:
                 self.logger.error(f"Failed to load water data for {location_id}: {e}", exc_info=True)
                 continue
         
-        if not all_data:
+        if not all_rows:
             raise ValueError(
                 f"No water data could be loaded from {len(location_ids)} locations. "
                 "Check API connection and location IDs."
@@ -169,11 +170,11 @@ class DataProcessor:
         )
         
         try:
-            combined_df = pd.concat(all_data, ignore_index=True)
+            combined_df = pd.DataFrame(all_rows)
             return self._clean_water_data(combined_df)
         except Exception as e:
-            self.logger.error(f"Failed to combine DataFrames: {e}", exc_info=True)
-            raise ValueError(f"Error combining water data: {e}")
+            self.logger.error(f"Failed to create DataFrame: {e}", exc_info=True)
+            raise ValueError(f"Error creating water data DataFrame: {e}")
     
     def _convert_api_response_to_df(self, api_data: Dict[str, Any], location_id: str) -> pd.DataFrame:
         """
@@ -207,6 +208,29 @@ class DataProcessor:
             >>> df = processor._convert_api_response_to_df(api_data, 'V001')
             >>> print(df[['location_id', 'year', 'season', 'water_area_ha']].values.tolist())
             [['V001', 2020, 'monsoon', 100.5]]
+        """
+        rows = self._convert_api_response_to_rows(api_data, location_id)
+
+        if not rows:
+            self.logger.warning(f"No valid data rows created for location {location_id}")
+            return pd.DataFrame()
+
+        df = pd.DataFrame(rows)
+        self.logger.debug(f"Created DataFrame with {len(df)} rows for location {location_id}")
+        return df
+
+    def _convert_api_response_to_rows(self, api_data: Dict[str, Any], location_id: str) -> List[Dict[str, Any]]:
+        """
+        Convert API response data to a list of row dictionaries.
+
+        This internal helper avoids creating intermediate DataFrames for better performance.
+
+        Args:
+            api_data: Raw API response data
+            location_id: Location identifier
+
+        Returns:
+            List of dictionaries representing rows
         """
         if not api_data:
             raise ValueError("API data cannot be empty")
@@ -296,14 +320,8 @@ class DataProcessor:
             except Exception as e:
                 self.logger.error(f"Error processing year_data: {e}", exc_info=True)
                 continue
-        
-        if not rows:
-            self.logger.warning(f"No valid data rows created for location {location_id}")
-            return pd.DataFrame()
-        
-        df = pd.DataFrame(rows)
-        self.logger.debug(f"Created DataFrame with {len(df)} rows for location {location_id}")
-        return df
+
+        return rows
     
     def _clean_water_data(self, df: pd.DataFrame) -> pd.DataFrame:
         """
