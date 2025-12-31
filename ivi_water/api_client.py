@@ -19,6 +19,9 @@ from requests.adapters import HTTPAdapter
 from requests.exceptions import RequestException, Timeout, ConnectionError
 from urllib3.util.retry import Retry
 
+# Local imports
+from .security_utils import redact_sensitive_data, hash_data
+
 # Constants
 DEFAULT_CACHE_TTL = 3600  # 1 hour in seconds
 MAX_RETRIES = 3
@@ -308,11 +311,9 @@ class CoREStackClient:
         url = f"{self.base_url}/{endpoint}"
         
         # Create cache key
-        try:
-            cache_key = f"{method}_{url}_{json.dumps(params, sort_keys=True)}"
-        except (TypeError, ValueError) as e:
-            self.logger.warning(f"Cannot create cache key due to non-serializable params: {e}")
-            cache_key = f"{method}_{url}_{hash(str(params))}"
+        # Use hash of params to avoid leaking sensitive data in cache keys
+        params_hash = hash_data(params)
+        cache_key = f"{method}_{url}_{params_hash}"
         
         # Try cache first if enabled
         if use_cache:
@@ -323,7 +324,9 @@ class CoREStackClient:
         
         # Make HTTP request
         try:
-            self.logger.debug(f"Making {method} request to {url} with params: {params}")
+            # Redact potentially sensitive parameters in logs
+            safe_params = redact_sensitive_data(params)
+            self.logger.debug(f"Making {method} request to {url} with params: {safe_params}")
             
             response = self.session.request(
                 method=method.upper(),
