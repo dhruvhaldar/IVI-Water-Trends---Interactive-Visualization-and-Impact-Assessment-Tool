@@ -13,6 +13,9 @@ import logging
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Union, Any
 
+# Local imports
+from .security_utils import redact_sensitive_data, hash_data
+
 # Third-party imports
 import requests
 from requests.adapters import HTTPAdapter
@@ -308,10 +311,15 @@ class CoREStackClient:
         url = f"{self.base_url}/{endpoint}"
         
         # Create cache key
+        # Use hash_data to prevent leaking params in cache keys and ensure consistency
         try:
-            cache_key = f"{method}_{url}_{json.dumps(params, sort_keys=True)}"
-        except (TypeError, ValueError) as e:
-            self.logger.warning(f"Cannot create cache key due to non-serializable params: {e}")
+            # We hash the params to keep the cache key short and secure (no PII/secrets visible)
+            # while ensuring it's deterministic.
+            params_hash = hash_data(params)
+            cache_key = f"{method}_{url}_{params_hash}"
+        except Exception as e:
+            self.logger.warning(f"Error creating cache key: {e}")
+            # Fallback to simple hash if something goes wrong
             cache_key = f"{method}_{url}_{hash(str(params))}"
         
         # Try cache first if enabled
@@ -323,7 +331,9 @@ class CoREStackClient:
         
         # Make HTTP request
         try:
-            self.logger.debug(f"Making {method} request to {url} with params: {params}")
+            # Redact sensitive data in logs
+            safe_params = redact_sensitive_data(params)
+            self.logger.debug(f"Making {method} request to {url} with params: {safe_params}")
             
             response = self.session.request(
                 method=method.upper(),
