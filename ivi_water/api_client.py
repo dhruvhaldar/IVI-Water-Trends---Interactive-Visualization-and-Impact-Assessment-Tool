@@ -19,6 +19,9 @@ from requests.adapters import HTTPAdapter
 from requests.exceptions import RequestException, Timeout, ConnectionError
 from urllib3.util.retry import Retry
 
+# Local imports
+from .security_utils import redact_sensitive_data
+
 # Constants
 DEFAULT_CACHE_TTL = 3600  # 1 hour in seconds
 MAX_RETRIES = 3
@@ -171,7 +174,7 @@ class CoREStackClient:
         """
         try:
             if self._is_cache_valid(cache_key):
-                self.logger.debug(f"Cache hit for {cache_key}")
+                self.logger.debug(f"Cache hit for {hash(cache_key)}")
                 return self._cache[cache_key].copy()  # Return a copy to prevent mutation
             else:
                 # Clean up expired entry
@@ -194,7 +197,7 @@ class CoREStackClient:
         """
         try:
             if not isinstance(data, dict):
-                self.logger.warning(f"Cannot cache non-dict data for {cache_key}")
+                self.logger.warning(f"Cannot cache non-dict data for {hash(cache_key)}")
                 return
             
             # Simple cache size management - limit to 1000 entries
@@ -203,9 +206,9 @@ class CoREStackClient:
             
             self._cache[cache_key] = data.copy()  # Store a copy
             self._cache_timestamps[cache_key] = datetime.now()
-            self.logger.debug(f"Cached data for {cache_key}")
+            self.logger.debug(f"Cached data for {hash(cache_key)}")
         except Exception as e:
-            self.logger.warning(f"Error setting cache for {cache_key}: {e}")
+            self.logger.warning(f"Error setting cache for {hash(cache_key)}: {e}")
     
     def _cleanup_cache_entry(self, cache_key: str) -> None:
         """
@@ -323,7 +326,7 @@ class CoREStackClient:
         
         # Make HTTP request
         try:
-            self.logger.debug(f"Making {method} request to {url} with params: {params}")
+            self.logger.debug(f"Making {method} request to {url} with params: {redact_sensitive_data(params)}")
             
             response = self.session.request(
                 method=method.upper(),
