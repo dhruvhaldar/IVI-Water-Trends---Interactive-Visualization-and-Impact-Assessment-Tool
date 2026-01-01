@@ -886,40 +886,38 @@ class DataProcessor:
         successful_calculations = 0
         
         try:
-            # Vectorized implementation for performance
-            # Filter valid data first
-            valid_mask = ~df['water_area_ha'].isna() & (df['water_area_ha'] >= 0)
-            df_valid = df[valid_mask].copy()
+            # 1. Prepare data with validity masks
+            # We work on a copy to avoid modifying original
+            # This optimization avoids filtering the dataframe which can be expensive (copying data)
+            # instead we create masked columns and use a single groupby pass
+            df_proc = df.copy()
 
-            if df_valid.empty:
+            valid_mask = ~df_proc['water_area_ha'].isna() & (df_proc['water_area_ha'] >= 0)
+
+            if not valid_mask.any():
                 raise ValueError("No valid data points found (water_area_ha >= 0)")
 
-            # Create columns for slope calculation
-            df_valid['xy'] = df_valid['year'] * df_valid['water_area_ha']
-            df_valid['xx'] = df_valid['year'] ** 2
+            # Create masked columns for aggregation
+            # Set invalid values to NaN so they are ignored by mean, sum, min, max
+            df_proc['valid_water'] = df_proc['water_area_ha'].where(valid_mask)
+            df_proc['valid_year'] = df_proc['year'].where(valid_mask)
 
-            # Define aggregations
-            aggs = {
-                'water_area_ha': ['mean', 'std', 'min', 'max', 'median', 'count'],
-                'year': ['min', 'max'],
-                'xy': ['sum'],
-                'xx': ['sum']
-            }
-            # Add sum of year and water_area_ha which are needed for slope
-            # We can get them from mean * count, but direct sum is safer/clearer
-            # We will compute them separately or add to aggs
+            # Pre-calculate xy and xx for slope
+            # Only valid rows contribute (others are NaN)
+            df_proc['xy'] = df_proc['valid_year'] * df_proc['valid_water']
+            df_proc['xx'] = df_proc['valid_year'] ** 2
 
-            # GroupBy aggregation
-            # This is much faster than iterating
-            grouped = df_valid.groupby(group_by)
+            # 2. Single GroupBy for all statistics
+            grouped = df_proc.groupby(group_by)
 
-            # Custom aggregation to get all needed stats at once
-            # We construct a dictionary of column -> list of functions
             agg_funcs = {
-                'water_area_ha': ['mean', 'std', 'min', 'max', 'median', 'count', 'sum'],
-                'year': ['min', 'max', 'sum'],
+                'valid_water': ['mean', 'std', 'min', 'max', 'median', 'count', 'sum'],
+                'valid_year': ['min', 'max', 'sum'],
                 'xy': 'sum',
-                'xx': 'sum'
+                'xx': 'sum',
+                # We use year size to count total observations (rows) including invalid ones
+                # 'size' counts rows, 'count' counts non-NA.
+                'year': ['size']
             }
 
             stats_df = grouped.agg(agg_funcs)
@@ -932,15 +930,20 @@ class DataProcessor:
 
             # Rename for compatibility with existing output format
             stats_df = stats_df.rename(columns={
-                'water_area_ha_mean': 'mean_water_area_ha',
-                'water_area_ha_std': 'std_water_area_ha',
-                'water_area_ha_min': 'min_water_area_ha',
-                'water_area_ha_max': 'max_water_area_ha',
-                'water_area_ha_median': 'median_water_area_ha',
-                'water_area_ha_count': 'data_points',
-                'year_min': 'start_year',
-                'year_max': 'end_year'
+                'valid_water_mean': 'mean_water_area_ha',
+                'valid_water_std': 'std_water_area_ha',
+                'valid_water_min': 'min_water_area_ha',
+                'valid_water_max': 'max_water_area_ha',
+                'valid_water_median': 'median_water_area_ha',
+                'valid_water_count': 'data_points',
+                'valid_year_min': 'start_year',
+                'valid_year_max': 'end_year',
+                'year_size': 'total_observations'
             })
+
+            # Filter out groups with 0 valid data points
+            # (Equivalent to the previous logic where left join was on valid groups)
+            stats_df = stats_df[stats_df['data_points'] > 0].copy()
 
             # Calculate Derived Metrics
             stats_df['year_span'] = stats_df['end_year'] - stats_df['start_year']
@@ -953,8 +956,8 @@ class DataProcessor:
             # Slope Calculation (Vectorized)
             # m = (N * sum(xy) - sum(x) * sum(y)) / (N * sum(xx) - sum(x)^2)
             N = stats_df['data_points']
-            sum_x = stats_df['year_sum']
-            sum_y = stats_df['water_area_ha_sum']
+            sum_x = stats_df['valid_year_sum']
+            sum_y = stats_df['valid_water_sum']
             sum_xy = stats_df['xy_sum']
             sum_xx = stats_df['xx_sum']
 
@@ -991,18 +994,8 @@ class DataProcessor:
             mask_minimal = (stats_df['data_points'] == 2) & (~mask_const) # Only if not constant year
             stats_df.loc[mask_minimal, 'trend_quality'] = 'minimal_data'
 
-            # Get total observations (original group size) including filtered rows
-            # This requires another groupby on original df
-            total_obs = df.groupby(group_by).size().rename('total_observations')
-
-            # Merge total obs
-            result_df = stats_df.join(total_obs, on=group_by if isinstance(group_by, list) else [group_by])
-
-            # Fill total_observations for groups that might have been filtered out completely
-            # (though join keeps left index which is valid groups)
-
             # Reset index to make group columns normal columns
-            result_df = result_df.reset_index()
+            result_df = stats_df.reset_index()
 
             # Ensure float types for metrics
             float_cols = [
