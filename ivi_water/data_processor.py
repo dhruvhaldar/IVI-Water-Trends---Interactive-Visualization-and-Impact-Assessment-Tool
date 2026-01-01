@@ -128,7 +128,7 @@ class DataProcessor:
             f"from {start_year} to {end_year} for seasons: {seasons}"
         )
         
-        all_data: List[pd.DataFrame] = []
+        all_rows: List[Dict[str, Any]] = []
         successful_locations = 0
         
         for location_id in location_ids:
@@ -144,21 +144,22 @@ class DataProcessor:
                     self.logger.warning(f"No data returned for location {location_id}")
                     continue
                 
-                # Convert API response to DataFrame format
-                df_data = self._convert_api_response_to_df(water_data, location_id)
+                # Convert API response to list of rows
+                # Optimization: Collect rows directly instead of creating intermediate DataFrames
+                rows = self._convert_api_response_to_rows(water_data, location_id)
                 
-                if not df_data.empty:
-                    all_data.append(df_data)
+                if rows:
+                    all_rows.extend(rows)
                     successful_locations += 1
-                    self.logger.debug(f"Successfully loaded {len(df_data)} records for {location_id}")
+                    self.logger.debug(f"Successfully loaded {len(rows)} records for {location_id}")
                 else:
-                    self.logger.warning(f"Empty DataFrame created for location {location_id}")
+                    self.logger.warning(f"No valid rows created for location {location_id}")
                 
             except Exception as e:
                 self.logger.error(f"Failed to load water data for {location_id}: {e}", exc_info=True)
                 continue
         
-        if not all_data:
+        if not all_rows:
             raise ValueError(
                 f"No water data could be loaded from {len(location_ids)} locations. "
                 "Check API connection and location IDs."
@@ -169,44 +170,30 @@ class DataProcessor:
         )
         
         try:
-            combined_df = pd.concat(all_data, ignore_index=True)
+            # Create DataFrame once at the end
+            combined_df = pd.DataFrame(all_rows)
             return self._clean_water_data(combined_df)
         except Exception as e:
-            self.logger.error(f"Failed to combine DataFrames: {e}", exc_info=True)
+            self.logger.error(f"Failed to create DataFrame: {e}", exc_info=True)
             raise ValueError(f"Error combining water data: {e}")
     
-    def _convert_api_response_to_df(self, api_data: Dict[str, Any], location_id: str) -> pd.DataFrame:
+    def _convert_api_response_to_rows(self, api_data: Dict[str, Any], location_id: str) -> List[Dict[str, Any]]:
         """
-        Convert API response data to DataFrame format.
+        Convert API response data to list of dictionaries.
         
         This method handles different API response structures and converts
-        them to a standardized DataFrame format with proper validation.
+        them to a standardized list of dictionaries.
         
         Args:
             api_data: Raw API response data containing timeseries information
             location_id: Location identifier for the data
             
         Returns:
-            DataFrame in long format with columns: location_id, year, season,
+            List of dictionaries with keys: location_id, year, season,
             water_area_ha, water_body_count, data_quality
             
         Raises:
             ValueError: If API data structure is invalid or missing required fields
-            
-        Example:
-            >>> api_data = {
-            ...     'timeseries': [
-            ...         {
-            ...             'year': 2020,
-            ...             'seasons': {
-            ...                 'monsoon': {'area_ha': 100.5, 'count': 5}
-            ...             }
-            ...         }
-            ...     ]
-            ... }
-            >>> df = processor._convert_api_response_to_df(api_data, 'V001')
-            >>> print(df[['location_id', 'year', 'season', 'water_area_ha']].values.tolist())
-            [['V001', 2020, 'monsoon', 100.5]]
         """
         if not api_data:
             raise ValueError("API data cannot be empty")
@@ -296,6 +283,43 @@ class DataProcessor:
             except Exception as e:
                 self.logger.error(f"Error processing year_data: {e}", exc_info=True)
                 continue
+
+        return rows
+
+    def _convert_api_response_to_df(self, api_data: Dict[str, Any], location_id: str) -> pd.DataFrame:
+        """
+        Convert API response data to DataFrame format.
+
+        This method handles different API response structures and converts
+        them to a standardized DataFrame format with proper validation.
+
+        Args:
+            api_data: Raw API response data containing timeseries information
+            location_id: Location identifier for the data
+
+        Returns:
+            DataFrame in long format with columns: location_id, year, season,
+            water_area_ha, water_body_count, data_quality
+
+        Raises:
+            ValueError: If API data structure is invalid or missing required fields
+
+        Example:
+            >>> api_data = {
+            ...     'timeseries': [
+            ...         {
+            ...             'year': 2020,
+            ...             'seasons': {
+            ...                 'monsoon': {'area_ha': 100.5, 'count': 5}
+            ...             }
+            ...         }
+            ...     ]
+            ... }
+            >>> df = processor._convert_api_response_to_df(api_data, 'V001')
+            >>> print(df[['location_id', 'year', 'season', 'water_area_ha']].values.tolist())
+            [['V001', 2020, 'monsoon', 100.5]]
+        """
+        rows = self._convert_api_response_to_rows(api_data, location_id)
         
         if not rows:
             self.logger.warning(f"No valid data rows created for location {location_id}")
