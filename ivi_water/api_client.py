@@ -10,6 +10,7 @@ import os
 import time
 import json
 import logging
+import threading
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Union, Any
 
@@ -126,6 +127,7 @@ class CoREStackClient:
         # Simple in-memory cache with validation
         self._cache: Dict[str, Dict[str, Any]] = {}
         self._cache_timestamps: Dict[str, datetime] = {}
+        self._lock = threading.Lock()
         self.cache_ttl = int(os.getenv('CACHE_TTL', str(DEFAULT_CACHE_TTL)))
         
         if self.cache_ttl < 0:
@@ -173,13 +175,14 @@ class CoREStackClient:
             Cached data dictionary if valid, None otherwise
         """
         try:
-            if self._is_cache_valid(cache_key):
-                self.logger.debug(f"Cache hit for {hash(cache_key)}")
-                return self._cache[cache_key].copy()  # Return a copy to prevent mutation
-            else:
-                # Clean up expired entry
-                self._cleanup_cache_entry(cache_key)
-                return None
+            with self._lock:
+                if self._is_cache_valid(cache_key):
+                    self.logger.debug(f"Cache hit for {hash(cache_key)}")
+                    return self._cache[cache_key].copy()  # Return a copy to prevent mutation
+                else:
+                    # Clean up expired entry
+                    self._cleanup_cache_entry(cache_key)
+                    return None
         except Exception as e:
             self.logger.warning(f"Error retrieving from cache for {cache_key}: {e}")
             return None
@@ -200,12 +203,14 @@ class CoREStackClient:
                 self.logger.warning(f"Cannot cache non-dict data for {hash(cache_key)}")
                 return
             
-            # Simple cache size management - limit to 1000 entries
-            if len(self._cache) >= 1000:
-                self._cleanup_oldest_cache_entries()
+            with self._lock:
+                # Simple cache size management - limit to 1000 entries
+                if len(self._cache) >= 1000:
+                    self._cleanup_oldest_cache_entries()
+
+                self._cache[cache_key] = data.copy()  # Store a copy
+                self._cache_timestamps[cache_key] = datetime.now()
             
-            self._cache[cache_key] = data.copy()  # Store a copy
-            self._cache_timestamps[cache_key] = datetime.now()
             self.logger.debug(f"Cached data for {hash(cache_key)}")
         except Exception as e:
             self.logger.warning(f"Error setting cache for {hash(cache_key)}: {e}")
@@ -217,6 +222,24 @@ class CoREStackClient:
         Args:
             cache_key: Cache key to remove
         """
+        # Lock should be acquired by caller if needed, or we can add it here.
+        # However, _cleanup_cache_entry is called from _get_from_cache and _cleanup_oldest_cache_entries.
+        # Since _get_from_cache acquires lock, we should assume lock is held or we should use RLock.
+        # But threading.Lock is not reentrant.
+        # Let's check call sites.
+        # _get_from_cache calls _cleanup_cache_entry (inside lock now)
+        # _cleanup_oldest_cache_entries calls _cleanup_cache_entry
+        # _set_cache calls _cleanup_oldest_cache_entries (inside lock now)
+
+        # So _cleanup_cache_entry is always called inside a lock context in our modified code?
+        # No, _cleanup_oldest_cache_entries iterates and calls it.
+        # And _set_cache calls _cleanup_oldest_cache_entries inside lock.
+        # So it is safe to NOT lock inside _cleanup_cache_entry if it's internal.
+        # But _cleanup_cache_entry is public (conventionally private with _).
+
+        # To be safe and simple, let's keep it without lock here as it's called from locked contexts.
+        # But wait, python's Lock is not reentrant. If I add lock here, I deadlock.
+        # Correct approach: The lock is around the critical sections in public/higher level methods.
         self._cache.pop(cache_key, None)
         self._cache_timestamps.pop(cache_key, None)
     
@@ -248,9 +271,10 @@ class CoREStackClient:
         This method removes all entries from the cache, useful for testing
         or when fresh data is required.
         """
-        cache_size = len(self._cache)
-        self._cache.clear()
-        self._cache_timestamps.clear()
+        with self._lock:
+            cache_size = len(self._cache)
+            self._cache.clear()
+            self._cache_timestamps.clear()
         self.logger.info(f"Cleared {cache_size} cache entries")
     
     def _make_request(

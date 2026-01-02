@@ -11,6 +11,7 @@ import logging
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Optional, Union, Tuple, Any
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 # Third-party imports
 import pandas as pd
@@ -131,33 +132,44 @@ class DataProcessor:
         all_rows: List[Dict[str, Any]] = []
         successful_locations = 0
         
-        for location_id in location_ids:
-            try:
-                self.logger.debug(f"Fetching data for location: {location_id}")
-                
-                water_data = api_client.get_seasonal_water_data(
-                    location_id, start_year, end_year, seasons
-                )
-                
-                # Validate API response
-                if not water_data:
-                    self.logger.warning(f"No data returned for location {location_id}")
+        # Parallelize API calls using ThreadPoolExecutor
+        # This significantly speeds up fetching data for multiple locations
+        max_workers = min(10, len(location_ids))
+
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            # Submit all tasks
+            future_to_loc = {
+                executor.submit(
+                    api_client.get_seasonal_water_data,
+                    loc, start_year, end_year, seasons
+                ): loc for loc in location_ids
+            }
+
+            # Process results as they complete
+            for future in as_completed(future_to_loc):
+                location_id = future_to_loc[future]
+                try:
+                    water_data = future.result()
+
+                    # Validate API response
+                    if not water_data:
+                        self.logger.warning(f"No data returned for location {location_id}")
+                        continue
+
+                    # Convert API response to list of rows
+                    # Optimization: Collect rows directly instead of creating intermediate DataFrames
+                    rows = self._convert_api_response_to_rows(water_data, location_id)
+
+                    if rows:
+                        all_rows.extend(rows)
+                        successful_locations += 1
+                        self.logger.debug(f"Successfully loaded {len(rows)} records for {location_id}")
+                    else:
+                        self.logger.warning(f"No valid rows created for location {location_id}")
+
+                except Exception as e:
+                    self.logger.error(f"Failed to load water data for {location_id}: {e}", exc_info=True)
                     continue
-                
-                # Convert API response to list of rows
-                # Optimization: Collect rows directly instead of creating intermediate DataFrames
-                rows = self._convert_api_response_to_rows(water_data, location_id)
-                
-                if rows:
-                    all_rows.extend(rows)
-                    successful_locations += 1
-                    self.logger.debug(f"Successfully loaded {len(rows)} records for {location_id}")
-                else:
-                    self.logger.warning(f"No valid rows created for location {location_id}")
-                
-            except Exception as e:
-                self.logger.error(f"Failed to load water data for {location_id}: {e}", exc_info=True)
-                continue
         
         if not all_rows:
             raise ValueError(
