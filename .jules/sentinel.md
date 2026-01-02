@@ -5,3 +5,10 @@
 1. Implemented `redact_sensitive_data` utility to scrub sensitive keys from dictionaries before logging.
 2. Hashed cache keys in logs instead of printing the raw key containing parameters.
 3. Applied redaction to the API client's request logging.
+
+## 2024-05-23 - Credential Leakage in URL Logs
+**Vulnerability:** URLs containing credentials (e.g., `https://user:password@host/`) were being logged in plain text by the API client. This exposed passwords in logs and error messages.
+**Learning:** Standard URL logging does not automatically mask credentials embedded in the URL authority section. Any system accepting a base URL (which might include Basic Auth) must sanitize it before logging.
+**Prevention:**
+1. Implemented `redact_url` in `security_utils.py` to parse and mask passwords in URLs.
+2. Updated `api_client.py` to use `redact_url` for all logging and error messages involving URLs.

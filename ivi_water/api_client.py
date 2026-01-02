@@ -21,7 +21,7 @@ from requests.exceptions import RequestException, Timeout, ConnectionError
 from urllib3.util.retry import Retry
 
 # Local imports
-from .security_utils import redact_sensitive_data
+from .security_utils import redact_sensitive_data, redact_url
 
 # Constants
 DEFAULT_CACHE_TTL = 3600  # 1 hour in seconds
@@ -134,7 +134,7 @@ class CoREStackClient:
             raise ValueError("Cache TTL must be non-negative")
         
         self.logger.info(
-            f"Initialized CoRE Stack client with base URL: {self.base_url}, "
+            f"Initialized CoRE Stack client with base URL: {redact_url(self.base_url)}, "
             f"cache TTL: {self.cache_ttl}s"
         )
     
@@ -333,6 +333,7 @@ class CoREStackClient:
         
         # Construct full URL
         url = f"{self.base_url}/{endpoint}"
+        safe_url = redact_url(url)
         
         # Create cache key
         try:
@@ -350,7 +351,7 @@ class CoREStackClient:
         
         # Make HTTP request
         try:
-            self.logger.debug(f"Making {method} request to {url} with params: {redact_sensitive_data(params)}")
+            self.logger.debug(f"Making {method} request to {safe_url} with params: {redact_sensitive_data(params)}")
             
             response = self.session.request(
                 method=method.upper(),
@@ -379,33 +380,33 @@ class CoREStackClient:
             try:
                 data = response.json()
             except json.JSONDecodeError as e:
-                self.logger.error(f"Invalid JSON response from {url}: {e}")
+                self.logger.error(f"Invalid JSON response from {safe_url}: {e}")
                 self.logger.debug(f"Response content: {response.text[:500]}")
                 raise json.JSONDecodeError(f"Invalid JSON response from API: {e}", e.doc, e.pos)
             
             # Validate response structure
             if not isinstance(data, dict):
-                self.logger.warning(f"Unexpected response format from {url}: expected dict, got {type(data)}")
+                self.logger.warning(f"Unexpected response format from {safe_url}: expected dict, got {type(data)}")
                 # Still return the data but log the issue
             
             # Cache successful response
             if use_cache:
                 self._set_cache(cache_key, data)
             
-            self.logger.debug(f"Successfully received response from {url}")
+            self.logger.debug(f"Successfully received response from {safe_url}")
             return data
             
         except Timeout:
-            self.logger.error(f"Request timeout for {url} after {REQUEST_TIMEOUT}s")
-            raise Timeout(f"Request timeout for {url}")
+            self.logger.error(f"Request timeout for {safe_url} after {REQUEST_TIMEOUT}s")
+            raise Timeout(f"Request timeout for {safe_url}")
         except ConnectionError as e:
-            self.logger.error(f"Connection error for {url}: {e}")
-            raise ConnectionError(f"Failed to connect to {url}: {e}")
+            self.logger.error(f"Connection error for {safe_url}: {e}")
+            raise ConnectionError(f"Failed to connect to {safe_url}: {e}")
         except RequestException:
             # Re-raise RequestException as-is (already logged)
             raise
         except Exception as e:
-            self.logger.error(f"Unexpected error during request to {url}: {e}", exc_info=True)
+            self.logger.error(f"Unexpected error during request to {safe_url}: {e}", exc_info=True)
             raise RequestException(f"Unexpected error during API request: {e}")
     
     def get_spatial_units(self, unit_type: str = "village", state: Optional[str] = None) -> List[Dict[str, Any]]:

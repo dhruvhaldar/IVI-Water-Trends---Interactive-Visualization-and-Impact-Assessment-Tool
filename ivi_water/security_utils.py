@@ -6,6 +6,7 @@ such as redacting sensitive information from logs.
 """
 
 from typing import Dict, Any, Union, List
+from urllib.parse import urlparse, urlunparse
 
 # List of keys that are considered sensitive and should be redacted
 SENSITIVE_KEYS = {
@@ -59,3 +60,37 @@ def redact_sensitive_data(data: Any) -> Any:
         return [redact_sensitive_data(item) for item in data]
 
     return data
+
+def redact_url(url: str) -> str:
+    """
+    Redact credentials from a URL.
+
+    Args:
+        url: The URL string to redact.
+
+    Returns:
+        The URL with credentials masked (e.g. user:***REDACTED***@host).
+    """
+    if not url:
+        return url
+
+    try:
+        parsed = urlparse(url)
+        if parsed.password:
+             # Reconstruct netloc with redacted password
+             user = parsed.username
+             host = parsed.hostname
+             port = parsed.port
+
+             new_netloc = f"{user}:***REDACTED***@{host}"
+             if port:
+                 new_netloc += f":{port}"
+
+             parsed = parsed._replace(netloc=new_netloc)
+             return urlunparse(parsed)
+        return url
+    except Exception:
+        # If parsing fails, return original URL (safer than returning empty or partial)
+        # But for security, maybe we should return a placeholder?
+        # Standard practice is to try best effort.
+        return url
