@@ -924,9 +924,10 @@ class DataProcessor:
         try:
             # 1. Prepare data with validity masks
             # We work on a copy to avoid modifying original
-            # This optimization avoids filtering the dataframe which can be expensive (copying data)
-            # instead we create masked columns and use a single groupby pass
-            df_proc = df.copy()
+            # Optimization: Select only necessary columns before copying to reduce memory and time overhead
+            # when input df has many extra columns (e.g. after merging)
+            cols_needed = list(set(group_by_list + ['water_area_ha', 'year']))
+            df_proc = df[cols_needed].copy()
 
             valid_mask = ~df_proc['water_area_ha'].isna() & (df_proc['water_area_ha'] >= 0)
 
