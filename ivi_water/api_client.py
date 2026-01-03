@@ -11,6 +11,7 @@ import time
 import json
 import logging
 import threading
+import hashlib
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Union, Any
 
@@ -337,10 +338,16 @@ class CoREStackClient:
         
         # Create cache key
         try:
-            cache_key = f"{method}_{url}_{json.dumps(params, sort_keys=True)}"
+            # Hash parameters to prevent sensitive data leakage in cache keys
+            params_str = json.dumps(params, sort_keys=True)
+            params_hash = hashlib.sha256(params_str.encode('utf-8')).hexdigest()
+            cache_key = f"{method}_{url}_{params_hash}"
         except (TypeError, ValueError) as e:
             self.logger.warning(f"Cannot create cache key due to non-serializable params: {e}")
-            cache_key = f"{method}_{url}_{hash(str(params))}"
+            # Fallback to hashing the string representation
+            params_str = str(params)
+            params_hash = hashlib.sha256(params_str.encode('utf-8')).hexdigest()
+            cache_key = f"{method}_{url}_{params_hash}"
         
         # Try cache first if enabled
         if use_cache:
