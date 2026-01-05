@@ -5,3 +5,7 @@
 ## 2025-02-19 - [Pandas isna() optimization]
 **Learning:** `df[['col1', 'col2', ...]].isna().any(axis=1)` creates an intermediate DataFrame subset which involves allocation and copying, and then reduces it. For a small number of columns, explicit boolean OR operations on Series (`df['col1'].isna() | df['col2'].isna() | ...`) are significantly faster (3-4x) because they operate directly on the Series without creating a new DataFrame structure.
 **Action:** When filtering by missing values on a few known columns, prefer explicit boolean operators over `subset.any(axis=1)`.
+
+## 2025-02-19 - [Pandas Inplace Optimization]
+**Learning:** Using `inplace` modification to avoid `df.copy()` at the start of a processing pipeline saves memory and time on the copy operation itself (~45% faster). However, if the subsequent pipeline involves heavy filtering or type conversions that inevitably create new objects, the overall function speedup may be modest (2-5%).
+**Action:** Use `inplace` optimizations primarily for memory efficiency on large datasets, but do not expect dramatic overall CPU speedups if the pipeline is dominated by other expensive operations.
