@@ -184,7 +184,8 @@ class DataProcessor:
         try:
             # Create DataFrame once at the end
             combined_df = pd.DataFrame(all_rows)
-            return self._clean_water_data(combined_df)
+            # Use inplace=True to avoid unnecessary DataFrame copy
+            return self._clean_water_data(combined_df, inplace=True)
         except Exception as e:
             self.logger.error(f"Failed to create DataFrame: {e}", exc_info=True)
             raise ValueError(f"Error combining water data: {e}")
@@ -341,7 +342,7 @@ class DataProcessor:
         self.logger.debug(f"Created DataFrame with {len(df)} rows for location {location_id}")
         return df
     
-    def _clean_water_data(self, df: pd.DataFrame) -> pd.DataFrame:
+    def _clean_water_data(self, df: pd.DataFrame, inplace: bool = False) -> pd.DataFrame:
         """
         Clean and validate water data.
         
@@ -351,6 +352,8 @@ class DataProcessor:
         Args:
             df: Raw water data DataFrame with columns: location_id, year, season,
                 water_area_ha, water_body_count, data_quality
+            inplace: If True, modifies the dataframe in place where possible to save memory.
+                     Default is False.
                 
         Returns:
             Cleaned DataFrame with validated data types and removed invalid records
@@ -381,8 +384,11 @@ class DataProcessor:
         original_count = len(df)
         self.logger.info(f"Starting data cleaning for {original_count} records")
         
-        # Make a copy to avoid SettingWithCopyWarning
-        df_clean = df.copy()
+        # Optimization: Avoid copying if inplace is allowed
+        if inplace:
+            df_clean = df
+        else:
+            df_clean = df.copy()
         
         try:
             # Convert data types with error handling
@@ -454,7 +460,15 @@ class DataProcessor:
                 self.logger.warning(f"Removed {duplicates_removed} duplicate records")
             
             # Sort data for consistent ordering
-            df_clean = df_clean.sort_values(['location_id', 'year', 'season']).reset_index(drop=True)
+            # Note: sort_values returns a new DataFrame unless inplace=True is used,
+            # but even with inplace=True it returns None.
+            if inplace:
+                # We can try to sort in-place if supported, but pandas usually returns new object for filtering anyway
+                # Since df_clean is already a new object after filtering (df_clean[keep_mask]),
+                # we don't need strict inplace logic here.
+                df_clean = df_clean.sort_values(['location_id', 'year', 'season']).reset_index(drop=True)
+            else:
+                df_clean = df_clean.sort_values(['location_id', 'year', 'season']).reset_index(drop=True)
             
             # Add data quality flags
             df_clean['data_quality'] = df_clean.get('data_quality', 'good')
@@ -558,7 +572,8 @@ class DataProcessor:
                 f"from NRM impact data file"
             )
             
-            return self._clean_nrm_data(df)
+            # Use inplace=True to avoid unnecessary DataFrame copy
+            return self._clean_nrm_data(df, inplace=True)
             
         except pd.errors.EmptyDataError:
             raise ValueError(f"CSV file is empty: {file_path}")
@@ -570,7 +585,7 @@ class DataProcessor:
             try:
                 df = pd.read_csv(file_path, encoding='latin-1')
                 self.logger.warning("File read with latin-1 encoding. Consider saving as UTF-8.")
-                return self._clean_nrm_data(df)
+                return self._clean_nrm_data(df, inplace=True)
             except Exception as fallback_error:
                 raise ValueError(
                     f"Unable to read file with any encoding. "
@@ -580,7 +595,7 @@ class DataProcessor:
             self.logger.error(f"Unexpected error loading NRM impact data: {e}", exc_info=True)
             raise ValueError(f"Failed to load NRM impact data from {file_path}: {e}")
     
-    def _clean_nrm_data(self, df: pd.DataFrame) -> pd.DataFrame:
+    def _clean_nrm_data(self, df: pd.DataFrame, inplace: bool = False) -> pd.DataFrame:
         """
         Clean and validate NRM impact data.
         
@@ -591,6 +606,8 @@ class DataProcessor:
         Args:
             df: Raw NRM data DataFrame with columns like location_id, year,
                 intervention_type, pond_presence, etc.
+            inplace: If True, modifies the dataframe in place where possible to save memory.
+                     Default is False.
                 
         Returns:
             Cleaned DataFrame with standardized column names and validated data
@@ -615,8 +632,11 @@ class DataProcessor:
         original_count = len(df)
         self.logger.info(f"Starting NRM data cleaning for {original_count} records")
         
-        # Make a copy to avoid SettingWithCopyWarning
-        df_clean = df.copy()
+        # Optimization: Avoid copying if inplace is allowed
+        if inplace:
+            df_clean = df
+        else:
+            df_clean = df.copy()
         
         try:
             # Standardize column names (lowercase, replace spaces with underscores)
