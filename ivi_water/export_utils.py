@@ -33,7 +33,7 @@ except ImportError:
 # Constants
 DEFAULT_OUTPUT_DIR = './outputs'
 DEFAULT_EXPORT_DPI = 300
-CSV_INJECTION_CHARS = ('=', '+', '-', '@')
+CSV_INJECTION_CHARS = ('=', '+', '-', '@', '\t', '\r')
 DEFAULT_FIGURE_SIZE = (12, 8)
 SUPPORTED_EXPORT_FORMATS = ['csv', 'excel', 'parquet', 'json']
 SUPPORTED_IMAGE_FORMATS = ['png', 'jpg', 'jpeg', 'pdf', 'svg']

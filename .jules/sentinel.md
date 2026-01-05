@@ -12,3 +12,8 @@
 **Prevention:**
 1. Implemented `redact_url` in `security_utils.py` to parse and mask passwords in URLs.
 2. Updated `api_client.py` to use `redact_url` for all logging and error messages involving URLs.
+
+## 2024-01-05 - Extended CSV Injection Vectors
+**Vulnerability:** The standard list of CSV injection characters (`=`, `+`, `-`, `@`) was insufficient to prevent all forms of spreadsheet injection, specifically those exploiting `\t` (Tab) and `\r` (Carriage Return) to manipulate cell formatting or structure.
+**Learning:** Defense in depth for CSV injection requires handling control characters that can be interpreted by spreadsheet software as delimiters or formatting instructions, not just formula triggers.
+**Prevention:** Expanded `CSV_INJECTION_CHARS` in `export_utils.py` to include `\t` and `\r`, ensuring these are also escaped/sanitized during export.
