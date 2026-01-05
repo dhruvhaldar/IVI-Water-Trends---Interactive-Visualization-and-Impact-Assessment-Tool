@@ -26,6 +26,9 @@ try:
 except ImportError:
     PYVISTA_AVAILABLE = False
 
+# Local imports
+from .export_utils import sanitize_filename
+
 # Constants
 DEFAULT_CHART_THEME = 'plotly_white'
 DEFAULT_CHART_HEIGHT = 600
@@ -695,6 +698,12 @@ class WaterTrendsVisualizer:
         output_dir = os.getenv('OUTPUT_DIR', './outputs')
         os.makedirs(output_dir, exist_ok=True)
         
+        try:
+            filename = sanitize_filename(filename)
+        except ValueError as e:
+            self.logger.error(f"Invalid filename: {e}")
+            raise
+
         filepath = os.path.join(output_dir, f"{filename}.{format}")
         
         if format == 'html':
