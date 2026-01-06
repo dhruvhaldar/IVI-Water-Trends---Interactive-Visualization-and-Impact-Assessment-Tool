@@ -452,6 +452,7 @@ class ExportUtils:
         <!DOCTYPE html>
         <html>
         <head>
+            <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline';">
             <title>Water Trends Summary Report</title>
             <style>
                 body {{ font-family: Arial, sans-serif; margin: 40px; }}
