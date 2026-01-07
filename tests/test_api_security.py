@@ -70,3 +70,37 @@ class TestAPISecurity:
         key2 = list(client._cache.keys())[0]
 
         assert key1 == key2, "Cache key should be deterministic"
+
+    def test_cache_key_does_not_leak_url_credentials(self):
+        """
+        Verify that credentials in base_url are not leaked in cache keys.
+        """
+        # Setup client with credentials in base_url
+        sensitive_pass = "super_secret_password"
+        base_url = f"https://user:{sensitive_pass}@api.corestack.org/v1"
+        client = CoREStackClient(api_key="dummy", base_url=base_url)
+
+        # Mock session
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = {"data": "success"}
+        client.session.request = MagicMock(return_value=mock_response)
+
+        # Make request
+        client._make_request("endpoint", {}, use_cache=True)
+
+        # Check cache keys
+        cache_keys = list(client._cache.keys())
+        assert len(cache_keys) > 0, "Cache should not be empty"
+
+        for key in cache_keys:
+            # Verify no sensitive data in key
+            assert sensitive_pass not in key, f"Cache key leaked URL credential: {key}"
+
+            # Verify key structure: method_urlhash_paramshash
+            parts = key.split('_')
+            # method is GET (part 0)
+            # url_hash (part 1)
+            # params_hash (part 2)
+            assert len(parts) == 3
+            assert len(parts[1]) == 64, f"Expected hashed URL in key, got {parts[1]}"

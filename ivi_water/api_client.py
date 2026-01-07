@@ -341,13 +341,18 @@ class CoREStackClient:
             # Hash parameters to prevent sensitive data leakage in cache keys
             params_str = json.dumps(params, sort_keys=True)
             params_hash = hashlib.sha256(params_str.encode('utf-8')).hexdigest()
-            cache_key = f"{method}_{url}_{params_hash}"
+
+            # Hash URL to prevent credentials in base_url from leaking in cache keys
+            url_hash = hashlib.sha256(url.encode('utf-8')).hexdigest()
+
+            cache_key = f"{method}_{url_hash}_{params_hash}"
         except (TypeError, ValueError) as e:
             self.logger.warning(f"Cannot create cache key due to non-serializable params: {e}")
             # Fallback to hashing the string representation
             params_str = str(params)
             params_hash = hashlib.sha256(params_str.encode('utf-8')).hexdigest()
-            cache_key = f"{method}_{url}_{params_hash}"
+            url_hash = hashlib.sha256(url.encode('utf-8')).hexdigest()
+            cache_key = f"{method}_{url_hash}_{params_hash}"
         
         # Try cache first if enabled
         if use_cache:
