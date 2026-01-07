@@ -958,27 +958,27 @@ class DataProcessor:
             if not valid_mask.any():
                 raise ValueError("No valid data points found (water_area_ha >= 0)")
 
-            # Create masked columns for aggregation
-            # Set invalid values to NaN so they are ignored by mean, sum, min, max
-            df_proc['valid_water'] = df_proc['water_area_ha'].where(valid_mask)
-            df_proc['valid_year'] = df_proc['year'].where(valid_mask)
+            # Optimization: In-place masking avoids creating new Series with .where()
+            # and reduces memory usage. We use NaN to mark invalid data.
+            # Convert year to float first to allow NaN values
+            df_proc['year'] = df_proc['year'].astype(float)
+
+            # Set invalid values to NaN in-place
+            df_proc.loc[~valid_mask, ['water_area_ha', 'year']] = np.nan
 
             # Pre-calculate xy and xx for slope
-            # Only valid rows contribute (others are NaN)
-            df_proc['xy'] = df_proc['valid_year'] * df_proc['valid_water']
-            df_proc['xx'] = df_proc['valid_year'] ** 2
+            # Since inputs have NaNs for invalid rows, outputs will also be NaN correctly
+            df_proc['xy'] = df_proc['year'] * df_proc['water_area_ha']
+            df_proc['xx'] = df_proc['year'] ** 2
 
             # 2. Single GroupBy for all statistics
             grouped = df_proc.groupby(group_by)
 
             agg_funcs = {
-                'valid_water': ['mean', 'std', 'min', 'max', 'median', 'count', 'sum'],
-                'valid_year': ['min', 'max', 'sum'],
+                'water_area_ha': ['mean', 'std', 'min', 'max', 'median', 'count', 'sum'],
+                'year': ['min', 'max', 'sum', 'size'], # size counts all rows including NaNs
                 'xy': 'sum',
-                'xx': 'sum',
-                # We use year size to count total observations (rows) including invalid ones
-                # 'size' counts rows, 'count' counts non-NA.
-                'year': ['size']
+                'xx': 'sum'
             }
 
             stats_df = grouped.agg(agg_funcs)
@@ -991,14 +991,14 @@ class DataProcessor:
 
             # Rename for compatibility with existing output format
             stats_df = stats_df.rename(columns={
-                'valid_water_mean': 'mean_water_area_ha',
-                'valid_water_std': 'std_water_area_ha',
-                'valid_water_min': 'min_water_area_ha',
-                'valid_water_max': 'max_water_area_ha',
-                'valid_water_median': 'median_water_area_ha',
-                'valid_water_count': 'data_points',
-                'valid_year_min': 'start_year',
-                'valid_year_max': 'end_year',
+                'water_area_ha_mean': 'mean_water_area_ha',
+                'water_area_ha_std': 'std_water_area_ha',
+                'water_area_ha_min': 'min_water_area_ha',
+                'water_area_ha_max': 'max_water_area_ha',
+                'water_area_ha_median': 'median_water_area_ha',
+                'water_area_ha_count': 'data_points',
+                'year_min': 'start_year',
+                'year_max': 'end_year',
                 'year_size': 'total_observations'
             })
 
@@ -1017,8 +1017,8 @@ class DataProcessor:
             # Slope Calculation (Vectorized)
             # m = (N * sum(xy) - sum(x) * sum(y)) / (N * sum(xx) - sum(x)^2)
             N = stats_df['data_points']
-            sum_x = stats_df['valid_year_sum']
-            sum_y = stats_df['valid_water_sum']
+            sum_x = stats_df['year_sum']
+            sum_y = stats_df['water_area_ha_sum']
             sum_xy = stats_df['xy_sum']
             sum_xx = stats_df['xx_sum']
 
