@@ -22,7 +22,7 @@ from requests.exceptions import RequestException, Timeout, ConnectionError
 from urllib3.util.retry import Retry
 
 # Local imports
-from .security_utils import redact_sensitive_data, redact_url
+from .security_utils import redact_sensitive_data, redact_url, validate_safe_id
 
 # Constants
 DEFAULT_CACHE_TTL = 3600  # 1 hour in seconds
@@ -538,8 +538,7 @@ class CoREStackClient:
             >>> print(f"Found data for {len(data.get('timeseries', []))} years")
         """
         # Input validation
-        if not isinstance(location_id, str) or not location_id.strip():
-            raise ValueError("location_id must be a non-empty string")
+        validate_safe_id(location_id, "location_id")
         
         location_id = location_id.strip()
         
@@ -667,10 +666,11 @@ class CoREStackClient:
         # Validate each location ID
         valid_location_ids = []
         for loc_id in location_ids:
-            if isinstance(loc_id, str) and loc_id.strip():
+            try:
+                validate_safe_id(loc_id, "location_id")
                 valid_location_ids.append(loc_id.strip())
-            else:
-                self.logger.warning(f"Skipping invalid location ID: {loc_id}")
+            except ValueError as e:
+                self.logger.warning(f"Skipping invalid location ID '{loc_id}': {e}")
         
         if not valid_location_ids:
             raise ValueError("No valid location IDs provided")
@@ -746,8 +746,7 @@ class CoREStackClient:
             >>> print(f"Elevation data shape: {elevation.get('elevation_grid', {}).get('shape', 'N/A')}")
         """
         # Input validation
-        if not isinstance(location_id, str) or not location_id.strip():
-            raise ValueError("location_id must be a non-empty string")
+        validate_safe_id(location_id, "location_id")
         
         location_id = location_id.strip()
         

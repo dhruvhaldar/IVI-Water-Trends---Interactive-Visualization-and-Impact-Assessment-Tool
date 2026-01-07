@@ -5,6 +5,7 @@ This module provides helper functions for security-related tasks,
 such as redacting sensitive information from logs.
 """
 
+import re
 from typing import Dict, Any, Union, List
 from urllib.parse import urlparse, urlunparse
 
@@ -94,3 +95,32 @@ def redact_url(url: str) -> str:
         # But for security, maybe we should return a placeholder?
         # Standard practice is to try best effort.
         return url
+
+
+def validate_safe_id(identifier: str, param_name: str = "identifier") -> None:
+    """
+    Validate that an identifier contains only safe characters.
+
+    Allowed characters: Alphanumeric (a-z, A-Z, 0-9), hyphen (-), underscore (_), and dot (.).
+    Explicitly rejects path traversal sequences and potential injection characters.
+
+    Args:
+        identifier: The identifier string to validate.
+        param_name: The parameter name for the error message.
+
+    Raises:
+        ValueError: If the identifier contains invalid characters or is empty.
+    """
+    if not isinstance(identifier, str) or not identifier.strip():
+        raise ValueError(f"{param_name} must be a non-empty string")
+
+    identifier = identifier.strip()
+
+    # Check for path traversal sequences
+    if ".." in identifier or "/" in identifier or "\\" in identifier:
+        raise ValueError(f"{param_name} contains invalid path characters")
+
+    # Check for invalid characters using regex
+    # Allow: a-z, A-Z, 0-9, -, _, .
+    if not re.match(r'^[a-zA-Z0-9_.-]+$', identifier):
+        raise ValueError(f"{param_name} contains invalid characters. Allowed: alphanumeric, -, _, .")
