@@ -460,15 +460,9 @@ class DataProcessor:
                 self.logger.warning(f"Removed {duplicates_removed} duplicate records")
             
             # Sort data for consistent ordering
-            # Note: sort_values returns a new DataFrame unless inplace=True is used,
-            # but even with inplace=True it returns None.
-            if inplace:
-                # We can try to sort in-place if supported, but pandas usually returns new object for filtering anyway
-                # Since df_clean is already a new object after filtering (df_clean[keep_mask]),
-                # we don't need strict inplace logic here.
-                df_clean = df_clean.sort_values(['location_id', 'year', 'season']).reset_index(drop=True)
-            else:
-                df_clean = df_clean.sort_values(['location_id', 'year', 'season']).reset_index(drop=True)
+            # Optimization: Use inplace operations to avoid creating intermediate copies
+            df_clean.sort_values(['location_id', 'year', 'season'], inplace=True)
+            df_clean.reset_index(drop=True, inplace=True)
             
             # Add data quality flags
             df_clean['data_quality'] = df_clean.get('data_quality', 'good')
@@ -723,7 +717,9 @@ class DataProcessor:
                 self.logger.warning(f"Removed {duplicates_removed} duplicate records")
             
             # Sort data for consistent ordering
-            df_clean = df_clean.sort_values(['location_id', 'year']).reset_index(drop=True)
+            # Optimization: Use inplace operations to avoid creating intermediate copies
+            df_clean.sort_values(['location_id', 'year'], inplace=True)
+            df_clean.reset_index(drop=True, inplace=True)
             
             # Log summary statistics
             final_count = len(df_clean)
@@ -874,7 +870,9 @@ class DataProcessor:
                 )
             
             # Sort for consistent ordering
-            merged_df = merged_df.sort_values(merge_on + ['season']).reset_index(drop=True)
+            # Optimization: Use inplace operations to avoid creating intermediate copies
+            merged_df.sort_values(merge_on + ['season'], inplace=True)
+            merged_df.reset_index(drop=True, inplace=True)
             
             return merged_df
             
@@ -1085,7 +1083,9 @@ class DataProcessor:
             successful_calculations = (result_df['trend_quality'] != 'insufficient_data').sum()
 
             # Sort results
-            result_df = result_df.sort_values(group_by).reset_index(drop=True)
+            # Optimization: Use inplace operations to avoid creating intermediate copies
+            result_df.sort_values(group_by, inplace=True)
+            result_df.reset_index(drop=True, inplace=True)
             
             # Log summary statistics
             self.logger.info(
@@ -1295,7 +1295,9 @@ class DataProcessor:
                         })
             
             # Sort by intervention presence for consistent ordering
-            agg_stats = agg_stats.sort_values(intervention_col).reset_index(drop=True)
+            # Optimization: Use inplace operations to avoid creating intermediate copies
+            agg_stats.sort_values(intervention_col, inplace=True)
+            agg_stats.reset_index(drop=True, inplace=True)
             
             # Log summary statistics
             self.logger.info(
@@ -1423,7 +1425,9 @@ class DataProcessor:
             seasonal_summary.loc[seasonal_summary['data_completeness'] < 0.5, 'data_quality'] = 'gaps_in_data'
             
             # Sort for consistent ordering
-            seasonal_summary = seasonal_summary.sort_values([location_level, 'season']).reset_index(drop=True)
+            # Optimization: Use inplace operations to avoid creating intermediate copies
+            seasonal_summary.sort_values([location_level, 'season'], inplace=True)
+            seasonal_summary.reset_index(drop=True, inplace=True)
             
             # Log summary statistics
             total_groups = len(seasonal_summary)
