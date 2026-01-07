@@ -9,3 +9,7 @@
 ## 2025-02-19 - [Pandas Inplace Optimization]
 **Learning:** Using `inplace` modification to avoid `df.copy()` at the start of a processing pipeline saves memory and time on the copy operation itself (~45% faster). However, if the subsequent pipeline involves heavy filtering or type conversions that inevitably create new objects, the overall function speedup may be modest (2-5%).
 **Action:** Use `inplace` optimizations primarily for memory efficiency on large datasets, but do not expect dramatic overall CPU speedups if the pipeline is dominated by other expensive operations.
+
+## 2025-02-21 - [Single GroupBy vs Double GroupBy]
+**Learning:** When calculating complex statistics on filtered data alongside counts on unfiltered data, performing a single `groupby` on a masked DataFrame (using NaN for invalid values) is significantly faster (40-80%) than performing two separate `groupby` operations (one for counts, one for stats). The overhead of computing the grouper (especially for string keys) outweighs the cost of processing slightly more rows in the aggregation step.
+**Action:** Prefer "Single GroupBy with Masking" over "Split-Apply-Combine with Multiple GroupBys" when needing both filtered and unfiltered metrics. Use in-place masking (`df.loc[mask, cols] = np.nan`) to avoid expensive `where` copies.

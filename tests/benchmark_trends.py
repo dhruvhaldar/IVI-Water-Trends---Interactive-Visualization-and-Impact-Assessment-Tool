@@ -7,7 +7,7 @@ from ivi_water.data_processor import DataProcessor
 
 def benchmark_trend_calculation():
     # Setup: Create a large DataFrame with many extra columns
-    N = 100_000
+    N = 1_000_000
     n_extra_cols = 50
 
     print(f"Generating data: {N} rows, {n_extra_cols} extra columns...")
@@ -23,6 +23,13 @@ def benchmark_trend_calculation():
     for i in range(n_extra_cols):
         data[f'unused_col_{i}'] = np.random.rand(N)
         data[f'unused_str_{i}'] = np.random.choice(['a', 'b', 'c'], N)
+
+    # Introduce some invalid data
+    mask_invalid = np.random.rand(N) < 0.1
+    data['water_area_ha'][mask_invalid] = -1.0
+
+    mask_nan = np.random.rand(N) < 0.05
+    data['water_area_ha'][mask_nan] = np.nan
 
     df = pd.DataFrame(data)
     processor = DataProcessor()
