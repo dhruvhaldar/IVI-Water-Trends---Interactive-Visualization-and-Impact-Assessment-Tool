@@ -5,6 +5,8 @@ This module provides helper functions for security-related tasks,
 such as redacting sensitive information from logs.
 """
 
+import re
+import hashlib
 from typing import Dict, Any, Union, List
 from urllib.parse import urlparse, urlunparse
 
@@ -17,6 +19,9 @@ SENSITIVE_KEYS = {
     'authorization', 'auth',
     'private_key', 'public_key'
 }
+
+# Regex for validating safe identifiers (alphanumeric, -, _)
+SAFE_ID_PATTERN = re.compile(r'^[a-zA-Z0-9_-]+$')
 
 def redact_sensitive_data(data: Any) -> Any:
     """
@@ -94,3 +99,46 @@ def redact_url(url: str) -> str:
         # But for security, maybe we should return a placeholder?
         # Standard practice is to try best effort.
         return url
+
+def validate_safe_id(identifier: str) -> str:
+    """
+    Validate that an identifier contains only safe characters.
+
+    Allowed characters: Alphanumeric (a-z, A-Z, 0-9), hyphens (-), and underscores (_).
+    This helps prevent injection attacks and path traversal issues.
+
+    Args:
+        identifier: The string identifier to validate.
+
+    Returns:
+        The validated identifier (stripped of whitespace).
+
+    Raises:
+        ValueError: If the identifier is empty or contains invalid characters.
+    """
+    if not isinstance(identifier, str):
+        raise ValueError("Identifier must be a string")
+
+    clean_id = identifier.strip()
+    if not clean_id:
+        raise ValueError("Identifier cannot be empty")
+
+    if not SAFE_ID_PATTERN.match(clean_id):
+        raise ValueError(
+            f"Invalid identifier '{clean_id}'. "
+            "Only alphanumeric characters, hyphens, and underscores are allowed."
+        )
+
+    return clean_id
+
+def hash_data(data: str) -> str:
+    """
+    Create a SHA-256 hash of the input string.
+
+    Args:
+        data: Input string to hash.
+
+    Returns:
+        Hexadecimal representation of the SHA-256 hash.
+    """
+    return hashlib.sha256(data.encode('utf-8')).hexdigest()
