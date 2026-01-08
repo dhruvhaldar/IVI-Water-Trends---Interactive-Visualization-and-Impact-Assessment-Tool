@@ -1085,7 +1085,9 @@ class DataProcessor:
             successful_calculations = (result_df['trend_quality'] != 'insufficient_data').sum()
 
             # Sort results
-            result_df = result_df.sort_values(group_by).reset_index(drop=True)
+            # Optimization: result_df is already sorted by group_by because groupby(sort=True)
+            # is used by default. We only need to reset the index, skipping the expensive O(N log N) sort.
+            result_df = result_df.reset_index(drop=True)
             
             # Log summary statistics
             self.logger.info(
