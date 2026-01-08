@@ -8,12 +8,13 @@ from ivi_water.data_processor import DataProcessor
 def benchmark_trend_calculation():
     # Setup: Create a large DataFrame with many extra columns
     N = 1_000_000
+    n_locations = 100_000 # Increased number of locations to highlight sort impact
     n_extra_cols = 50
 
-    print(f"Generating data: {N} rows, {n_extra_cols} extra columns...")
+    print(f"Generating data: {N} rows, {n_locations} locations, {n_extra_cols} extra columns...")
 
     data = {
-        'location_id': np.random.choice([f'Loc_{i}' for i in range(1000)], N),
+        'location_id': np.random.choice([f'Loc_{i}' for i in range(n_locations)], N),
         'year': np.random.randint(2000, 2023, N),
         'season': np.random.choice(['monsoon', 'winter', 'summer'], N),
         'water_area_ha': np.random.uniform(0, 100, N)
