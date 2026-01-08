@@ -22,7 +22,7 @@ from requests.exceptions import RequestException, Timeout, ConnectionError
 from urllib3.util.retry import Retry
 
 # Local imports
-from .security_utils import redact_sensitive_data, redact_url
+from .security_utils import redact_sensitive_data, redact_url, validate_safe_id, hash_data
 
 # Constants
 DEFAULT_CACHE_TTL = 3600  # 1 hour in seconds
@@ -340,18 +340,18 @@ class CoREStackClient:
         try:
             # Hash parameters to prevent sensitive data leakage in cache keys
             params_str = json.dumps(params, sort_keys=True)
-            params_hash = hashlib.sha256(params_str.encode('utf-8')).hexdigest()
+            params_hash = hash_data(params_str)
 
             # Hash URL to prevent credentials in base_url from leaking in cache keys
-            url_hash = hashlib.sha256(url.encode('utf-8')).hexdigest()
+            url_hash = hash_data(url)
 
             cache_key = f"{method}_{url_hash}_{params_hash}"
         except (TypeError, ValueError) as e:
             self.logger.warning(f"Cannot create cache key due to non-serializable params: {e}")
             # Fallback to hashing the string representation
             params_str = str(params)
-            params_hash = hashlib.sha256(params_str.encode('utf-8')).hexdigest()
-            url_hash = hashlib.sha256(url.encode('utf-8')).hexdigest()
+            params_hash = hash_data(params_str)
+            url_hash = hash_data(url)
             cache_key = f"{method}_{url_hash}_{params_hash}"
         
         # Try cache first if enabled
@@ -538,10 +538,7 @@ class CoREStackClient:
             >>> print(f"Found data for {len(data.get('timeseries', []))} years")
         """
         # Input validation
-        if not isinstance(location_id, str) or not location_id.strip():
-            raise ValueError("location_id must be a non-empty string")
-        
-        location_id = location_id.strip()
+        location_id = validate_safe_id(location_id)
         
         # Validate years
         current_year = datetime.now().year
@@ -667,9 +664,10 @@ class CoREStackClient:
         # Validate each location ID
         valid_location_ids = []
         for loc_id in location_ids:
-            if isinstance(loc_id, str) and loc_id.strip():
-                valid_location_ids.append(loc_id.strip())
-            else:
+            try:
+                valid_id = validate_safe_id(loc_id)
+                valid_location_ids.append(valid_id)
+            except ValueError:
                 self.logger.warning(f"Skipping invalid location ID: {loc_id}")
         
         if not valid_location_ids:
@@ -746,10 +744,7 @@ class CoREStackClient:
             >>> print(f"Elevation data shape: {elevation.get('elevation_grid', {}).get('shape', 'N/A')}")
         """
         # Input validation
-        if not isinstance(location_id, str) or not location_id.strip():
-            raise ValueError("location_id must be a non-empty string")
-        
-        location_id = location_id.strip()
+        location_id = validate_safe_id(location_id)
         
         self.logger.info(f"Fetching elevation data for location '{location_id}'")
         
