@@ -8,7 +8,7 @@ such as redacting sensitive information from logs.
 import re
 import hashlib
 from typing import Dict, Any, Union, List
-from urllib.parse import urlparse, urlunparse
+from urllib.parse import urlparse, urlunparse, parse_qsl, urlencode
 
 # List of keys that are considered sensitive and should be redacted
 SENSITIVE_KEYS = {
@@ -81,6 +81,8 @@ def redact_url(url: str) -> str:
 
     try:
         parsed = urlparse(url)
+
+        # Redact password in netloc
         if parsed.password:
              # Reconstruct netloc with redacted password
              user = parsed.username
@@ -92,8 +94,35 @@ def redact_url(url: str) -> str:
                  new_netloc += f":{port}"
 
              parsed = parsed._replace(netloc=new_netloc)
-             return urlunparse(parsed)
-        return url
+
+        # Redact sensitive query parameters
+        if parsed.query:
+            query_params = parse_qsl(parsed.query, keep_blank_values=True)
+            redacted_params = []
+
+            for key, value in query_params:
+                is_sensitive = False
+                key_lower = key.lower()
+
+                # Check for exact match or snake_case suffix
+                if key_lower in SENSITIVE_KEYS:
+                    is_sensitive = True
+                else:
+                    for sensitive in SENSITIVE_KEYS:
+                        if key_lower == sensitive or key_lower.endswith(f"_{sensitive}"):
+                            is_sensitive = True
+                            break
+
+                if is_sensitive:
+                    redacted_params.append((key, '***REDACTED***'))
+                else:
+                    redacted_params.append((key, value))
+
+            # Allow * in value (safe='*') to prevent encoding of ***REDACTED***
+            new_query = urlencode(redacted_params, doseq=True, safe='*')
+            parsed = parsed._replace(query=new_query)
+
+        return urlunparse(parsed)
     except Exception:
         # If parsing fails, return original URL (safer than returning empty or partial)
         # But for security, maybe we should return a placeholder?
