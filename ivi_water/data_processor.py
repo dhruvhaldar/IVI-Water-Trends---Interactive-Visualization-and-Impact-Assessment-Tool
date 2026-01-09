@@ -1295,7 +1295,8 @@ class DataProcessor:
                         })
             
             # Sort by intervention presence for consistent ordering
-            agg_stats = agg_stats.sort_values(intervention_col).reset_index(drop=True)
+            # Optimization: agg_stats is already sorted by intervention_col because groupby(sort=True) is used by default.
+            # agg_stats.reset_index() was called earlier, preserving the order.
             
             # Log summary statistics
             self.logger.info(
@@ -1423,7 +1424,8 @@ class DataProcessor:
             seasonal_summary.loc[seasonal_summary['data_completeness'] < 0.5, 'data_quality'] = 'gaps_in_data'
             
             # Sort for consistent ordering
-            seasonal_summary = seasonal_summary.sort_values([location_level, 'season']).reset_index(drop=True)
+            # Optimization: seasonal_summary is already sorted by [location_level, 'season'] because groupby(sort=True) is used by default.
+            # seasonal_summary.reset_index() was called earlier, preserving the order.
             
             # Log summary statistics
             total_groups = len(seasonal_summary)
