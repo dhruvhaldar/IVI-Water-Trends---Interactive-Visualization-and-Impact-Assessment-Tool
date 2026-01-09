@@ -23,6 +23,9 @@ SENSITIVE_KEYS = {
 # Regex for validating safe identifiers (alphanumeric, -, _)
 SAFE_ID_PATTERN = re.compile(r'^[a-zA-Z0-9_-]+$')
 
+# Maximum length for identifiers to prevent DoS/memory issues
+MAX_ID_LENGTH = 128
+
 def redact_sensitive_data(data: Any) -> Any:
     """
     Recursively redact sensitive keys in a dictionary or list.
@@ -143,10 +146,13 @@ def validate_safe_id(identifier: str) -> str:
         The validated identifier (stripped of whitespace).
 
     Raises:
-        ValueError: If the identifier is empty or contains invalid characters.
+        ValueError: If the identifier is empty, too long, or contains invalid characters.
     """
     if not isinstance(identifier, str):
         raise ValueError("Identifier must be a string")
+
+    if len(identifier) > MAX_ID_LENGTH:
+        raise ValueError(f"Identifier exceeds maximum length of {MAX_ID_LENGTH} characters")
 
     clean_id = identifier.strip()
     if not clean_id:
