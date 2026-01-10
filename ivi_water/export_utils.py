@@ -34,6 +34,7 @@ except ImportError:
 DEFAULT_OUTPUT_DIR = './outputs'
 DEFAULT_EXPORT_DPI = 300
 CSV_INJECTION_CHARS = ('=', '+', '-', '@', '\t', '\r')
+MAX_FILENAME_LENGTH = 255
 DEFAULT_FIGURE_SIZE = (12, 8)
 SUPPORTED_EXPORT_FORMATS = ['csv', 'excel', 'parquet', 'json']
 SUPPORTED_IMAGE_FORMATS = ['png', 'jpg', 'jpeg', 'pdf', 'svg']
@@ -78,10 +79,13 @@ def sanitize_filename(filename: str) -> str:
         Sanitized filename containing only alphanumeric characters, dashes, underscores, and dots.
 
     Raises:
-        ValueError: If filename is empty or contains no valid characters
+        ValueError: If filename is empty, too long, or contains no valid characters
     """
     if not isinstance(filename, str) or not filename.strip():
         raise ValueError("Filename must be a non-empty string")
+
+    if len(filename) > MAX_FILENAME_LENGTH:
+        raise ValueError(f"Filename exceeds maximum length of {MAX_FILENAME_LENGTH} characters")
 
     # Strip whitespace
     filename = filename.strip()
