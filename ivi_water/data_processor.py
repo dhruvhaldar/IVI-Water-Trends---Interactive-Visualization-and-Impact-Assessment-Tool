@@ -642,27 +642,35 @@ class DataProcessor:
             missing_columns = [col for col in required_columns if col not in df_clean.columns]
             if missing_columns:
                 raise ValueError(f"Missing required columns in NRM data: {missing_columns}")
+
+            # Initialize keep mask for efficient filtering
+            # Optimization: Use boolean masking instead of repeated DataFrame slicing to avoid copies
+            keep_mask = np.ones(len(df_clean), dtype=bool)
             
             # Convert and validate year
             if 'year' in df_clean.columns:
-                before_year_clean = len(df_clean)
                 df_clean['year'] = pd.to_numeric(df_clean['year'], errors='coerce')
                 
-                # Validate year range
-                invalid_years = df_clean[(df_clean['year'] < 1900) | (df_clean['year'] > 2100)]
-                if not invalid_years.empty:
-                    self.logger.warning(f"Removing {len(invalid_years)} records with invalid years")
-                    df_clean = df_clean[(df_clean['year'] >= 1900) & (df_clean['year'] <= 2100)]
+                # Logic 1: Out of range (excludes NaNs as comparison is False)
+                invalid_range = (df_clean['year'] < 1900) | (df_clean['year'] > 2100)
+                count_invalid = (keep_mask & invalid_range).sum()
+
+                if count_invalid > 0:
+                    self.logger.warning(f"Removing {count_invalid} records with invalid years")
+                    keep_mask &= ~invalid_range
+
+                # Logic 2: NaNs (equivalent to dropna)
+                is_nan = df_clean['year'].isna()
+                count_nan = (keep_mask & is_nan).sum()
                 
-                df_clean = df_clean.dropna(subset=['year'])
-                year_removed = before_year_clean - len(df_clean)
-                if year_removed > 0:
-                    self.logger.warning(f"Removed {year_removed} records with invalid year data")
+                keep_mask &= ~is_nan
+
+                total_year_removed = count_invalid + count_nan
+                if total_year_removed > 0:
+                    self.logger.warning(f"Removed {total_year_removed} records with invalid year data")
             
             # Clean and validate pond_presence if present
             if 'pond_presence' in df_clean.columns:
-                before_pond_clean = len(df_clean)
-                
                 # Convert to string and standardize
                 df_clean['pond_presence'] = df_clean['pond_presence'].astype(str).str.strip().str.lower()
                 
@@ -678,36 +686,50 @@ class DataProcessor:
                 # Ensure only 0 or 1 values
                 df_clean['pond_presence'] = df_clean['pond_presence'].clip(0, 1).astype(int)
                 
-                pond_removed = before_pond_clean - len(df_clean)
-                if pond_removed > 0:
-                    self.logger.warning(f"Removed {pond_removed} records with invalid pond_presence data")
+                # Note: Original logic calculated removal count but didn't actually filter rows based on pond_presence
+                # so we don't update keep_mask here.
             
             # Clean intervention_type if present
             if 'intervention_type' in df_clean.columns:
-                before_intervention_clean = len(df_clean)
-                
                 # Standardize intervention types
                 df_clean['intervention_type'] = df_clean['intervention_type'].astype(str).str.strip().str.lower()
                 
                 # Validate intervention types
-                invalid_interventions = df_clean[~df_clean['intervention_type'].isin(VALID_INTERVENTION_TYPES + ['none', ''])]
-                if not invalid_interventions.empty:
+                # Optimization: Use boolean mask instead of creating intermediate DataFrame
+                is_invalid_intervention = ~df_clean['intervention_type'].isin(VALID_INTERVENTION_TYPES + ['none', ''])
+
+                # Check only rows that are currently kept
+                relevant_invalid_mask = keep_mask & is_invalid_intervention
+
+                if relevant_invalid_mask.any():
+                    # Only extract values when needed for logging
+                    invalid_values = df_clean.loc[relevant_invalid_mask, 'intervention_type'].unique()
                     self.logger.warning(
-                        f"Found {len(invalid_interventions)} records with unrecognized intervention types: "
-                        f"{invalid_interventions['intervention_type'].unique()}"
+                        f"Found {relevant_invalid_mask.sum()} records with unrecognized intervention types: "
+                        f"{invalid_values}"
                     )
                     # Keep them but log the issue
-                
-                intervention_removed = before_intervention_clean - len(df_clean)
-                if intervention_removed > 0:
-                    self.logger.warning(f"Removed {intervention_removed} records with invalid intervention_type data")
             
             # Remove rows with missing critical data
-            before_na_removal = len(df_clean)
-            df_clean = df_clean.dropna(subset=required_columns)
-            na_removed = before_na_removal - len(df_clean)
-            if na_removed > 0:
-                self.logger.warning(f"Removed {na_removed} records with missing critical data")
+            # Optimization: Check specific columns directly to avoid DataFrame subsetting
+            # We iterate over required_columns to build the mask dynamically
+            is_na_combined = pd.Series(False, index=df_clean.index)
+
+            for col in required_columns:
+                if col in df_clean.columns:
+                    # Use .values to avoid index alignment overhead/ambiguity with numpy mask later
+                    is_na_combined |= df_clean[col].isna()
+
+            # Calculate how many NEW rows are removed by this check
+            # We use .values for robust boolean operations with the numpy mask
+            new_removals = (keep_mask & is_na_combined.values).sum()
+
+            if new_removals > 0:
+                self.logger.warning(f"Removed {new_removals} records with missing critical data")
+                keep_mask &= ~is_na_combined.values
+
+            # Apply all filters at once to minimize DataFrame copies
+            df_clean = df_clean[keep_mask]
             
             # Remove exact duplicates
             before_dedup = len(df_clean)
