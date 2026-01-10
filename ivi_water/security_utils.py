@@ -177,3 +177,83 @@ def hash_data(data: str) -> str:
         Hexadecimal representation of the SHA-256 hash.
     """
     return hashlib.sha256(data.encode('utf-8')).hexdigest()
+
+def redact_text_content(text: str) -> str:
+    """
+    Redact sensitive information from unstructured text (logs, headers, etc.).
+
+    This function searches for patterns like 'key=value', 'key: value',
+    or '"key": "value"' where the key is in the sensitive keys list.
+
+    Args:
+        text: The input text to redact.
+
+    Returns:
+        The text with sensitive values replaced by '***REDACTED***'.
+    """
+    if not text or not isinstance(text, str):
+        return text
+
+    # Pattern explanation:
+    # (?i)          : Case-insensitive
+    # \b            : Word boundary (start of key)
+    # (KEY1|KEY2...) : Match any sensitive key
+    # \b            : Word boundary (end of key)
+    # \s*[:=]\s*    : Separator (: or =) with optional whitespace
+    # (["']?)       : Capture group 2: Optional opening quote
+    # (.*?)         : Capture group 3: The value (non-greedy)
+    # \2            : Match the closing quote (same as group 2)
+    # (?=[\s,;}]|$) : Lookahead for separator (space, comma, semicolon, closing brace) or end of string
+
+    # We construct the regex dynamically based on SENSITIVE_KEYS
+    keys_pattern = '|'.join(re.escape(k) for k in SENSITIVE_KEYS)
+
+    # Simple pattern for standard assignments (key=value, key: value) without internal spaces/commas in value
+    # We handle quoted values specially
+
+    # 1. Match quoted values: key="value with spaces"
+    pattern_quoted = re.compile(
+        r'(?i)\b(' + keys_pattern + r')\b\s*[:=]\s*(["\'])(.*?)\2',
+        re.DOTALL
+    )
+
+    # 2. Match unquoted values: key=value (stops at space/comma/semicolon/newline)
+    # The first definition of pattern_unquoted was redundant and confusing.
+
+    # Apply redaction
+    # For quoted: Replace group 3 with ***REDACTED***
+    # Use \g<0> approach to preserve separator?
+    # No, we can capture the separator group if we modify regex.
+    # Current regex: \b(KEY)\b\s*[:=]\s*(["'])(.*?)\2
+    # It consumes the separator.
+    # To fix test_json_like failure where separator changed from : to =,
+    # we need to capture the separator.
+
+    # Redefine patterns to capture separator and surrounding whitespace
+    # Group 1: Key (optionally quoted)
+    # Group 2: Separator with optional surrounding whitespace
+    # Group 3: Opening quote
+    # Group 4: Value
+
+    # We need to handle optional quotes around the key for JSON-like strings
+    # "key": "value"
+    pattern_quoted = re.compile(
+        r'(?i)(["\']?)(' + keys_pattern + r')\1(\s*[:=]\s*)(["\'])(.*?)\4',
+        re.DOTALL
+    )
+
+    text = pattern_quoted.sub(r'\1\2\1\3\4***REDACTED***\4', text)
+
+    # For unquoted: Replace group 4 (value) with ***REDACTED***
+    # Group 1: Optional Quote
+    # Group 2: Key
+    # Group 3: Separator with optional surrounding whitespace
+    # Group 4: Value (non-whitespace, non-separator chars)
+    pattern_unquoted = re.compile(
+        r'(?i)(["\']?)(' + keys_pattern + r')\1(\s*[:=]\s*)([^"\'\s,;}\]]+)',
+        re.DOTALL
+    )
+
+    text = pattern_unquoted.sub(r'\1\2\1\3***REDACTED***', text)
+
+    return text
