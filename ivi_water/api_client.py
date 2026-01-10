@@ -22,7 +22,7 @@ from requests.exceptions import RequestException, Timeout, ConnectionError
 from urllib3.util.retry import Retry
 
 # Local imports
-from .security_utils import redact_sensitive_data, redact_url, validate_safe_id, hash_data
+from .security_utils import redact_sensitive_data, redact_url, validate_safe_id, hash_data, redact_text_content
 
 # Constants
 DEFAULT_CACHE_TTL = 3600  # 1 hour in seconds
@@ -393,7 +393,9 @@ class CoREStackClient:
                 data = response.json()
             except json.JSONDecodeError as e:
                 self.logger.error(f"Invalid JSON response from {safe_url}: {e}")
-                self.logger.debug(f"Response content: {response.text[:500]}")
+                # Redact response text to prevent leakage of secrets in logs
+                safe_text = redact_text_content(response.text[:500])
+                self.logger.debug(f"Response content: {safe_text}")
                 raise json.JSONDecodeError(f"Invalid JSON response from API: {e}", e.doc, e.pos)
             
             # Validate response structure
