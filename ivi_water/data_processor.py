@@ -970,7 +970,9 @@ class DataProcessor:
             df_proc['xx'] = df_proc['year'] ** 2
 
             # 2. Single GroupBy for all statistics
-            grouped = df_proc.groupby(group_by)
+            # Optimization: groupby(sort=False) is faster. We sort the results explicitly
+            # which is cheaper because the aggregated DataFrame is much smaller.
+            grouped = df_proc.groupby(group_by, sort=False)
 
             agg_funcs = {
                 'water_area_ha': ['mean', 'std', 'min', 'max', 'median', 'count', 'sum'],
@@ -980,6 +982,7 @@ class DataProcessor:
             }
 
             stats_df = grouped.agg(agg_funcs)
+            stats_df.sort_index(inplace=True)
 
             # Flatten MultiIndex columns
             stats_df.columns = [
@@ -1395,7 +1398,9 @@ class DataProcessor:
                 agg_dict['water_body_count'] = ['mean', 'std', 'min', 'max', 'sum']
             
             # Perform aggregation
-            seasonal_summary = df_clean.groupby([location_level, 'season']).agg(agg_dict)
+            # Optimization: sort=False is faster, sort result explicitly
+            seasonal_summary = df_clean.groupby([location_level, 'season'], sort=False).agg(agg_dict)
+            seasonal_summary.sort_index(inplace=True)
             
             # Flatten column names
             seasonal_summary.columns = ['_'.join(col).strip() for col in seasonal_summary.columns]
