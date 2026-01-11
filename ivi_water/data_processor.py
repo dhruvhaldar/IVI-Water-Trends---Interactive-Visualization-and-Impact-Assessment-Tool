@@ -214,6 +214,9 @@ class DataProcessor:
         if not isinstance(location_id, str) or not location_id.strip():
             raise ValueError("location_id must be a non-empty string")
         
+        # Optimization: Strip location_id once outside the loop
+        location_id = location_id.strip()
+
         rows: List[Dict[str, Any]] = []
         
         # Handle different API response structures
@@ -238,7 +241,14 @@ class DataProcessor:
                     continue
                     
                 # Validate year
-                year = int(year) if isinstance(year, (int, str)) and str(year).isdigit() else None
+                # Optimization: Avoid string conversion for integers
+                if isinstance(year, int):
+                    pass
+                elif isinstance(year, str) and year.isdigit():
+                    year = int(year)
+                else:
+                    year = None
+
                 if year is None or year < 1900 or year > 2100:
                     self.logger.warning(f"Invalid year value: {year_data.get('year')}")
                     continue
@@ -284,7 +294,7 @@ class DataProcessor:
                         water_body_count = 0
                     
                     row = {
-                        'location_id': location_id.strip(),
+                        'location_id': location_id,
                         'year': year,
                         'season': season,
                         'water_area_ha': water_area,
