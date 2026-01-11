@@ -26,16 +26,22 @@ SAFE_ID_PATTERN = re.compile(r'^[a-zA-Z0-9_-]+$')
 # Maximum length for identifiers to prevent DoS/memory issues
 MAX_ID_LENGTH = 128
 
-def redact_sensitive_data(data: Any) -> Any:
+def redact_sensitive_data(data: Any, max_depth: int = 50, _current_depth: int = 0) -> Any:
     """
     Recursively redact sensitive keys in a dictionary or list.
 
     Args:
         data: The input data (dict, list, or other types).
+        max_depth: Maximum recursion depth to prevent StackOverflow (default: 50).
+        _current_depth: Internal counter for recursion depth.
 
     Returns:
         The data with sensitive values replaced by '***REDACTED***'.
+        If recursion limit is reached, returns '***RECURSION LIMIT EXCEEDED***'.
     """
+    if _current_depth > max_depth:
+        return '***RECURSION LIMIT EXCEEDED***'
+
     if isinstance(data, dict):
         redacted = {}
         for key, value in data.items():
@@ -59,13 +65,13 @@ def redact_sensitive_data(data: Any) -> Any:
                  if is_sensitive:
                      redacted[key] = '***REDACTED***'
                  else:
-                     redacted[key] = redact_sensitive_data(value)
+                     redacted[key] = redact_sensitive_data(value, max_depth, _current_depth + 1)
             else:
-                redacted[key] = redact_sensitive_data(value)
+                redacted[key] = redact_sensitive_data(value, max_depth, _current_depth + 1)
         return redacted
 
     elif isinstance(data, list):
-        return [redact_sensitive_data(item) for item in data]
+        return [redact_sensitive_data(item, max_depth, _current_depth + 1) for item in data]
 
     return data
 
