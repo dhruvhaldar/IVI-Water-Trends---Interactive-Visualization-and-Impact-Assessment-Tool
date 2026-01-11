@@ -997,7 +997,9 @@ class DataProcessor:
             grouped = df_proc.groupby(group_by, sort=False)
 
             agg_funcs = {
-                'water_area_ha': ['mean', 'std', 'min', 'max', 'median', 'count', 'sum'],
+                # Optimization: removed 'mean' to avoid redundant calculation
+                # We derive it from sum / count later
+                'water_area_ha': ['std', 'min', 'max', 'median', 'count', 'sum'],
                 'year': ['min', 'max', 'sum', 'size'], # size counts all rows including NaNs
                 'xy': 'sum',
                 'xx': 'sum'
@@ -1014,7 +1016,6 @@ class DataProcessor:
 
             # Rename for compatibility with existing output format
             stats_df = stats_df.rename(columns={
-                'water_area_ha_mean': 'mean_water_area_ha',
                 'water_area_ha_std': 'std_water_area_ha',
                 'water_area_ha_min': 'min_water_area_ha',
                 'water_area_ha_max': 'max_water_area_ha',
@@ -1024,6 +1025,9 @@ class DataProcessor:
                 'year_max': 'end_year',
                 'year_size': 'total_observations'
             })
+
+            # Calculate mean from sum and count to save one aggregation pass
+            stats_df['mean_water_area_ha'] = stats_df['water_area_ha_sum'] / stats_df['data_points']
 
             # Filter out groups with 0 valid data points
             # (Equivalent to the previous logic where left join was on valid groups)
