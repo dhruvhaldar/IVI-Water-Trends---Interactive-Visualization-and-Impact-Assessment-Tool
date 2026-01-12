@@ -14,6 +14,7 @@ import threading
 import hashlib
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Union, Any
+from urllib.parse import urlparse
 
 # Third-party imports
 import requests
@@ -102,6 +103,19 @@ class CoREStackClient:
         
         self.base_url = self.base_url.rstrip('/')  # Remove trailing slash
         
+        # Check for insecure HTTP usage
+        allow_insecure = os.getenv('CORE_ALLOW_INSECURE_HTTP', '0').lower() in ('1', 'true', 'yes')
+        if not allow_insecure and self.base_url.lower().startswith('http:'):
+            parsed_url = urlparse(self.base_url)
+            hostname = parsed_url.hostname or ""
+            is_localhost = hostname.lower() in ('localhost', '127.0.0.1', '::1')
+
+            if not is_localhost:
+                raise ValueError(
+                    f"Insecure connection: API base URL '{self.base_url}' uses HTTP. "
+                    "Use HTTPS or set CORE_ALLOW_INSECURE_HTTP=1 to override (not recommended)."
+                )
+
         self.logger = logging.getLogger(__name__)
         
         # Setup session with robust retry strategy
