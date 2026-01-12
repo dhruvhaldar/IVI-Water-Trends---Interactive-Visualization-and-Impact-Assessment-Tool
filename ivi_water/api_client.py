@@ -431,14 +431,18 @@ class CoREStackClient:
             self.logger.error(f"Request timeout for {safe_url} after {REQUEST_TIMEOUT}s")
             raise Timeout(f"Request timeout for {safe_url}")
         except ConnectionError as e:
-            self.logger.error(f"Connection error for {safe_url}: {e}")
-            raise ConnectionError(f"Failed to connect to {safe_url}: {e}")
+            # Redact sensitive info from exception message
+            safe_error_msg = redact_text_content(str(e))
+            self.logger.error(f"Connection error for {safe_url}: {safe_error_msg}")
+            raise ConnectionError(f"Failed to connect to {safe_url}: {safe_error_msg}")
         except RequestException:
             # Re-raise RequestException as-is (already logged)
             raise
         except Exception as e:
-            self.logger.error(f"Unexpected error during request to {safe_url}: {e}", exc_info=True)
-            raise RequestException(f"Unexpected error during API request: {e}")
+            # Redact sensitive info from exception message
+            safe_error_msg = redact_text_content(str(e))
+            self.logger.error(f"Unexpected error during request to {safe_url}: {safe_error_msg}", exc_info=True)
+            raise RequestException(f"Unexpected error during API request: {safe_error_msg}")
     
     def get_spatial_units(self, unit_type: str = "village", state: Optional[str] = None) -> List[Dict[str, Any]]:
         """
