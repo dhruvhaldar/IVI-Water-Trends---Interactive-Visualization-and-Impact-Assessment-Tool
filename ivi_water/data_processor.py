@@ -987,7 +987,8 @@ class DataProcessor:
 
             # Optimization: Ensure valid_mask is computed efficiently
             # Note: Explicit comparison with 0 checks for non-negative values
-            valid_mask = ~df_proc['water_area_ha'].isna() & (df_proc['water_area_ha'] >= 0)
+            # Comparing >= 0 returns False for NaNs, so explicit isna() check is redundant
+            valid_mask = df_proc['water_area_ha'] >= 0
 
             if not valid_mask.any():
                 raise ValueError("No valid data points found (water_area_ha >= 0)")
