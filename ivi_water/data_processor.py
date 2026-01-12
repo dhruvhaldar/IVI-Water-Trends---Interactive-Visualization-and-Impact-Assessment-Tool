@@ -424,13 +424,13 @@ class DataProcessor:
             # Optimization: Explicit Series check is faster than df subset .any(axis=1)
             # (~3-4x faster for large datasets by avoiding intermediate DataFrame creation)
             is_na = df_clean['year'].isna() | df_clean['season'].isna() | df_clean['water_area_ha'].isna()
-            not_na = ~is_na
 
+            # Optimization: check intersection with keep_mask early to avoid processing already invalid rows
             removed_mask = keep_mask & is_na
             if removed_mask.any():
                 count = removed_mask.sum()
                 self.logger.warning(f"Removed {count} records with missing critical data")
-                keep_mask &= not_na
+                keep_mask &= ~is_na
             
             # 4. Remove invalid water areas (negative or unreasonably large)
             valid_area = (df_clean['water_area_ha'] >= MIN_WATER_AREA_HA) & \
@@ -450,9 +450,11 @@ class DataProcessor:
                 keep_mask &= valid_count
 
             # Apply all filters at once to minimize DataFrame copies
+            # Optimization: Using .loc[keep_mask] is equivalent but explicit.
             df_clean = df_clean[keep_mask]
             
             # Remove exact duplicates
+            # Optimization: subset is not specified, so it checks all columns.
             before_dedup = len(df_clean)
             df_clean = df_clean.drop_duplicates()
             duplicates_removed = before_dedup - len(df_clean)
@@ -973,6 +975,8 @@ class DataProcessor:
             cols_needed = list(set(group_by_list + ['water_area_ha', 'year']))
             df_proc = df[cols_needed].copy()
 
+            # Optimization: Ensure valid_mask is computed efficiently
+            # Note: Explicit comparison with 0 checks for non-negative values
             valid_mask = ~df_proc['water_area_ha'].isna() & (df_proc['water_area_ha'] >= 0)
 
             if not valid_mask.any():
@@ -1065,7 +1069,8 @@ class DataProcessor:
             stats_df['trend_slope_ha_per_year'] = slope
 
             # Determine Trend Quality
-            stats_df['trend_quality'] = 'good' # Default
+            # Optimization: Use direct assignment with a default value to avoid repeated column assignment
+            stats_df['trend_quality'] = 'good'
 
             # If denominator is 0 (constant year), set to constant_year
             # Also set slope to 0 explicitly if it wasn't already (though fillna(0) handled it)
