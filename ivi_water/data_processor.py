@@ -1244,8 +1244,22 @@ class DataProcessor:
         )
         
         try:
-            # Validate and clean intervention column
-            df_clean = df.copy()
+            # Optimization: Filter invalid water areas first to reduce data size for subsequent operations
+            # This avoids copying and processing intervention columns for rows that will be dropped
+            valid_water_mask = df['water_area_ha'] >= 0
+
+            if not valid_water_mask.all():
+                dropped_count = (~valid_water_mask).sum()
+                self.logger.warning(
+                    f"Found {dropped_count} records with negative water areas. "
+                    "These will be excluded from aggregation."
+                )
+                df_clean = df[valid_water_mask].copy()
+            else:
+                df_clean = df.copy()
+
+            if df_clean.empty:
+                raise ValueError("No valid data remaining after filtering")
             
             # Convert intervention column to numeric if needed
             if df_clean[intervention_col].dtype == 'object':
@@ -1263,24 +1277,11 @@ class DataProcessor:
             # Ensure only 0 or 1 values
             df_clean[intervention_col] = df_clean[intervention_col].clip(0, 1).astype(int)
             
-            # Check for valid water area data
-            valid_mask = df_clean['water_area_ha'] >= 0
-            if not valid_mask.all():
-                self.logger.warning(
-                    f"Found {(~valid_mask).sum()} records with negative water areas. "
-                    "These will be excluded from aggregation."
-                )
-                df_clean = df_clean[valid_mask]
-            
-            if df_clean.empty:
-                raise ValueError("No valid data remaining after filtering")
-            
             # Group by intervention presence and calculate comprehensive statistics
             agg_dict = {
                 'water_area_ha': [
                     'mean', 'std', 'min', 'max', 'count', 'median'
                 ],
-                'water_body_count': ['mean', 'std', 'min', 'max', 'sum'] if 'water_body_count' in df_clean.columns else ['mean'],
                 'location_id': 'nunique'
             }
             
@@ -1421,9 +1422,9 @@ class DataProcessor:
         
         try:
             # Filter for valid data
-            df_clean = df.copy()
-            valid_mask = df_clean['water_area_ha'] >= 0
-            df_clean = df_clean[valid_mask]
+            # Optimization: Filter directly to avoid copying rows that will be dropped
+            valid_mask = df['water_area_ha'] >= 0
+            df_clean = df[valid_mask].copy()
             
             if df_clean.empty:
                 raise ValueError("No valid data remaining after filtering")
