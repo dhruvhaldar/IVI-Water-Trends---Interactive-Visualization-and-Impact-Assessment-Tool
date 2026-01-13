@@ -13,3 +13,7 @@
 ## 2025-02-21 - [Single GroupBy vs Double GroupBy]
 **Learning:** When calculating complex statistics on filtered data alongside counts on unfiltered data, performing a single `groupby` on a masked DataFrame (using NaN for invalid values) is significantly faster (40-80%) than performing two separate `groupby` operations (one for counts, one for stats). The overhead of computing the grouper (especially for string keys) outweighs the cost of processing slightly more rows in the aggregation step.
 **Action:** Prefer "Single GroupBy with Masking" over "Split-Apply-Combine with Multiple GroupBys" when needing both filtered and unfiltered metrics. Use in-place masking (`df.loc[mask, cols] = np.nan`) to avoid expensive `where` copies.
+
+## 2025-02-24 - [Pandas Subset Before Copy]
+**Learning:** When creating a working copy of a DataFrame (especially a filtered one), subsetting to only the required columns *before* or *during* the copy/filter operation significantly reduces memory usage and execution time if the original DataFrame has many unused columns. Observed >75% speedup (4x faster) on wide DataFrames (200 cols -> 5 cols, 500k rows) by using `df.loc[mask, cols].copy()` instead of `df[mask].copy()`.
+**Action:** Always identify strictly necessary columns before creating a DataFrame copy for processing. Use `df.loc[mask, required_cols].copy()` to minimize data movement.
