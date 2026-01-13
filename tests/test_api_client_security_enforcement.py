@@ -13,8 +13,10 @@ class TestAPIClientSecurityEnforcement:
         client = CoREStackClient(api_key="dummy", base_url="https://api.example.com")
         assert client.base_url == "https://api.example.com"
 
-    def test_localhost_http_allowed(self):
-        """Test that HTTP is allowed for localhost."""
+    def test_localhost_http_allowed(self, monkeypatch):
+        """Test that HTTP is allowed for localhost (requires internal IP override)."""
+        monkeypatch.setenv('CORE_ALLOW_INTERNAL_IPS', '1')
+
         client = CoREStackClient(api_key="dummy", base_url="http://localhost:8000")
         assert client.base_url == "http://localhost:8000"
 
