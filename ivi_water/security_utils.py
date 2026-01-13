@@ -6,8 +6,9 @@ such as redacting sensitive information from logs.
 """
 
 import re
+import hmac
 import hashlib
-from typing import Dict, Any, Union, List
+from typing import Dict, Any, Union, List, Optional
 from urllib.parse import urlparse, urlunparse, parse_qsl, urlencode
 
 # List of keys that are considered sensitive and should be redacted
@@ -172,16 +173,28 @@ def validate_safe_id(identifier: str) -> str:
 
     return clean_id
 
-def hash_data(data: str) -> str:
+def hash_data(data: str, key: Optional[str] = None) -> str:
     """
-    Create a SHA-256 hash of the input string.
+    Create a SHA-256 hash or HMAC-SHA-256 of the input string.
 
     Args:
         data: Input string to hash.
+        key: Optional secret key for HMAC. If provided, HMAC-SHA256 is used.
+             If None, standard SHA-256 hash is used.
 
     Returns:
-        Hexadecimal representation of the SHA-256 hash.
+        Hexadecimal representation of the hash/HMAC.
     """
+    if key:
+        # Use HMAC-SHA256 for keyed hashing (prevention of length extension attacks)
+        # and stronger integrity verification
+        if isinstance(key, str):
+            key_bytes = key.encode('utf-8')
+        else:
+            key_bytes = key
+
+        return hmac.new(key_bytes, data.encode('utf-8'), hashlib.sha256).hexdigest()
+
     return hashlib.sha256(data.encode('utf-8')).hexdigest()
 
 def redact_text_content(text: str) -> str:
