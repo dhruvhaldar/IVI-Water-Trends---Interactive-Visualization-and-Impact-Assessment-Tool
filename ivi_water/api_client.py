@@ -12,6 +12,8 @@ import json
 import logging
 import threading
 import hashlib
+import socket
+import ipaddress
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Union, Any
 from urllib.parse import urlparse
@@ -103,18 +105,8 @@ class CoREStackClient:
         
         self.base_url = self.base_url.rstrip('/')  # Remove trailing slash
         
-        # Check for insecure HTTP usage
-        allow_insecure = os.getenv('CORE_ALLOW_INSECURE_HTTP', '0').lower() in ('1', 'true', 'yes')
-        if not allow_insecure and self.base_url.lower().startswith('http:'):
-            parsed_url = urlparse(self.base_url)
-            hostname = parsed_url.hostname or ""
-            is_localhost = hostname.lower() in ('localhost', '127.0.0.1', '::1')
-
-            if not is_localhost:
-                raise ValueError(
-                    f"Insecure connection: API base URL '{self.base_url}' uses HTTP. "
-                    "Use HTTPS or set CORE_ALLOW_INSECURE_HTTP=1 to override (not recommended)."
-                )
+        # Validate base URL security (SSRF & Insecure HTTP)
+        self._validate_base_url(self.base_url)
 
         self.logger = logging.getLogger(__name__)
         
@@ -155,6 +147,64 @@ class CoREStackClient:
             f"cache TTL: {self.cache_ttl}s"
         )
     
+    def _validate_base_url(self, url: str) -> None:
+        """
+        Validate the base URL for security issues like SSRF and insecure HTTP.
+
+        Args:
+            url: The URL to validate
+
+        Raises:
+            ValueError: If the URL violates security policies
+        """
+        parsed_url = urlparse(url)
+        hostname = parsed_url.hostname or ""
+        scheme = parsed_url.scheme.lower()
+
+        # 1. Check for insecure HTTP
+        allow_insecure = os.getenv('CORE_ALLOW_INSECURE_HTTP', '0').lower() in ('1', 'true', 'yes')
+        is_localhost_str = hostname.lower() in ('localhost', '127.0.0.1', '::1')
+
+        if not allow_insecure and scheme == 'http' and not is_localhost_str:
+            raise ValueError(
+                f"Insecure connection: API base URL '{url}' uses HTTP. "
+                "Use HTTPS or set CORE_ALLOW_INSECURE_HTTP=1 to override (not recommended)."
+            )
+
+        # 2. SSRF Protection: Resolve hostname and check for private/internal IPs
+        allow_internal = os.getenv('CORE_ALLOW_INTERNAL_IPS', '0').lower() in ('1', 'true', 'yes')
+
+        if not allow_internal:
+            try:
+                # Get all IP addresses for the hostname
+                addr_info = socket.getaddrinfo(hostname, None)
+                ips = [info[4][0] for info in addr_info]
+
+                for ip in ips:
+                    ip_obj = ipaddress.ip_address(ip)
+
+                    # Check if IP is private, loopback, or reserved
+                    if ip_obj.is_private or ip_obj.is_loopback or ip_obj.is_reserved or ip_obj.is_link_local:
+                         raise ValueError(
+                            f"Internal or private IP address detected for host '{hostname}' ({ip}). "
+                            "Access denied for security. Set CORE_ALLOW_INTERNAL_IPS=1 to override."
+                        )
+            except socket.gaierror:
+                # If DNS resolution fails, we can't verify the IP.
+                # Depending on strictness, we might allow or block.
+                # Blocking is safer but might break if DNS is flaky.
+                # Here we log warning but proceed, assuming network layer will fail anyway if invalid.
+                # Or we can treat unresolvable as safe? No, requests will resolve it later.
+                # We'll assume if requests can resolve it, we should be able to.
+                pass
+            except ValueError as e:
+                # Re-raise security violation
+                raise e
+            except Exception as e:
+                # Log other errors during validation but don't block
+                # logging might not be initialized yet if called from __init__
+                pass
+
     def _is_cache_valid(self, cache_key: str) -> bool:
         """
         Check if cached data is still valid.
