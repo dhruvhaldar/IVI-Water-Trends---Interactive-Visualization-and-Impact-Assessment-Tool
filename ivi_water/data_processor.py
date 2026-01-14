@@ -683,20 +683,26 @@ class DataProcessor:
             
             # Clean and validate pond_presence if present
             if 'pond_presence' in df_clean.columns:
-                # Convert to string and standardize
-                df_clean['pond_presence'] = df_clean['pond_presence'].astype(str).str.strip().str.lower()
-                
-                # Map various representations to 0/1
-                pond_mapping = {
-                    'yes': 1, 'y': 1, 'true': 1, 't': 1, '1': 1, 'present': 1,
-                    'no': 0, 'n': 0, 'false': 0, 'f': 0, '0': 0, 'absent': 0, 'none': 0
-                }
-                
-                df_clean['pond_presence'] = df_clean['pond_presence'].map(pond_mapping)
-                df_clean['pond_presence'] = pd.to_numeric(df_clean['pond_presence'], errors='coerce').fillna(0)
-                
-                # Ensure only 0 or 1 values
-                df_clean['pond_presence'] = df_clean['pond_presence'].clip(0, 1).astype(int)
+                # Optimization: Check if already numeric to avoid expensive string conversion/mapping
+                if pd.api.types.is_numeric_dtype(df_clean['pond_presence']):
+                    df_clean['pond_presence'] = df_clean['pond_presence'].fillna(0)
+                    # Ensure only 0 or 1 values
+                    df_clean['pond_presence'] = df_clean['pond_presence'].clip(0, 1).astype(int)
+                else:
+                    # Convert to string and standardize
+                    df_clean['pond_presence'] = df_clean['pond_presence'].astype(str).str.strip().str.lower()
+
+                    # Map various representations to 0/1
+                    pond_mapping = {
+                        'yes': 1, 'y': 1, 'true': 1, 't': 1, '1': 1, 'present': 1,
+                        'no': 0, 'n': 0, 'false': 0, 'f': 0, '0': 0, 'absent': 0, 'none': 0
+                    }
+
+                    df_clean['pond_presence'] = df_clean['pond_presence'].map(pond_mapping)
+                    df_clean['pond_presence'] = pd.to_numeric(df_clean['pond_presence'], errors='coerce').fillna(0)
+
+                    # Ensure only 0 or 1 values
+                    df_clean['pond_presence'] = df_clean['pond_presence'].clip(0, 1).astype(int)
                 
                 # Note: Original logic calculated removal count but didn't actually filter rows based on pond_presence
                 # so we don't update keep_mask here.
@@ -1262,20 +1268,24 @@ class DataProcessor:
                 raise ValueError("No valid data remaining after filtering")
             
             # Convert intervention column to numeric if needed
-            if df_clean[intervention_col].dtype == 'object':
+            # Optimization: Check if already numeric to avoid expensive string conversion/mapping
+            if pd.api.types.is_numeric_dtype(df_clean[intervention_col]):
+                df_clean[intervention_col] = df_clean[intervention_col].fillna(0)
+                df_clean[intervention_col] = df_clean[intervention_col].clip(0, 1).astype(int)
+            else:
                 # Handle string representations
                 df_clean[intervention_col] = df_clean[intervention_col].astype(str).str.lower()
                 mapping = {'yes': 1, 'y': 1, 'true': 1, 't': 1, '1': 1, 'present': 1,
                           'no': 0, 'n': 0, 'false': 0, 'f': 0, '0': 0, 'absent': 0, 'none': 0}
                 df_clean[intervention_col] = df_clean[intervention_col].map(mapping)
             
-            # Convert to numeric and handle missing values
-            df_clean[intervention_col] = pd.to_numeric(
-                df_clean[intervention_col], errors='coerce'
-            ).fillna(0)
-            
-            # Ensure only 0 or 1 values
-            df_clean[intervention_col] = df_clean[intervention_col].clip(0, 1).astype(int)
+                # Convert to numeric and handle missing values
+                df_clean[intervention_col] = pd.to_numeric(
+                    df_clean[intervention_col], errors='coerce'
+                ).fillna(0)
+
+                # Ensure only 0 or 1 values
+                df_clean[intervention_col] = df_clean[intervention_col].clip(0, 1).astype(int)
             
             # Group by intervention presence and calculate comprehensive statistics
             agg_dict = {
