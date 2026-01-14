@@ -27,8 +27,10 @@ try:
     from reportlab.lib.units import inch
     from reportlab.lib import colors
     REPORTLAB_AVAILABLE = True
+    PDF_PAGE_SIZES = {'letter': letter, 'A4': A4}
 except ImportError:
     REPORTLAB_AVAILABLE = False
+    PDF_PAGE_SIZES = {}
 
 # Constants
 DEFAULT_OUTPUT_DIR = './outputs'
@@ -38,7 +40,6 @@ MAX_FILENAME_LENGTH = 255
 DEFAULT_FIGURE_SIZE = (12, 8)
 SUPPORTED_EXPORT_FORMATS = ['csv', 'excel', 'parquet', 'json']
 SUPPORTED_IMAGE_FORMATS = ['png', 'jpg', 'jpeg', 'pdf', 'svg']
-PDF_PAGE_SIZES = {'letter': letter, 'A4': A4}
 
 # Logger setup
 logger = logging.getLogger(__name__)
