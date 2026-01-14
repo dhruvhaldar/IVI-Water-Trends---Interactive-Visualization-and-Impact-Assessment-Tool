@@ -243,12 +243,23 @@ def redact_text_content(text: str) -> str:
 
     # We need to handle optional quotes around the key for JSON-like strings
     # "key": "value"
-    pattern_quoted = re.compile(
-        r'(?i)(["\']?)(' + keys_pattern + r')\1(\s*[:=]\s*)(["\'])(.*?)\4',
+    # Improved patterns to handle escaped quotes inside the value
+
+    # Pattern for double-quoted values (handles escaped double quotes)
+    pattern_double = re.compile(
+        r'(?i)(["\']?)(' + keys_pattern + r')\1(\s*[:=]\s*)(")((?:[^"\\]|\\.)*)"',
         re.DOTALL
     )
 
-    text = pattern_quoted.sub(r'\1\2\1\3\4***REDACTED***\4', text)
+    # Pattern for single-quoted values (handles escaped single quotes)
+    pattern_single = re.compile(
+        r'(?i)(["\']?)(' + keys_pattern + r')\1(\s*[:=]\s*)(\')((?:[^\'\\]|\\.)*)\'',
+        re.DOTALL
+    )
+
+    # Apply redactions
+    text = pattern_double.sub(r'\1\2\1\3"***REDACTED***"', text)
+    text = pattern_single.sub(r"\1\2\1\3'***REDACTED***'", text)
 
     # For unquoted: Replace group 4 (value) with ***REDACTED***
     # Group 1: Optional Quote

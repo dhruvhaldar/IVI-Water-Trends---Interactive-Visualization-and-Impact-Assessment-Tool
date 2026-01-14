@@ -46,3 +46,13 @@ def test_redact_text_content_with_quotes():
     text = 'token="my-token-val"'
     expected = 'token="***REDACTED***"'
     assert redact_text_content(text) == expected
+
+def test_redact_text_content_escaped_quotes():
+    # Test case for vulnerability fix
+    text = '{"api_key": "val\\"ue", "other": "data"}'
+    expected = '{"api_key": "***REDACTED***", "other": "data"}'
+    assert redact_text_content(text) == expected
+
+    text = "key='val\\'ue'"
+    expected = "key='***REDACTED***'"
+    assert redact_text_content(text) == expected
