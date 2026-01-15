@@ -407,7 +407,8 @@ class CoREStackClient:
             # Hash parameters to prevent sensitive data leakage in cache keys
             # Include salt to prevent rainbow table attacks
             params_str = json.dumps(params, sort_keys=True)
-            params_hash = hash_data(params_str + self._cache_salt)
+            # Use HMAC for robust keyed hashing
+            params_hash = hash_data(params_str, key=self._cache_salt)
 
             # Hash URL to prevent credentials in base_url from leaking in cache keys
             url_hash = hash_data(url)
@@ -417,7 +418,7 @@ class CoREStackClient:
             self.logger.warning(f"Cannot create cache key due to non-serializable params: {e}")
             # Fallback to hashing the string representation
             params_str = str(params)
-            params_hash = hash_data(params_str + self._cache_salt)
+            params_hash = hash_data(params_str, key=self._cache_salt)
             url_hash = hash_data(url)
             cache_key = f"{method}_{url_hash}_{params_hash}"
         

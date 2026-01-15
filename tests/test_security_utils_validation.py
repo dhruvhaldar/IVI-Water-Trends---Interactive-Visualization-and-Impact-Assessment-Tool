@@ -56,3 +56,22 @@ class TestSecurityValidation:
 
         # Verify different data produces different hash
         assert hash_data("other_data") != expected_hash
+
+    def test_hash_data_hmac(self):
+        """Test HMAC-SHA-256 hashing."""
+        data = "test_data"
+        key = "secret_key"
+
+        # Calculate expected HMAC manually or use known value
+        # hmac.new(b"secret_key", b"test_data", hashlib.sha256).hexdigest()
+        expected_hmac = "be11497fdf5927c22a30e79538d84f7730dd816561b2f9daef1b371ba7a21854"
+
+        assert hash_data(data, key=key) == expected_hmac
+
+        # Verify that HMAC(data, key) != SHA256(data + key)
+        # SHA256("test_datasecret_key")
+        sha256_concat = hash_data(data + key)
+        assert hash_data(data, key=key) != sha256_concat
+
+        # Verify key sensitivity
+        assert hash_data(data, key="wrong_key") != expected_hmac
