@@ -402,9 +402,15 @@ class DataProcessor:
         
         try:
             # Convert data types with error handling
-            df_clean['year'] = pd.to_numeric(df_clean['year'], errors='coerce')
-            df_clean['water_area_ha'] = pd.to_numeric(df_clean['water_area_ha'], errors='coerce')
-            df_clean['water_body_count'] = pd.to_numeric(df_clean['water_body_count'], errors='coerce')
+            # Optimization: Check if already numeric to avoid expensive conversion
+            if not pd.api.types.is_numeric_dtype(df_clean['year']):
+                df_clean['year'] = pd.to_numeric(df_clean['year'], errors='coerce')
+
+            if not pd.api.types.is_numeric_dtype(df_clean['water_area_ha']):
+                df_clean['water_area_ha'] = pd.to_numeric(df_clean['water_area_ha'], errors='coerce')
+
+            if not pd.api.types.is_numeric_dtype(df_clean['water_body_count']):
+                df_clean['water_body_count'] = pd.to_numeric(df_clean['water_body_count'], errors='coerce')
             
             # Initialize keep mask for efficient filtering
             keep_mask = np.ones(len(df_clean), dtype=bool)
@@ -661,7 +667,9 @@ class DataProcessor:
             
             # Convert and validate year
             if 'year' in df_clean.columns:
-                df_clean['year'] = pd.to_numeric(df_clean['year'], errors='coerce')
+                # Optimization: Check if already numeric
+                if not pd.api.types.is_numeric_dtype(df_clean['year']):
+                    df_clean['year'] = pd.to_numeric(df_clean['year'], errors='coerce')
                 
                 # Logic 1: Out of range (excludes NaNs as comparison is False)
                 invalid_range = (df_clean['year'] < 1900) | (df_clean['year'] > 2100)

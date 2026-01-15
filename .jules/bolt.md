@@ -17,3 +17,7 @@
 ## 2025-02-24 - [Pandas Subset Before Copy]
 **Learning:** When creating a working copy of a DataFrame (especially a filtered one), subsetting to only the required columns *before* or *during* the copy/filter operation significantly reduces memory usage and execution time if the original DataFrame has many unused columns. Observed >75% speedup (4x faster) on wide DataFrames (200 cols -> 5 cols, 500k rows) by using `df.loc[mask, cols].copy()` instead of `df[mask].copy()`.
 **Action:** Always identify strictly necessary columns before creating a DataFrame copy for processing. Use `df.loc[mask, required_cols].copy()` to minimize data movement.
+
+## 2025-02-24 - [Pandas Numeric Check]
+**Learning:** `pd.to_numeric(..., errors='coerce')` incurs significant overhead (~10ms for 2M rows) even if the input data is already fully numeric. Checking `pd.api.types.is_numeric_dtype(series)` first is essentially free and avoids this overhead completely for correctly typed inputs.
+**Action:** Always wrap `pd.to_numeric` calls with `if not is_numeric_dtype(...)` when processing data that might already be typed (e.g. from API responses or Parquet files).
