@@ -1252,15 +1252,23 @@ class DataProcessor:
             # This avoids copying and processing intervention columns for rows that will be dropped
             valid_water_mask = df['water_area_ha'] >= 0
 
+            # Optimization: Subset columns before copying to reduce memory overhead
+            cols_needed = ['water_area_ha', 'location_id', intervention_col]
+            if 'water_body_count' in df.columns:
+                cols_needed.append('water_body_count')
+
+            # Ensure unique columns
+            cols_needed = list(set(cols_needed))
+
             if not valid_water_mask.all():
                 dropped_count = (~valid_water_mask).sum()
                 self.logger.warning(
                     f"Found {dropped_count} records with negative water areas. "
                     "These will be excluded from aggregation."
                 )
-                df_clean = df[valid_water_mask].copy()
+                df_clean = df.loc[valid_water_mask, cols_needed].copy()
             else:
-                df_clean = df.copy()
+                df_clean = df[cols_needed].copy()
 
             if df_clean.empty:
                 raise ValueError("No valid data remaining after filtering")
@@ -1429,7 +1437,17 @@ class DataProcessor:
             # Filter for valid data
             # Optimization: Filter directly to avoid copying rows that will be dropped
             valid_mask = df['water_area_ha'] >= 0
-            df_clean = df[valid_mask].copy()
+
+            # Optimization: Subset columns before copying to reduce memory overhead
+            # We use set to handle potential duplicates if location_level is in required_columns
+            cols_needed = required_columns.copy()
+            if 'water_body_count' in df.columns:
+                cols_needed.append('water_body_count')
+
+            # Ensure unique columns
+            cols_needed = list(set(cols_needed))
+
+            df_clean = df.loc[valid_mask, cols_needed].copy()
             
             if df_clean.empty:
                 raise ValueError("No valid data remaining after filtering")
