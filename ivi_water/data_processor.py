@@ -234,78 +234,34 @@ class DataProcessor:
             raise ValueError("timeseries data must be a list")
         
         for year_data in timeseries:
-            try:
-                year = year_data.get('year')
-                if year is None:
-                    self.logger.warning("Skipping year_data without year field")
-                    continue
-                    
-                # Validate year
-                # Optimization: Avoid string conversion for integers
-                if isinstance(year, int):
-                    pass
-                elif isinstance(year, str) and year.isdigit():
-                    year = int(year)
-                else:
-                    year = None
-
-                if year is None or year < 1900 or year > 2100:
-                    self.logger.warning(f"Invalid year value: {year_data.get('year')}")
-                    continue
-                
-                season_data = year_data.get('seasons', {})
-                if not isinstance(season_data, dict):
-                    self.logger.warning(f"Invalid seasons data for year {year}: {type(season_data)}")
-                    continue
-                
-                for season, water_info in season_data.items():
-                    # Validate season
-                    if season not in VALID_SEASONS:
-                        self.logger.warning(f"Unknown season '{season}' for location {location_id}")
-                        continue
-                    
-                    if not isinstance(water_info, dict):
-                        self.logger.warning(f"Invalid water_info for season {season}: {type(water_info)}")
-                        continue
-                    
-                    # Extract and validate water area
-                    water_area = water_info.get('area_ha', 0)
-                    try:
-                        water_area = float(water_area)
-                        if water_area < MIN_WATER_AREA_HA or water_area > MAX_WATER_AREA_HA:
-                            self.logger.warning(
-                                f"Water area {water_area} ha out of reasonable range "
-                                f"[{MIN_WATER_AREA_HA}, {MAX_WATER_AREA_HA}] for {location_id}"
-                            )
-                            # Still include but mark as questionable
-                    except (ValueError, TypeError):
-                        self.logger.warning(f"Invalid water_area value: {water_area}")
-                        water_area = 0.0
-                    
-                    # Extract and validate water body count
-                    water_body_count = water_info.get('count', 0)
-                    try:
-                        water_body_count = int(water_body_count)
-                        if water_body_count < 0:
-                            self.logger.warning(f"Negative water body count: {water_body_count}")
-                            water_body_count = 0
-                    except (ValueError, TypeError):
-                        self.logger.warning(f"Invalid water_body_count value: {water_body_count}")
-                        water_body_count = 0
-                    
-                    row = {
-                        'location_id': location_id,
-                        'year': year,
-                        'season': season,
-                        'water_area_ha': water_area,
-                        'water_body_count': water_body_count,
-                        'data_quality': water_info.get('quality', 'good')
-                    }
-                    rows.append(row)
-                    
-            except Exception as e:
-                self.logger.error(f"Error processing year_data: {e}", exc_info=True)
+            year = year_data.get('year')
+            if year is None:
                 continue
+
+            # Note: Year validation is deferred to _clean_water_data (vectorized)
+
+            season_data = year_data.get('seasons')
+            # Optimization: fast type check
+            if not isinstance(season_data, dict):
+                continue
+
+            for season, water_info in season_data.items():
+                if not isinstance(water_info, dict):
+                    continue
+                
+                # Note: Season validation, type conversion, and range checks
+                # are deferred to _clean_water_data for vectorized performance.
+                # Logging per row is removed to avoid performance penalty on large datasets.
+                
+                row = {
+                    'location_id': location_id,
+                    'year': year,
+                    'season': season,
+                    'water_area_ha': water_info.get('area_ha', 0),
+                    'water_body_count': water_info.get('count', 0),
+                    'data_quality': water_info.get('quality', 'good')
+                }
+                rows.append(row)
 
         return rows
 
@@ -407,10 +363,14 @@ class DataProcessor:
                 df_clean['year'] = pd.to_numeric(df_clean['year'], errors='coerce')
 
             if not pd.api.types.is_numeric_dtype(df_clean['water_area_ha']):
-                df_clean['water_area_ha'] = pd.to_numeric(df_clean['water_area_ha'], errors='coerce')
+                df_clean['water_area_ha'] = pd.to_numeric(df_clean['water_area_ha'], errors='coerce').fillna(0)
 
             if not pd.api.types.is_numeric_dtype(df_clean['water_body_count']):
-                df_clean['water_body_count'] = pd.to_numeric(df_clean['water_body_count'], errors='coerce')
+                df_clean['water_body_count'] = pd.to_numeric(df_clean['water_body_count'], errors='coerce').fillna(0)
+
+            # Legacy support: clip negative counts to 0 to match previous API loader behavior
+            if pd.api.types.is_numeric_dtype(df_clean['water_body_count']):
+                df_clean['water_body_count'] = df_clean['water_body_count'].clip(lower=0)
             
             # Initialize keep mask for efficient filtering
             keep_mask = np.ones(len(df_clean), dtype=bool)
