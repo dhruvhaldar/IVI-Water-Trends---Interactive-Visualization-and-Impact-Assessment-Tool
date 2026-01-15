@@ -558,7 +558,18 @@ class DataProcessor:
         
         # Check file size to avoid processing extremely large files
         file_size_mb = file_path.stat().st_size / (1024 * 1024)
-        if file_size_mb > 100:  # Warn for files larger than 100MB
+
+        # Enforce strict limit to prevent DoS (Denial of Service) via Memory Exhaustion
+        max_size_mb = int(os.getenv('MAX_FILE_SIZE_MB', '200'))
+
+        if file_size_mb > max_size_mb:
+            raise ValueError(
+                f"File size exceeds maximum limit of {max_size_mb}MB "
+                f"(detected {file_size_mb:.1f}MB). "
+                "Processing rejected to prevent memory exhaustion (DoS)."
+            )
+
+        if file_size_mb > 100:  # Warn for files larger than 100MB but allowed
             self.logger.warning(
                 f"Large file detected ({file_size_mb:.1f}MB). "
                 "Consider processing in chunks or optimizing the data."
