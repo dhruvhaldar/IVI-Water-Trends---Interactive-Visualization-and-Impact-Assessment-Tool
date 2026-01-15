@@ -190,13 +190,11 @@ class CoREStackClient:
                             "Access denied for security. Set CORE_ALLOW_INTERNAL_IPS=1 to override."
                         )
             except socket.gaierror:
-                # If DNS resolution fails, we can't verify the IP.
-                # Depending on strictness, we might allow or block.
-                # Blocking is safer but might break if DNS is flaky.
-                # Here we log warning but proceed, assuming network layer will fail anyway if invalid.
-                # Or we can treat unresolvable as safe? No, requests will resolve it later.
-                # We'll assume if requests can resolve it, we should be able to.
-                pass
+                # Security hardening: Fail closed on DNS errors during validation.
+                # If we cannot verify the IP is safe, we must assume it is unsafe.
+                # This prevents attackers from using DNS flakiness or tricks to bypass the check.
+                if not allow_internal:
+                    raise ValueError(f"Could not resolve hostname '{hostname}' to verify safety.")
             except ValueError as e:
                 # Re-raise security violation
                 raise e
@@ -432,6 +430,17 @@ class CoREStackClient:
         # Make HTTP request
         try:
             self.logger.debug(f"Making {method} request to {safe_url} with params: {redact_sensitive_data(params)}")
+
+            # Security: Re-validate base URL to prevent DNS Rebinding (TOCTOU mitigation)
+            # This ensures that even if the DNS record changed since initialization (e.g., to a private IP),
+            # we catch it before making the request.
+            # We catch ValueError (security violation) and re-raise as ConnectionError to stop the request.
+            try:
+                self._validate_base_url(self.base_url)
+            except ValueError as e:
+                # Log security event
+                self.logger.critical(f"Security check failed for {safe_url}: {e}")
+                raise ConnectionError(f"Security check failed: {e}")
             
             response = self.session.request(
                 method=method.upper(),
