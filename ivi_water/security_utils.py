@@ -18,7 +18,10 @@ SENSITIVE_KEYS = {
     'secret', 'client_secret',
     'password', 'passwd', 'pwd',
     'authorization', 'auth',
-    'private_key', 'public_key'
+    'private_key', 'public_key',
+    # Added hyphenated variants for broader coverage
+    'api-key', 'access-token', 'refresh-token', 'auth-token',
+    'client-secret', 'x-api-key', 'x-access-token', 'x-auth-token'
 }
 
 # Regex for validating safe identifiers (alphanumeric, -, _)
@@ -46,27 +49,25 @@ def redact_sensitive_data(data: Any, max_depth: int = 50, _current_depth: int = 
     if isinstance(data, dict):
         redacted = {}
         for key, value in data.items():
-            if isinstance(key, str) and any(s == key.lower() or s in key.lower().split('_') for s in SENSITIVE_KEYS):
-                 # Check exact match or part of snake_case (e.g. 'api_key', 'my_password')
-                 # But avoid redacting things like 'location_key' if 'key' is in sensitive list?
-                 # Let's use a slightly more robust check.
-                 # If the key exactly matches or ends with a sensitive suffix like '_key', '_token'
-                 # Or if it is in the explicit list.
+            if isinstance(key, str):
+                # Check exact match or part of snake_case/kebab-case
+                is_sensitive = False
+                key_lower = key.lower()
+                if key_lower in SENSITIVE_KEYS:
+                    is_sensitive = True
+                else:
+                    for sensitive in SENSITIVE_KEYS:
+                        # Check for _sensitive and -sensitive suffixes
+                        if key_lower == sensitive or \
+                           key_lower.endswith(f"_{sensitive}") or \
+                           key_lower.endswith(f"-{sensitive}"):
+                            is_sensitive = True
+                            break
 
-                 is_sensitive = False
-                 key_lower = key.lower()
-                 if key_lower in SENSITIVE_KEYS:
-                     is_sensitive = True
-                 else:
-                     for sensitive in SENSITIVE_KEYS:
-                         if key_lower == sensitive or key_lower.endswith(f"_{sensitive}"):
-                             is_sensitive = True
-                             break
-
-                 if is_sensitive:
-                     redacted[key] = '***REDACTED***'
-                 else:
-                     redacted[key] = redact_sensitive_data(value, max_depth, _current_depth + 1)
+                if is_sensitive:
+                    redacted[key] = '***REDACTED***'
+                else:
+                    redacted[key] = redact_sensitive_data(value, max_depth, _current_depth + 1)
             else:
                 redacted[key] = redact_sensitive_data(value, max_depth, _current_depth + 1)
         return redacted
