@@ -16,7 +16,7 @@ import socket
 import ipaddress
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Union, Any
-from urllib.parse import urlparse
+from urllib.parse import urlparse, urljoin
 
 # Third-party imports
 import requests
@@ -123,6 +123,9 @@ class CoREStackClient:
         self.session.mount("http://", adapter)
         self.session.mount("https://", adapter)
         
+        # Register security hooks to validate redirects
+        self.session.hooks['response'].append(self._check_redirect_security)
+
         # Setup headers
         self.session.headers.update({
             'Authorization': f'Bearer {self.api_key.strip()}',
@@ -147,6 +150,33 @@ class CoREStackClient:
             f"cache TTL: {self.cache_ttl}s"
         )
     
+    def _check_redirect_security(self, response: requests.Response, *args, **kwargs) -> None:
+        """
+        Response hook to validate redirect targets against SSRF.
+
+        This method is registered as a response hook on the requests session.
+        It intercepts all responses, checks if they are redirects, and validates
+        the target URL before the redirection is followed.
+
+        Args:
+            response: The Response object from the request
+            *args: Additional arguments
+            **kwargs: Additional keyword arguments
+
+        Raises:
+            ConnectionError: If the redirect target violates security policies
+        """
+        if response.is_redirect:
+            target_url = response.headers.get('Location')
+            if target_url:
+                # Handle relative redirects by joining with current URL
+                full_url = urljoin(response.url, target_url)
+                try:
+                    self._validate_base_url(full_url)
+                except ValueError as e:
+                    self.logger.critical(f"Security check failed for redirect to {redact_url(full_url)}: {e}")
+                    raise requests.exceptions.ConnectionError(f"Security check failed for redirect: {e}")
+
     def _validate_base_url(self, url: str) -> None:
         """
         Validate the base URL for security issues like SSRF and insecure HTTP.
