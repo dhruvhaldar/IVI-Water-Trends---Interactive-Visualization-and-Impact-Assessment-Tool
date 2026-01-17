@@ -483,6 +483,52 @@ class DataProcessor:
         except Exception as e:
             self.logger.error(f"Error during data cleaning: {e}", exc_info=True)
             raise ValueError(f"Data cleaning failed: {e}")
+
+    def load_csv_safe(self, file_path: Union[str, Path], **kwargs) -> pd.DataFrame:
+        """
+        Safely load CSV file with size limit enforcement.
+
+        This method protects against DoS attacks via memory exhaustion by enforcing
+        a maximum file size limit (default 200MB) before loading the file into Pandas.
+
+        Args:
+            file_path: Path to the CSV file.
+            **kwargs: Additional arguments passed to pd.read_csv.
+
+        Returns:
+            pd.DataFrame: Loaded DataFrame.
+
+        Raises:
+            ValueError: If file size exceeds limit or path is not a file.
+            FileNotFoundError: If file not found.
+        """
+        file_path = Path(file_path)
+        if not file_path.exists():
+            raise FileNotFoundError(f"File not found: {file_path}")
+
+        if not file_path.is_file():
+             raise ValueError(f"Path is not a file: {file_path}")
+
+        # Check file size to avoid processing extremely large files
+        file_size_mb = file_path.stat().st_size / (1024 * 1024)
+
+        # Enforce strict limit to prevent DoS (Denial of Service) via Memory Exhaustion
+        max_size_mb = int(os.getenv('MAX_FILE_SIZE_MB', '200'))
+
+        if file_size_mb > max_size_mb:
+            raise ValueError(
+                f"File size exceeds maximum limit of {max_size_mb}MB "
+                f"(detected {file_size_mb:.1f}MB). "
+                "Processing rejected to prevent memory exhaustion (DoS)."
+            )
+
+        if file_size_mb > 100:  # Warn for files larger than 100MB but allowed
+            self.logger.warning(
+                f"Large file detected ({file_size_mb:.1f}MB). "
+                "Consider processing in chunks or optimizing the data."
+            )
+
+        return pd.read_csv(file_path, **kwargs)
     
     def load_nrm_impact_data(self, file_path: Optional[Union[str, Path]] = None) -> pd.DataFrame:
         """
@@ -517,40 +563,11 @@ class DataProcessor:
         # Convert to Path object for consistent handling
         file_path = Path(file_path)
         
-        # Validate file path
-        if not file_path.exists():
-            raise FileNotFoundError(
-                f"NRM impact data file not found: {file_path}. "
-                f"Please ensure the file exists and is accessible."
-            )
-        
-        if not file_path.is_file():
-            raise ValueError(f"Path is not a file: {file_path}")
-        
-        # Check file size to avoid processing extremely large files
-        file_size_mb = file_path.stat().st_size / (1024 * 1024)
-
-        # Enforce strict limit to prevent DoS (Denial of Service) via Memory Exhaustion
-        max_size_mb = int(os.getenv('MAX_FILE_SIZE_MB', '200'))
-
-        if file_size_mb > max_size_mb:
-            raise ValueError(
-                f"File size exceeds maximum limit of {max_size_mb}MB "
-                f"(detected {file_size_mb:.1f}MB). "
-                "Processing rejected to prevent memory exhaustion (DoS)."
-            )
-
-        if file_size_mb > 100:  # Warn for files larger than 100MB but allowed
-            self.logger.warning(
-                f"Large file detected ({file_size_mb:.1f}MB). "
-                "Consider processing in chunks or optimizing the data."
-            )
-        
         self.logger.info(f"Loading NRM impact data from: {file_path}")
         
         try:
-            # Load CSV with error handling
-            df = pd.read_csv(
+            # Load CSV with error handling using safe loader
+            df = self.load_csv_safe(
                 file_path,
                 encoding='utf-8',
                 low_memory=False,  # Prevent mixed type inference warnings
@@ -577,7 +594,7 @@ class DataProcessor:
             self.logger.error(f"Encoding error reading file {file_path}: {e}")
             # Try with different encoding
             try:
-                df = pd.read_csv(file_path, encoding='latin-1')
+                df = self.load_csv_safe(file_path, encoding='latin-1')
                 self.logger.warning("File read with latin-1 encoding. Consider saving as UTF-8.")
                 return self._clean_nrm_data(df, inplace=True)
             except Exception as fallback_error:

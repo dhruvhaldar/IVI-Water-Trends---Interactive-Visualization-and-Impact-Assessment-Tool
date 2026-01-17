@@ -469,7 +469,7 @@ def merge_data(ctx, water_data, nrm_data, output):
         processor = DataProcessor(ctx.obj['data_dir'])
         
         # Load water data
-        water_df = pd.read_csv(water_data)
+        water_df = processor.load_csv_safe(water_data)
         water_df = processor._clean_water_data(water_df)
         
         # Load NRM data if provided
@@ -514,7 +514,8 @@ def merge_data(ctx, water_data, nrm_data, output):
 def visualize(ctx, data, location_id, chart_type, output, format):
     """Create visualizations from water data"""
     try:
-        df = pd.read_csv(data)
+        processor = DataProcessor(ctx.obj['data_dir'])
+        df = processor.load_csv_safe(data)
         viz = WaterTrendsVisualizer()
         
         # Generate filename if not provided
@@ -555,7 +556,8 @@ def visualize(ctx, data, location_id, chart_type, output, format):
 def dashboard(ctx, data, locations, output):
     """Create comprehensive dashboard for multiple locations"""
     try:
-        df = pd.read_csv(data)
+        processor = DataProcessor(ctx.obj['data_dir'])
+        df = processor.load_csv_safe(data)
         viz = WaterTrendsVisualizer()
         
         location_list = [loc.strip() for loc in locations.split(',')] if locations else None
@@ -596,7 +598,8 @@ def dashboard(ctx, data, locations, output):
 def generate_report(ctx, data, report_type, output):
     """Generate reports from water data"""
     try:
-        df = pd.read_csv(data)
+        processor = DataProcessor(ctx.obj['data_dir'])
+        df = processor.load_csv_safe(data)
         export_utils = ExportUtils()
         
         if not output:
