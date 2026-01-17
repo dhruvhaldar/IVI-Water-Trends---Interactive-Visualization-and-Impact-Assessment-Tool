@@ -977,23 +977,21 @@ class DataProcessor:
             # Optimization: Select only necessary columns before copying to reduce memory and time overhead
             # when input df has many extra columns (e.g. after merging)
             cols_needed = list(set(group_by_list + ['water_area_ha', 'year']))
-            df_proc = df[cols_needed].copy()
 
-            # Optimization: Ensure valid_mask is computed efficiently
+            # Optimization: Filter BEFORE copy to minimize memory usage and avoid double copying
             # Note: Explicit comparison with 0 checks for non-negative values
             # Comparing >= 0 returns False for NaNs, so explicit isna() check is redundant
-            valid_mask = df_proc['water_area_ha'] >= 0
+            valid_mask = df['water_area_ha'] >= 0
 
             if not valid_mask.any():
                 raise ValueError("No valid data points found (water_area_ha >= 0)")
 
-            # Optimization: In-place masking avoids creating new Series with .where()
-            # and reduces memory usage. We use NaN to mark invalid data.
-            # Convert year to float first to allow NaN values
-            df_proc['year'] = df_proc['year'].astype(float)
+            # Create working copy with only valid rows and necessary columns
+            # This is significantly faster than masking with NaN and processing all rows
+            df_proc = df.loc[valid_mask, cols_needed].copy()
 
-            # Set invalid values to NaN in-place
-            df_proc.loc[~valid_mask, ['water_area_ha', 'year']] = np.nan
+            # Convert year to float for calculations
+            df_proc['year'] = df_proc['year'].astype(float)
 
             # Pre-calculate xy and xx for slope
             # Since inputs have NaNs for invalid rows, outputs will also be NaN correctly
@@ -1024,6 +1022,7 @@ class DataProcessor:
             ]
 
             # Rename for compatibility with existing output format
+            # Note: total_observations now counts only valid rows (water_area_ha >= 0)
             stats_df = stats_df.rename(columns={
                 'water_area_ha_std': 'std_water_area_ha',
                 'water_area_ha_min': 'min_water_area_ha',
