@@ -191,15 +191,26 @@ class CoREStackClient:
         hostname = parsed_url.hostname or ""
         scheme = parsed_url.scheme.lower()
 
-        # 1. Check for insecure HTTP
+        # 1. Validate URL Scheme (Enforce whitelist)
+        allowed_schemes = {'https'}
         allow_insecure = os.getenv('CORE_ALLOW_INSECURE_HTTP', '0').lower() in ('1', 'true', 'yes')
         is_localhost_str = hostname.lower() in ('localhost', '127.0.0.1', '::1')
 
-        if not allow_insecure and scheme == 'http' and not is_localhost_str:
-            raise ValueError(
-                f"Insecure connection: API base URL '{url}' uses HTTP. "
-                "Use HTTPS or set CORE_ALLOW_INSECURE_HTTP=1 to override (not recommended)."
-            )
+        # Allow HTTP if explicitly insecure or localhost
+        if allow_insecure or is_localhost_str:
+            allowed_schemes.add('http')
+
+        if scheme not in allowed_schemes:
+            if scheme == 'http':
+                raise ValueError(
+                    f"Insecure connection: API base URL '{url}' uses HTTP. "
+                    "Use HTTPS or set CORE_ALLOW_INSECURE_HTTP=1 to override (not recommended)."
+                )
+            else:
+                raise ValueError(
+                    f"Invalid URL scheme '{scheme}'. Only HTTPS is allowed "
+                    "(HTTP allowed for localhost or if explicitly enabled)."
+                )
 
         # 2. SSRF Protection: Resolve hostname and check for private/internal IPs
         allow_internal = os.getenv('CORE_ALLOW_INTERNAL_IPS', '0').lower() in ('1', 'true', 'yes')
