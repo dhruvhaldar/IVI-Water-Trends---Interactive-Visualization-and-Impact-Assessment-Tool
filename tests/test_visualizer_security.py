@@ -54,3 +54,21 @@ def test_save_figure_valid_filename(temp_output_dir):
 
     expected_file = os.path.join(temp_output_dir, "test_chart.html")
     assert os.path.exists(expected_file)
+
+def test_save_figure_csp_injection(temp_output_dir):
+    """
+    Test that save_figure injects Content Security Policy meta tag.
+    """
+    viz = WaterTrendsVisualizer()
+    fig = go.Figure()
+
+    filename = "test_csp"
+    viz.save_figure(fig, filename, "html")
+
+    filepath = os.path.join(temp_output_dir, f"{filename}.html")
+    with open(filepath, 'r', encoding='utf-8') as f:
+        content = f.read()
+
+    assert 'Content-Security-Policy' in content
+    assert "default-src 'none'" in content
+    assert "script-src 'unsafe-inline'" in content

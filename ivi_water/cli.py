@@ -539,7 +539,7 @@ def visualize(ctx, data, location_id, chart_type, output, format):
             fig = viz.create_trend_heatmap(df)
         
         # Save figure
-        viz.save_figure(fig, output, format)
+        viz.save_figure(fig, output, format, output_dir=ctx.obj['output_dir'])
         
         click.echo(f"Chart saved to {ctx.obj['output_dir']}/{output}.{format}")
         
@@ -572,15 +572,10 @@ def dashboard(ctx, data, locations, output):
         
         fig = viz.create_multi_location_dashboard(df_filtered, location_list)
         
-        try:
-            output = sanitize_filename(output)
-        except ValueError as e:
-            raise click.ClickException(f"Invalid output filename: {e}")
-
-        output_path = Path(ctx.obj['output_dir']) / f"{output}.html"
-        fig.write_html(output_path)
+        # Save dashboard using secure save_figure method
+        viz.save_figure(fig, output, 'html', output_dir=ctx.obj['output_dir'])
         
-        click.echo(f"Dashboard saved to {output_path}")
+        click.echo(f"Dashboard saved to {ctx.obj['output_dir']}/{output}.html")
         click.echo(f"Included locations: {', '.join(location_list)}")
         
     except Exception as e:
