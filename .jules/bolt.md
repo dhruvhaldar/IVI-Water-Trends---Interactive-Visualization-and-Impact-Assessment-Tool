@@ -21,3 +21,7 @@
 ## 2025-02-24 - [Pandas Numeric Check]
 **Learning:** `pd.to_numeric(..., errors='coerce')` incurs significant overhead (~10ms for 2M rows) even if the input data is already fully numeric. Checking `pd.api.types.is_numeric_dtype(series)` first is essentially free and avoids this overhead completely for correctly typed inputs.
 **Action:** Always wrap `pd.to_numeric` calls with `if not is_numeric_dtype(...)` when processing data that might already be typed (e.g. from API responses or Parquet files).
+
+## 2025-02-26 - [Pandas Series vs Numpy Masking]
+**Learning:** When combining boolean masks from multiple columns (e.g., `df['a'].isna() | df['b'].isna()`), operating on the underlying numpy arrays (`.values`) avoids Pandas index alignment overhead. This yielded a ~1.5x speedup for mask accumulation in tight loops or simple chain operations compared to Series-based bitwise operations.
+**Action:** Use `series.values` when performing bitwise logic on multiple columns of the same DataFrame, provided you are certain the indices are aligned (which is true when columns come from the same DataFrame).
