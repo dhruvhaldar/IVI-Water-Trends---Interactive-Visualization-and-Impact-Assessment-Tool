@@ -12,3 +12,8 @@
 **Vulnerability:** While the core `DataProcessor` enforced file size limits to prevent DoS via memory exhaustion, the CLI bypassed this control by directly using `pd.read_csv` for some operations, creating an inconsistency where the same operation (loading data) was secure in one context but not another.
 **Learning:** Security controls implemented in business logic (e.g., `DataProcessor`) must be encapsulated in reusable methods (like `load_csv_safe`) and strictly used by all interfaces (CLI, API, etc.). Ad-hoc implementations in entry points often miss these controls.
 **Prevention:** Centralize sensitive operations (like file loading) into secure utility methods and ensure all entry points use them instead of raw library calls.
+
+## 2024-05-26 - API Client Memory Exhaustion
+**Vulnerability:** The API client downloaded full response bodies into memory by default (requests `stream=False`), allowing a malicious or misconfigured server to crash the application via OOM (Out of Memory) by serving an infinitely large response.
+**Learning:** Standard HTTP clients often default to downloading the entire response body. For data processing applications dealing with potentially large or untrusted inputs, this is a significant DoS vector.
+**Prevention:** Configure API clients to use streaming responses (`stream=True`). Implement a strict read loop that checks `Content-Length` headers and enforces a maximum accumulated size limit during the download process.

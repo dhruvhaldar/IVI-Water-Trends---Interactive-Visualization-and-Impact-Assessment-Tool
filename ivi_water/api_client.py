@@ -35,6 +35,7 @@ RETRY_STATUS_CODES = [429, 500, 502, 503, 504]
 REQUEST_TIMEOUT = 30  # seconds
 DEFAULT_BASE_URL = 'https://api.corestack.org/v1'
 USER_AGENT = 'IVI-Water-Trends/0.1.0'
+DEFAULT_MAX_RESPONSE_SIZE = 50 * 1024 * 1024  # 50 MB
 
 # Logger setup
 logger = logging.getLogger(__name__)
@@ -144,10 +145,13 @@ class CoREStackClient:
         
         if self.cache_ttl < 0:
             raise ValueError("Cache TTL must be non-negative")
+
+        # Limit max response size to prevent DoS via memory exhaustion
+        self.max_response_size = int(os.getenv('CORE_API_MAX_RESPONSE_SIZE', str(DEFAULT_MAX_RESPONSE_SIZE)))
         
         self.logger.info(
             f"Initialized CoRE Stack client with base URL: {redact_url(self.base_url)}, "
-            f"cache TTL: {self.cache_ttl}s"
+            f"cache TTL: {self.cache_ttl}s, max_response_size: {self.max_response_size/1024/1024:.1f}MB"
         )
     
     def _check_redirect_security(self, response: requests.Response, *args, **kwargs) -> None:
@@ -483,37 +487,67 @@ class CoREStackClient:
                 self.logger.critical(f"Security check failed for {safe_url}: {e}")
                 raise ConnectionError(f"Security check failed: {e}")
             
+            # Use stream=True to prevent loading large responses into memory immediately
             response = self.session.request(
                 method=method.upper(),
                 url=url,
                 params=params if method.upper() == 'GET' else None,
                 json=params if method.upper() == 'POST' else None,
-                timeout=REQUEST_TIMEOUT
+                timeout=REQUEST_TIMEOUT,
+                stream=True
             )
             
-            # Handle different response statuses
-            if response.status_code == 401:
-                raise RequestException("Authentication failed. Check your API key.")
-            elif response.status_code == 403:
-                raise RequestException("Access forbidden. Insufficient permissions.")
-            elif response.status_code == 404:
-                raise RequestException(f"Endpoint not found: {endpoint}")
-            elif response.status_code == 429:
-                retry_after = response.headers.get('Retry-After', 'unknown')
-                raise RequestException(f"Rate limit exceeded. Retry after {retry_after} seconds.")
-            elif response.status_code >= 500:
-                raise RequestException(f"Server error: {response.status_code}")
-            
-            response.raise_for_status()
-            
-            # Parse JSON response
             try:
-                data = response.json()
+                # Handle different response statuses
+                if response.status_code == 401:
+                    raise RequestException("Authentication failed. Check your API key.")
+                elif response.status_code == 403:
+                    raise RequestException("Access forbidden. Insufficient permissions.")
+                elif response.status_code == 404:
+                    raise RequestException(f"Endpoint not found: {endpoint}")
+                elif response.status_code == 429:
+                    retry_after = response.headers.get('Retry-After', 'unknown')
+                    raise RequestException(f"Rate limit exceeded. Retry after {retry_after} seconds.")
+                elif response.status_code >= 500:
+                    raise RequestException(f"Server error: {response.status_code}")
+
+                response.raise_for_status()
+
+                # Check Content-Length header if present
+                content_length = response.headers.get('Content-Length')
+                if content_length and int(content_length) > self.max_response_size:
+                    raise ValueError(
+                        f"Response too large ({int(content_length)} bytes). "
+                        f"Maximum allowed is {self.max_response_size} bytes."
+                    )
+
+                # Read content with size limit enforcement
+                content = bytearray()
+                for chunk in response.iter_content(chunk_size=8192):
+                    if chunk:
+                        content.extend(chunk)
+                        if len(content) > self.max_response_size:
+                            raise ValueError(
+                                f"Response size exceeded limit of {self.max_response_size} bytes during download."
+                            )
+            finally:
+                response.close()
+
+            # Parse JSON response from the accumulated content
+            try:
+                # content is bytearray, json.loads accepts bytes or str
+                data = json.loads(content.decode('utf-8'))
             except json.JSONDecodeError as e:
                 self.logger.error(f"Invalid JSON response from {safe_url}: {e}")
                 # Redact response text to prevent leakage of secrets in logs
-                safe_text = redact_text_content(response.text[:500])
-                self.logger.debug(f"Response content: {safe_text}")
+                # Use a safe slice of the content
+                try:
+                    text_preview = content[:500].decode('utf-8', errors='replace')
+                except Exception:
+                    text_preview = "<binary data>"
+
+                safe_text = redact_text_content(text_preview)
+                self.logger.debug(f"Response content preview: {safe_text}")
                 raise json.JSONDecodeError(f"Invalid JSON response from API: {e}", e.doc, e.pos)
             
             # Validate response structure
