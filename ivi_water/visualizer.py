@@ -685,7 +685,14 @@ class WaterTrendsVisualizer:
         
         return plotter
     
-    def save_figure(self, fig: go.Figure, filename: str, format: str = 'html', **kwargs) -> None:
+    def save_figure(
+        self,
+        fig: go.Figure,
+        filename: str,
+        format: str = 'html',
+        output_dir: Optional[str] = None,
+        **kwargs
+    ) -> None:
         """
         Save figure to file.
         
@@ -693,10 +700,15 @@ class WaterTrendsVisualizer:
             fig: Plotly Figure object
             filename: Output filename
             format: Output format ('html', 'png', 'svg', 'pdf')
+            output_dir: Optional directory to save file (overrides default)
             **kwargs: Additional arguments for saving
         """
-        output_dir = os.getenv('OUTPUT_DIR', './outputs')
-        os.makedirs(output_dir, exist_ok=True)
+        if output_dir:
+            save_dir = output_dir
+        else:
+            save_dir = os.getenv('OUTPUT_DIR', './outputs')
+
+        os.makedirs(save_dir, exist_ok=True)
         
         try:
             filename = sanitize_filename(filename)
@@ -704,15 +716,29 @@ class WaterTrendsVisualizer:
             self.logger.error(f"Invalid filename: {e}")
             raise
 
-        filepath = os.path.join(output_dir, f"{filename}.{format}")
+        filepath = os.path.join(save_dir, f"{filename}.{format}")
         
         if format == 'html':
-            fig.write_html(filepath, **kwargs)
-        elif format == 'png':
-            fig.write_image(filepath, **kwargs)
-        elif format == 'svg':
-            fig.write_image(filepath, **kwargs)
-        elif format == 'pdf':
+            # Generate HTML string
+            html_content = fig.to_html(**kwargs)
+
+            # Inject CSP meta tag for security
+            # We allow 'unsafe-inline' for scripts and styles as Plotly requires them.
+            # We block everything else to prevent XSS exfiltration and other attacks.
+            csp_content = "default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src 'self' data:;"
+            csp_tag = f'<meta http-equiv="Content-Security-Policy" content="{csp_content}">'
+
+            # Insert meta tag
+            if '<head>' in html_content:
+                html_content = html_content.replace('<head>', f'<head>\n{csp_tag}', 1)
+            else:
+                # Fallback if no head tag found (though full_html=True produces it)
+                html_content = f'{csp_tag}\n{html_content}'
+
+            with open(filepath, 'w', encoding='utf-8') as f:
+                f.write(html_content)
+
+        elif format in ['png', 'svg', 'pdf']:
             fig.write_image(filepath, **kwargs)
         else:
             raise ValueError(f"Unsupported format: {format}")
