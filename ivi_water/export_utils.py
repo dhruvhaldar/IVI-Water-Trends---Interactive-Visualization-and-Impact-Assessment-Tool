@@ -62,9 +62,14 @@ def sanitize_dataframe(df: pd.DataFrame) -> pd.DataFrame:
 
     for col in string_cols:
         # Apply sanitization to string columns
-        mask = df_clean[col].astype(str).str.startswith(CSV_INJECTION_CHARS, na=False)
+        # Optimization: Use vectorized string operations and avoid redundant type conversion
+        # Convert to string once for checking and modification
+        s = df_clean[col].astype(str)
+        mask = s.str.startswith(CSV_INJECTION_CHARS, na=False)
+
         if mask.any():
-            df_clean.loc[mask, col] = "'" + df_clean.loc[mask, col].astype(str)
+            # Apply modification only to affected rows using the already converted series
+            df_clean.loc[mask, col] = "'" + s[mask]
 
     return df_clean
 
