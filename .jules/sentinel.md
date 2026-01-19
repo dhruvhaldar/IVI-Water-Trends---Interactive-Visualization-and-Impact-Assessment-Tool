@@ -12,3 +12,8 @@
 **Vulnerability:** While the core `DataProcessor` enforced file size limits to prevent DoS via memory exhaustion, the CLI bypassed this control by directly using `pd.read_csv` for some operations, creating an inconsistency where the same operation (loading data) was secure in one context but not another.
 **Learning:** Security controls implemented in business logic (e.g., `DataProcessor`) must be encapsulated in reusable methods (like `load_csv_safe`) and strictly used by all interfaces (CLI, API, etc.). Ad-hoc implementations in entry points often miss these controls.
 **Prevention:** Centralize sensitive operations (like file loading) into secure utility methods and ensure all entry points use them instead of raw library calls.
+
+## 2024-05-25 - Inconsistent CSP Enforcement in HTML Exports
+**Vulnerability:** While `save_figure` injected Content Security Policy (CSP) headers to prevent XSS, other export methods like `create_multi_location_dashboard` and `create_visualization_exports` generated HTML files directly (using `fig.write_html`), bypassing these security controls.
+**Learning:** When multiple methods perform similar output generation (e.g., saving HTML), they often drift in security implementation. Ad-hoc injection of security headers is error-prone.
+**Prevention:** Centralize the HTML generation and security header injection logic into a single utility function (e.g., `inject_csp_meta_tag`) and enforce its use across all export functions.

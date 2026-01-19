@@ -7,6 +7,7 @@ This module tests the validation functions in security_utils.py.
 import pytest
 from ivi_water.security_utils import validate_safe_id, hash_data
 
+
 class TestSecurityValidation:
 
     def test_validate_safe_id_valid(self):
@@ -48,7 +49,9 @@ class TestSecurityValidation:
     def test_hash_data(self):
         """Test SHA-256 hashing."""
         data = "test_data"
-        expected_hash = "e7d87b738825c33824cf3fd32b7314161fc8c425129163ff5e7260fc7288da36"
+        expected_hash = (
+            "e7d87b738825c33824cf3fd32b7314161fc8c425129163ff5e7260fc7288da36"
+        )
         assert hash_data(data) == expected_hash
 
         # Verify it's consistent
@@ -64,7 +67,9 @@ class TestSecurityValidation:
 
         # Calculate expected HMAC manually or use known value
         # hmac.new(b"secret_key", b"test_data", hashlib.sha256).hexdigest()
-        expected_hmac = "be11497fdf5927c22a30e79538d84f7730dd816561b2f9daef1b371ba7a21854"
+        expected_hmac = (
+            "be11497fdf5927c22a30e79538d84f7730dd816561b2f9daef1b371ba7a21854"
+        )
 
         assert hash_data(data, key=key) == expected_hmac
 

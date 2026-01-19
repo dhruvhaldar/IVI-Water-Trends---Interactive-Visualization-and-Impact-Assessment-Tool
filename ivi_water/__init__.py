@@ -12,9 +12,4 @@ from .data_processor import DataProcessor
 from .visualizer import WaterTrendsVisualizer
 from .export_utils import ExportUtils
 
-__all__ = [
-    "CoREStackClient",
-    "DataProcessor", 
-    "WaterTrendsVisualizer",
-    "ExportUtils"
-]
+__all__ = ["CoREStackClient", "DataProcessor", "WaterTrendsVisualizer", "ExportUtils"]

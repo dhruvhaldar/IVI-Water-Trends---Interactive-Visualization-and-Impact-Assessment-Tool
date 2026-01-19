@@ -1,6 +1,7 @@
 import pytest
 from ivi_water.security_utils import redact_text_content
 
+
 class TestRegexFix:
     """Test the fix for regex-based redaction of JSON-like strings."""
 
