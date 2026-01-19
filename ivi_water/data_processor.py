@@ -21,18 +21,22 @@ import numpy as np
 from .export_utils import sanitize_dataframe, sanitize_filename
 
 # Constants
-DEFAULT_DATA_DIR = './data'
-DEFAULT_OUTPUT_DIR = './outputs'
+DEFAULT_DATA_DIR = "./data"
+DEFAULT_OUTPUT_DIR = "./outputs"
 MIN_DATA_POINTS_FOR_TREND = 2
 MAX_WATER_AREA_HA = 10000.0  # Maximum reasonable water area in hectares
 MIN_WATER_AREA_HA = 0.0
-VALID_SEASONS = ['perennial', 'winter', 'monsoon', 'summer']
-VALID_INTERVENTION_TYPES = ['pond', 'check_dam', 'contour_bund', 'other']
+VALID_SEASONS = ["perennial", "winter", "monsoon", "summer"]
+VALID_INTERVENTION_TYPES = ["pond", "check_dam", "contour_bund", "other"]
 
 # Columns for water data DataFrame
 WATER_DATA_COLUMNS = [
-    'location_id', 'year', 'season',
-    'water_area_ha', 'water_body_count', 'data_quality'
+    "location_id",
+    "year",
+    "season",
+    "water_area_ha",
+    "water_body_count",
+    "data_quality",
 ]
 
 # Logger setup
@@ -42,67 +46,67 @@ logger = logging.getLogger(__name__)
 class DataProcessor:
     """
     Handles data processing operations for water trends analysis.
-    
+
     This class provides methods to load, clean, merge, and aggregate
     datasets from CoRE Stack APIs and local NRM impact data.
-    
+
     Attributes:
         data_dir (Path): Directory containing data files
         processed_data (Dict[str, pd.DataFrame]): Cache for processed datasets
         logger (logging.Logger): Logger instance for this class
     """
-    
+
     def __init__(self, data_dir: Optional[str] = None) -> None:
         """
         Initialize the data processor.
-        
+
         Args:
             data_dir: Directory containing data files. If None, uses environment or default.
-            
+
         Raises:
             ValueError: If data directory doesn't exist and cannot be created
         """
-        self.data_dir = Path(data_dir or os.getenv('DATA_DIR', DEFAULT_DATA_DIR))
-        
+        self.data_dir = Path(data_dir or os.getenv("DATA_DIR", DEFAULT_DATA_DIR))
+
         # Ensure data directory exists
         try:
             self.data_dir.mkdir(parents=True, exist_ok=True)
         except OSError as e:
             raise ValueError(f"Cannot create data directory {self.data_dir}: {e}")
-            
+
         self.processed_data: Dict[str, pd.DataFrame] = {}
         self.logger = logging.getLogger(__name__)
-        
+
     def load_water_data_from_api(
-        self, 
+        self,
         api_client: Any,  # CoREStackClient instance
-        location_ids: List[str], 
-        start_year: int, 
+        location_ids: List[str],
+        start_year: int,
         end_year: int,
-        seasons: Optional[List[str]] = None
+        seasons: Optional[List[str]] = None,
     ) -> pd.DataFrame:
         """
         Load water data from CoRE Stack API and convert to DataFrame.
-        
+
         This method fetches seasonal surface water data for multiple locations
         from the CoRE Stack API, validates the response, and converts it to a
         standardized DataFrame format.
-        
+
         Args:
             api_client: CoREStackClient instance for API communication
             location_ids: List of location identifiers to fetch data for
             start_year: Start year for data collection (inclusive)
             end_year: End year for data collection (inclusive)
             seasons: List of seasons to include. If None, uses default seasons.
-            
+
         Returns:
             DataFrame with water data in long format containing columns:
             location_id, year, season, water_area_ha
-            
+
         Raises:
             ValueError: If no data can be loaded or input parameters are invalid
             TypeError: If api_client doesn't have required methods
-            
+
         Example:
             >>> client = CoREStackClient()
             >>> processor = DataProcessor()
@@ -115,29 +119,29 @@ class DataProcessor:
         # Input validation
         if not location_ids:
             raise ValueError("location_ids cannot be empty")
-            
+
         if start_year > end_year:
             raise ValueError("start_year must be less than or equal to end_year")
-            
+
         if seasons is None:
             seasons = VALID_SEASONS
         else:
             invalid_seasons = [s for s in seasons if s not in VALID_SEASONS]
             if invalid_seasons:
                 raise ValueError(f"Invalid seasons: {invalid_seasons}")
-        
+
         # Validate api_client has required method
-        if not hasattr(api_client, 'get_seasonal_water_data'):
+        if not hasattr(api_client, "get_seasonal_water_data"):
             raise TypeError("api_client must have get_seasonal_water_data method")
-        
+
         self.logger.info(
             f"Loading water data for {len(location_ids)} locations "
             f"from {start_year} to {end_year} for seasons: {seasons}"
         )
-        
+
         all_rows: List[Tuple[Any, ...]] = []
         successful_locations = 0
-        
+
         # Parallelize API calls using ThreadPoolExecutor
         # This significantly speeds up fetching data for multiple locations
         max_workers = min(10, len(location_ids))
@@ -147,8 +151,12 @@ class DataProcessor:
             future_to_loc = {
                 executor.submit(
                     api_client.get_seasonal_water_data,
-                    loc, start_year, end_year, seasons
-                ): loc for loc in location_ids
+                    loc,
+                    start_year,
+                    end_year,
+                    seasons,
+                ): loc
+                for loc in location_ids
             }
 
             # Process results as they complete
@@ -159,7 +167,9 @@ class DataProcessor:
 
                     # Validate API response
                     if not water_data:
-                        self.logger.warning(f"No data returned for location {location_id}")
+                        self.logger.warning(
+                            f"No data returned for location {location_id}"
+                        )
                         continue
 
                     # Convert API response to list of rows
@@ -170,24 +180,31 @@ class DataProcessor:
                     if rows:
                         all_rows.extend(rows)
                         successful_locations += 1
-                        self.logger.debug(f"Successfully loaded {len(rows)} records for {location_id}")
+                        self.logger.debug(
+                            f"Successfully loaded {len(rows)} records for {location_id}"
+                        )
                     else:
-                        self.logger.warning(f"No valid rows created for location {location_id}")
+                        self.logger.warning(
+                            f"No valid rows created for location {location_id}"
+                        )
 
                 except Exception as e:
-                    self.logger.error(f"Failed to load water data for {location_id}: {e}", exc_info=True)
+                    self.logger.error(
+                        f"Failed to load water data for {location_id}: {e}",
+                        exc_info=True,
+                    )
                     continue
-        
+
         if not all_rows:
             raise ValueError(
                 f"No water data could be loaded from {len(location_ids)} locations. "
                 "Check API connection and location IDs."
             )
-        
+
         self.logger.info(
             f"Successfully loaded data for {successful_locations}/{len(location_ids)} locations"
         )
-        
+
         try:
             # Create DataFrame once at the end
             # Optimization: Creating DataFrame from list of tuples with explicit columns is faster than list of dicts
@@ -197,58 +214,60 @@ class DataProcessor:
         except Exception as e:
             self.logger.error(f"Failed to create DataFrame: {e}", exc_info=True)
             raise ValueError(f"Error combining water data: {e}")
-    
-    def _convert_api_response_to_tuples(self, api_data: Dict[str, Any], location_id: str) -> List[Tuple[Any, ...]]:
+
+    def _convert_api_response_to_tuples(
+        self, api_data: Dict[str, Any], location_id: str
+    ) -> List[Tuple[Any, ...]]:
         """
         Convert API response data to list of tuples.
-        
+
         This method handles different API response structures and converts
         them to a standardized list of tuples for efficient DataFrame creation.
         The order of elements in tuples matches WATER_DATA_COLUMNS.
-        
+
         Args:
             api_data: Raw API response data containing timeseries information
             location_id: Location identifier for the data
-            
+
         Returns:
             List of tuples corresponding to WATER_DATA_COLUMNS
-            
+
         Raises:
             ValueError: If API data structure is invalid or missing required fields
         """
         if not api_data:
             raise ValueError("API data cannot be empty")
-            
+
         if not isinstance(location_id, str) or not location_id.strip():
             raise ValueError("location_id must be a non-empty string")
-        
+
         # Optimization: Strip location_id once outside the loop
         location_id = location_id.strip()
 
         rows: List[Tuple[Any, ...]] = []
-        
+
         # Handle different API response structures
         try:
-            if 'timeseries' in api_data:
-                timeseries = api_data['timeseries']
-            elif 'data' in api_data:
-                timeseries = api_data['data']
+            if "timeseries" in api_data:
+                timeseries = api_data["timeseries"]
+            elif "data" in api_data:
+                timeseries = api_data["data"]
             else:
                 timeseries = api_data
         except (TypeError, AttributeError) as e:
             raise ValueError(f"Invalid API data structure: {e}")
-        
+
         if not isinstance(timeseries, list):
             raise ValueError("timeseries data must be a list")
-        
+
         for year_data in timeseries:
-            year = year_data.get('year')
+            year = year_data.get("year")
             if year is None:
                 continue
 
             # Note: Year validation is deferred to _clean_water_data (vectorized)
 
-            season_data = year_data.get('seasons')
+            season_data = year_data.get("seasons")
             # Optimization: fast type check
             if not isinstance(season_data, dict):
                 continue
@@ -256,11 +275,11 @@ class DataProcessor:
             for season, water_info in season_data.items():
                 if not isinstance(water_info, dict):
                     continue
-                
+
                 # Note: Season validation, type conversion, and range checks
                 # are deferred to _clean_water_data for vectorized performance.
                 # Logging per row is removed to avoid performance penalty on large datasets.
-                
+
                 # Optimization: Use tuple instead of dict for faster DataFrame creation (~40% faster)
                 # Order must match WATER_DATA_COLUMNS:
                 # 'location_id', 'year', 'season', 'water_area_ha', 'water_body_count', 'data_quality'
@@ -268,15 +287,17 @@ class DataProcessor:
                     location_id,
                     year,
                     season,
-                    water_info.get('area_ha', 0),
-                    water_info.get('count', 0),
-                    water_info.get('quality', 'good')
+                    water_info.get("area_ha", 0),
+                    water_info.get("count", 0),
+                    water_info.get("quality", "good"),
                 )
                 rows.append(row)
 
         return rows
 
-    def _convert_api_response_to_df(self, api_data: Dict[str, Any], location_id: str) -> pd.DataFrame:
+    def _convert_api_response_to_df(
+        self, api_data: Dict[str, Any], location_id: str
+    ) -> pd.DataFrame:
         """
         Convert API response data to DataFrame format.
 
@@ -310,34 +331,40 @@ class DataProcessor:
             [['V001', 2020, 'monsoon', 100.5]]
         """
         rows = self._convert_api_response_to_tuples(api_data, location_id)
-        
+
         if not rows:
-            self.logger.warning(f"No valid data rows created for location {location_id}")
+            self.logger.warning(
+                f"No valid data rows created for location {location_id}"
+            )
             return pd.DataFrame()
-        
+
         df = pd.DataFrame(rows, columns=WATER_DATA_COLUMNS)
-        self.logger.debug(f"Created DataFrame with {len(df)} rows for location {location_id}")
+        self.logger.debug(
+            f"Created DataFrame with {len(df)} rows for location {location_id}"
+        )
         return df
-    
-    def _clean_water_data(self, df: pd.DataFrame, inplace: bool = False) -> pd.DataFrame:
+
+    def _clean_water_data(
+        self, df: pd.DataFrame, inplace: bool = False
+    ) -> pd.DataFrame:
         """
         Clean and validate water data.
-        
+
         This method performs comprehensive data cleaning including type conversion,
         validation, outlier detection, and data quality checks.
-        
+
         Args:
             df: Raw water data DataFrame with columns: location_id, year, season,
                 water_area_ha, water_body_count, data_quality
             inplace: If True, modifies the dataframe in place where possible to save memory.
                      Default is False.
-                
+
         Returns:
             Cleaned DataFrame with validated data types and removed invalid records
-            
+
         Raises:
             ValueError: If DataFrame is empty or missing required columns
-            
+
         Example:
             >>> df = pd.DataFrame({
             ...     'location_id': ['V001', 'V002'],
@@ -352,54 +379,60 @@ class DataProcessor:
         """
         if df.empty:
             raise ValueError("DataFrame is empty")
-        
-        required_columns = ['location_id', 'year', 'season', 'water_area_ha']
+
+        required_columns = ["location_id", "year", "season", "water_area_ha"]
         missing_columns = [col for col in required_columns if col not in df.columns]
         if missing_columns:
             raise ValueError(f"Missing required columns: {missing_columns}")
-        
+
         original_count = len(df)
         self.logger.info(f"Starting data cleaning for {original_count} records")
-        
+
         # Optimization: Avoid copying if inplace is allowed
         if inplace:
             df_clean = df
         else:
             df_clean = df.copy()
-        
+
         try:
             # Convert data types with error handling
             # Optimization: Check if already numeric to avoid expensive conversion
-            if not pd.api.types.is_numeric_dtype(df_clean['year']):
-                df_clean['year'] = pd.to_numeric(df_clean['year'], errors='coerce')
+            if not pd.api.types.is_numeric_dtype(df_clean["year"]):
+                df_clean["year"] = pd.to_numeric(df_clean["year"], errors="coerce")
 
-            if not pd.api.types.is_numeric_dtype(df_clean['water_area_ha']):
-                df_clean['water_area_ha'] = pd.to_numeric(df_clean['water_area_ha'], errors='coerce').fillna(0)
+            if not pd.api.types.is_numeric_dtype(df_clean["water_area_ha"]):
+                df_clean["water_area_ha"] = pd.to_numeric(
+                    df_clean["water_area_ha"], errors="coerce"
+                ).fillna(0)
 
-            if not pd.api.types.is_numeric_dtype(df_clean['water_body_count']):
-                df_clean['water_body_count'] = pd.to_numeric(df_clean['water_body_count'], errors='coerce').fillna(0)
+            if not pd.api.types.is_numeric_dtype(df_clean["water_body_count"]):
+                df_clean["water_body_count"] = pd.to_numeric(
+                    df_clean["water_body_count"], errors="coerce"
+                ).fillna(0)
 
             # Legacy support: clip negative counts to 0 to match previous API loader behavior
-            if pd.api.types.is_numeric_dtype(df_clean['water_body_count']):
-                df_clean['water_body_count'] = df_clean['water_body_count'].clip(lower=0)
-            
+            if pd.api.types.is_numeric_dtype(df_clean["water_body_count"]):
+                df_clean["water_body_count"] = df_clean["water_body_count"].clip(
+                    lower=0
+                )
+
             # Initialize keep mask for efficient filtering
             keep_mask = np.ones(len(df_clean), dtype=bool)
-            
+
             # 1. Validate year range
             # Note: NaN year compares False to both < 1900 and > 2100, so we use inverse logic to preserve NaNs for dropna step
-            invalid_years_mask = (df_clean['year'] < 1900) | (df_clean['year'] > 2100)
+            invalid_years_mask = (df_clean["year"] < 1900) | (df_clean["year"] > 2100)
             valid_years = ~invalid_years_mask
-            
+
             # Calculate removed items for logging (items currently kept AND invalid)
             removed_mask = keep_mask & invalid_years_mask
             if removed_mask.any():
                 count = removed_mask.sum()
                 self.logger.warning(f"Removing {count} records with invalid years")
                 keep_mask &= valid_years
-            
+
             # 2. Validate seasons
-            valid_seasons = df_clean['season'].isin(VALID_SEASONS)
+            valid_seasons = df_clean["season"].isin(VALID_SEASONS)
             removed_mask = keep_mask & (~valid_seasons)
             if removed_mask.any():
                 count = removed_mask.sum()
@@ -410,18 +443,25 @@ class DataProcessor:
             # Equivalent to dropna(subset=['year', 'season', 'water_area_ha'])
             # Optimization: Explicit Series check is faster than df subset .any(axis=1)
             # (~3-4x faster for large datasets by avoiding intermediate DataFrame creation)
-            is_na = df_clean['year'].isna() | df_clean['season'].isna() | df_clean['water_area_ha'].isna()
+            is_na = (
+                df_clean["year"].isna()
+                | df_clean["season"].isna()
+                | df_clean["water_area_ha"].isna()
+            )
 
             # Optimization: check intersection with keep_mask early to avoid processing already invalid rows
             removed_mask = keep_mask & is_na
             if removed_mask.any():
                 count = removed_mask.sum()
-                self.logger.warning(f"Removed {count} records with missing critical data")
+                self.logger.warning(
+                    f"Removed {count} records with missing critical data"
+                )
                 keep_mask &= ~is_na
-            
+
             # 4. Remove invalid water areas (negative or unreasonably large)
-            valid_area = (df_clean['water_area_ha'] >= MIN_WATER_AREA_HA) & \
-                         (df_clean['water_area_ha'] <= MAX_WATER_AREA_HA)
+            valid_area = (df_clean["water_area_ha"] >= MIN_WATER_AREA_HA) & (
+                df_clean["water_area_ha"] <= MAX_WATER_AREA_HA
+            )
             removed_mask = keep_mask & (~valid_area)
             if removed_mask.any():
                 count = removed_mask.sum()
@@ -429,17 +469,19 @@ class DataProcessor:
                 keep_mask &= valid_area
 
             # 5. Remove negative water body counts
-            valid_count = df_clean['water_body_count'] >= 0
+            valid_count = df_clean["water_body_count"] >= 0
             removed_mask = keep_mask & (~valid_count)
             if removed_mask.any():
                 count = removed_mask.sum()
-                self.logger.warning(f"Removed {count} records with negative water body counts")
+                self.logger.warning(
+                    f"Removed {count} records with negative water body counts"
+                )
                 keep_mask &= valid_count
 
             # Apply all filters at once to minimize DataFrame copies
             # Optimization: Using .loc[keep_mask] is equivalent but explicit.
             df_clean = df_clean[keep_mask]
-            
+
             # Remove exact duplicates
             # Optimization: subset is not specified, so it checks all columns.
             before_dedup = len(df_clean)
@@ -447,20 +489,22 @@ class DataProcessor:
             duplicates_removed = before_dedup - len(df_clean)
             if duplicates_removed > 0:
                 self.logger.warning(f"Removed {duplicates_removed} duplicate records")
-            
+
             # Sort data for consistent ordering
             # Optimization: Use inplace sort to avoid creating an extra copy of the DataFrame (~30% faster)
-            df_clean.sort_values(['location_id', 'year', 'season'], inplace=True)
+            df_clean.sort_values(["location_id", "year", "season"], inplace=True)
             df_clean.reset_index(drop=True, inplace=True)
-            
+
             # Add data quality flags
-            df_clean['data_quality'] = df_clean.get('data_quality', 'good')
-            
+            df_clean["data_quality"] = df_clean.get("data_quality", "good")
+
             # Log summary statistics
             final_count = len(df_clean)
             total_removed = original_count - final_count
-            removal_rate = (total_removed / original_count) * 100 if original_count > 0 else 0
-            
+            removal_rate = (
+                (total_removed / original_count) * 100 if original_count > 0 else 0
+            )
+
             self.logger.info(
                 f"Data cleaning completed:\n"
                 f"- Original records: {original_count}\n"
@@ -470,16 +514,16 @@ class DataProcessor:
                 f"- Year range: {df_clean['year'].min()}-{df_clean['year'].max()}\n"
                 f"- Seasons: {sorted(df_clean['season'].unique())}"
             )
-            
+
             # Warn if too much data was removed
             if removal_rate > 50:
                 self.logger.warning(
                     f"High data removal rate ({removal_rate:.1f}%). "
                     "Please check data quality and validation rules."
                 )
-            
+
             return df_clean
-            
+
         except Exception as e:
             self.logger.error(f"Error during data cleaning: {e}", exc_info=True)
             raise ValueError(f"Data cleaning failed: {e}")
@@ -507,13 +551,13 @@ class DataProcessor:
             raise FileNotFoundError(f"File not found: {file_path}")
 
         if not file_path.is_file():
-             raise ValueError(f"Path is not a file: {file_path}")
+            raise ValueError(f"Path is not a file: {file_path}")
 
         # Check file size to avoid processing extremely large files
         file_size_mb = file_path.stat().st_size / (1024 * 1024)
 
         # Enforce strict limit to prevent DoS (Denial of Service) via Memory Exhaustion
-        max_size_mb = int(os.getenv('MAX_FILE_SIZE_MB', '200'))
+        max_size_mb = int(os.getenv("MAX_FILE_SIZE_MB", "200"))
 
         if file_size_mb > max_size_mb:
             raise ValueError(
@@ -529,28 +573,30 @@ class DataProcessor:
             )
 
         return pd.read_csv(file_path, **kwargs)
-    
-    def load_nrm_impact_data(self, file_path: Optional[Union[str, Path]] = None) -> pd.DataFrame:
+
+    def load_nrm_impact_data(
+        self, file_path: Optional[Union[str, Path]] = None
+    ) -> pd.DataFrame:
         """
         Load NRM impact data from CSV file.
-        
+
         This method loads Natural Resource Management (NRM) impact assessment data
         from a CSV file and performs validation and cleaning operations.
-        
+
         Args:
             file_path: Path to CSV file. If None, looks for default location
                       (data_dir/nrm_impact_data.csv). Can be string or Path object.
-                      
+
         Returns:
             DataFrame with cleaned NRM impact data containing columns:
             location_id, year, intervention_type, pond_presence, etc.
-            
+
         Raises:
             FileNotFoundError: If the specified file doesn't exist
             ValueError: If the file is empty or contains invalid data
             pd.errors.EmptyDataError: If the CSV file is empty
             pd.errors.ParserError: If the CSV file cannot be parsed
-            
+
         Example:
             >>> processor = DataProcessor('./data')
             >>> df = processor.load_nrm_impact_data('nrm_data.csv')
@@ -558,34 +604,34 @@ class DataProcessor:
             ['location_id', 'year', 'intervention_type', 'pond_presence']
         """
         if file_path is None:
-            file_path = self.data_dir / 'nrm_impact_data.csv'
-        
+            file_path = self.data_dir / "nrm_impact_data.csv"
+
         # Convert to Path object for consistent handling
         file_path = Path(file_path)
-        
+
         self.logger.info(f"Loading NRM impact data from: {file_path}")
-        
+
         try:
             # Load CSV with error handling using safe loader
             df = self.load_csv_safe(
                 file_path,
-                encoding='utf-8',
+                encoding="utf-8",
                 low_memory=False,  # Prevent mixed type inference warnings
-                na_values=['', 'NA', 'N/A', 'null', 'None'],
-                keep_default_na=True
+                na_values=["", "NA", "N/A", "null", "None"],
+                keep_default_na=True,
             )
-            
+
             if df.empty:
                 raise ValueError("CSV file is empty or contains no valid data")
-            
+
             self.logger.info(
                 f"Successfully loaded {len(df)} rows and {len(df.columns)} columns "
                 f"from NRM impact data file"
             )
-            
+
             # Use inplace=True to avoid unnecessary DataFrame copy
             return self._clean_nrm_data(df, inplace=True)
-            
+
         except pd.errors.EmptyDataError:
             raise ValueError(f"CSV file is empty: {file_path}")
         except pd.errors.ParserError as e:
@@ -594,8 +640,10 @@ class DataProcessor:
             self.logger.error(f"Encoding error reading file {file_path}: {e}")
             # Try with different encoding
             try:
-                df = self.load_csv_safe(file_path, encoding='latin-1')
-                self.logger.warning("File read with latin-1 encoding. Consider saving as UTF-8.")
+                df = self.load_csv_safe(file_path, encoding="latin-1")
+                self.logger.warning(
+                    "File read with latin-1 encoding. Consider saving as UTF-8."
+                )
                 return self._clean_nrm_data(df, inplace=True)
             except Exception as fallback_error:
                 raise ValueError(
@@ -603,29 +651,31 @@ class DataProcessor:
                     f"Original error: {e}, Fallback error: {fallback_error}"
                 )
         except Exception as e:
-            self.logger.error(f"Unexpected error loading NRM impact data: {e}", exc_info=True)
+            self.logger.error(
+                f"Unexpected error loading NRM impact data: {e}", exc_info=True
+            )
             raise ValueError(f"Failed to load NRM impact data from {file_path}: {e}")
-    
+
     def _clean_nrm_data(self, df: pd.DataFrame, inplace: bool = False) -> pd.DataFrame:
         """
         Clean and validate NRM impact data.
-        
+
         This method performs comprehensive cleaning of Natural Resource Management
         impact data including column standardization, type conversion, validation,
         and data quality checks.
-        
+
         Args:
             df: Raw NRM data DataFrame with columns like location_id, year,
                 intervention_type, pond_presence, etc.
             inplace: If True, modifies the dataframe in place where possible to save memory.
                      Default is False.
-                
+
         Returns:
             Cleaned DataFrame with standardized column names and validated data
-            
+
         Raises:
             ValueError: If DataFrame is empty or missing required columns
-            
+
         Example:
             >>> df = pd.DataFrame({
             ...     'Location ID': ['V001', 'V002'],
@@ -639,100 +689,135 @@ class DataProcessor:
         """
         if df.empty:
             raise ValueError("NRM data DataFrame is empty")
-        
+
         original_count = len(df)
         self.logger.info(f"Starting NRM data cleaning for {original_count} records")
-        
+
         # Optimization: Avoid copying if inplace is allowed
         if inplace:
             df_clean = df
         else:
             df_clean = df.copy()
-        
+
         try:
             # Standardize column names (lowercase, replace spaces with underscores)
-            df_clean.columns = df_clean.columns.str.lower().str.replace(' ', '_').str.replace('-', '_')
+            df_clean.columns = (
+                df_clean.columns.str.lower().str.replace(" ", "_").str.replace("-", "_")
+            )
             self.logger.debug(f"Standardized columns: {df_clean.columns.tolist()}")
-            
+
             # Check for required columns
-            required_columns = ['location_id', 'year']
-            missing_columns = [col for col in required_columns if col not in df_clean.columns]
+            required_columns = ["location_id", "year"]
+            missing_columns = [
+                col for col in required_columns if col not in df_clean.columns
+            ]
             if missing_columns:
-                raise ValueError(f"Missing required columns in NRM data: {missing_columns}")
+                raise ValueError(
+                    f"Missing required columns in NRM data: {missing_columns}"
+                )
 
             # Initialize keep mask for efficient filtering
             # Optimization: Use boolean masking instead of repeated DataFrame slicing to avoid copies
             keep_mask = np.ones(len(df_clean), dtype=bool)
-            
+
             # Convert and validate year
-            if 'year' in df_clean.columns:
+            if "year" in df_clean.columns:
                 # Optimization: Check if already numeric
-                if not pd.api.types.is_numeric_dtype(df_clean['year']):
-                    df_clean['year'] = pd.to_numeric(df_clean['year'], errors='coerce')
-                
+                if not pd.api.types.is_numeric_dtype(df_clean["year"]):
+                    df_clean["year"] = pd.to_numeric(df_clean["year"], errors="coerce")
+
                 # Logic 1: Out of range (excludes NaNs as comparison is False)
-                invalid_range = (df_clean['year'] < 1900) | (df_clean['year'] > 2100)
+                invalid_range = (df_clean["year"] < 1900) | (df_clean["year"] > 2100)
                 count_invalid = (keep_mask & invalid_range).sum()
 
                 if count_invalid > 0:
-                    self.logger.warning(f"Removing {count_invalid} records with invalid years")
+                    self.logger.warning(
+                        f"Removing {count_invalid} records with invalid years"
+                    )
                     keep_mask &= ~invalid_range
 
                 # Logic 2: NaNs (equivalent to dropna)
-                is_nan = df_clean['year'].isna()
+                is_nan = df_clean["year"].isna()
                 count_nan = (keep_mask & is_nan).sum()
-                
+
                 keep_mask &= ~is_nan
 
                 total_year_removed = count_invalid + count_nan
                 if total_year_removed > 0:
-                    self.logger.warning(f"Removed {total_year_removed} records with invalid year data")
-            
+                    self.logger.warning(
+                        f"Removed {total_year_removed} records with invalid year data"
+                    )
+
             # Clean and validate pond_presence if present
-            if 'pond_presence' in df_clean.columns:
+            if "pond_presence" in df_clean.columns:
                 # Optimization: Check if already numeric to avoid expensive string conversion
                 # This provides ~38x speedup when data is already numeric (common case)
-                if not pd.api.types.is_numeric_dtype(df_clean['pond_presence']):
+                if not pd.api.types.is_numeric_dtype(df_clean["pond_presence"]):
                     # Convert to string and standardize
-                    df_clean['pond_presence'] = df_clean['pond_presence'].astype(str).str.strip().str.lower()
+                    df_clean["pond_presence"] = (
+                        df_clean["pond_presence"].astype(str).str.strip().str.lower()
+                    )
 
                     # Map various representations to 0/1
                     pond_mapping = {
-                        'yes': 1, 'y': 1, 'true': 1, 't': 1, '1': 1, 'present': 1,
-                        'no': 0, 'n': 0, 'false': 0, 'f': 0, '0': 0, 'absent': 0, 'none': 0
+                        "yes": 1,
+                        "y": 1,
+                        "true": 1,
+                        "t": 1,
+                        "1": 1,
+                        "present": 1,
+                        "no": 0,
+                        "n": 0,
+                        "false": 0,
+                        "f": 0,
+                        "0": 0,
+                        "absent": 0,
+                        "none": 0,
                     }
 
-                    df_clean['pond_presence'] = df_clean['pond_presence'].map(pond_mapping)
+                    df_clean["pond_presence"] = df_clean["pond_presence"].map(
+                        pond_mapping
+                    )
 
-                df_clean['pond_presence'] = pd.to_numeric(df_clean['pond_presence'], errors='coerce').fillna(0)
-                
+                df_clean["pond_presence"] = pd.to_numeric(
+                    df_clean["pond_presence"], errors="coerce"
+                ).fillna(0)
+
                 # Ensure only 0 or 1 values
-                df_clean['pond_presence'] = df_clean['pond_presence'].clip(0, 1).astype(int)
-                
+                df_clean["pond_presence"] = (
+                    df_clean["pond_presence"].clip(0, 1).astype(int)
+                )
+
                 # Note: Original logic calculated removal count but didn't actually filter rows based on pond_presence
                 # so we don't update keep_mask here.
-            
+
             # Clean intervention_type if present
-            if 'intervention_type' in df_clean.columns:
+            if "intervention_type" in df_clean.columns:
                 # Standardize intervention types
-                df_clean['intervention_type'] = df_clean['intervention_type'].astype(str).str.strip().str.lower()
-                
+                df_clean["intervention_type"] = (
+                    df_clean["intervention_type"].astype(str).str.strip().str.lower()
+                )
+
                 # Validate intervention types
                 # Optimization: Use boolean mask instead of creating intermediate DataFrame
-                is_invalid_intervention = ~df_clean['intervention_type'].isin(VALID_INTERVENTION_TYPES + ['none', ''])
+                is_invalid_intervention = ~df_clean["intervention_type"].isin(
+                    VALID_INTERVENTION_TYPES + ["none", ""]
+                )
 
                 # Check only rows that are currently kept
                 relevant_invalid_mask = keep_mask & is_invalid_intervention
 
                 if relevant_invalid_mask.any():
                     # Only extract values when needed for logging
-                    invalid_values = df_clean.loc[relevant_invalid_mask, 'intervention_type'].unique()
+                    invalid_values = df_clean.loc[
+                        relevant_invalid_mask, "intervention_type"
+                    ].unique()
                     self.logger.warning(
                         f"Found {relevant_invalid_mask.sum()} records with unrecognized intervention types: "
                         f"{invalid_values}"
                     )
                     # Keep them but log the issue
-            
+
             # Remove rows with missing critical data
             # Optimization: Check specific columns directly to avoid DataFrame subsetting
             # We iterate over required_columns to build the mask dynamically
@@ -748,29 +833,33 @@ class DataProcessor:
             new_removals = (keep_mask & is_na_combined.values).sum()
 
             if new_removals > 0:
-                self.logger.warning(f"Removed {new_removals} records with missing critical data")
+                self.logger.warning(
+                    f"Removed {new_removals} records with missing critical data"
+                )
                 keep_mask &= ~is_na_combined.values
 
             # Apply all filters at once to minimize DataFrame copies
             df_clean = df_clean[keep_mask]
-            
+
             # Remove exact duplicates
             before_dedup = len(df_clean)
             df_clean = df_clean.drop_duplicates()
             duplicates_removed = before_dedup - len(df_clean)
             if duplicates_removed > 0:
                 self.logger.warning(f"Removed {duplicates_removed} duplicate records")
-            
+
             # Sort data for consistent ordering
             # Optimization: Use inplace sort to avoid creating an extra copy of the DataFrame
-            df_clean.sort_values(['location_id', 'year'], inplace=True)
+            df_clean.sort_values(["location_id", "year"], inplace=True)
             df_clean.reset_index(drop=True, inplace=True)
-            
+
             # Log summary statistics
             final_count = len(df_clean)
             total_removed = original_count - final_count
-            removal_rate = (total_removed / original_count) * 100 if original_count > 0 else 0
-            
+            removal_rate = (
+                (total_removed / original_count) * 100 if original_count > 0 else 0
+            )
+
             self.logger.info(
                 f"NRM data cleaning completed:\n"
                 f"- Original records: {original_count}\n"
@@ -779,56 +868,58 @@ class DataProcessor:
                 f"- Unique locations: {df_clean['location_id'].nunique()}\n"
                 f"- Year range: {df_clean['year'].min()}-{df_clean['year'].max()}"
             )
-            
+
             # Additional data quality info
-            if 'pond_presence' in df_clean.columns:
-                pond_stats = df_clean['pond_presence'].value_counts().to_dict()
+            if "pond_presence" in df_clean.columns:
+                pond_stats = df_clean["pond_presence"].value_counts().to_dict()
                 self.logger.info(f"Pond presence distribution: {pond_stats}")
-            
-            if 'intervention_type' in df_clean.columns:
-                intervention_stats = df_clean['intervention_type'].value_counts().to_dict()
+
+            if "intervention_type" in df_clean.columns:
+                intervention_stats = (
+                    df_clean["intervention_type"].value_counts().to_dict()
+                )
                 self.logger.info(f"Intervention types: {intervention_stats}")
-            
+
             # Warn if too much data was removed
             if removal_rate > 50:
                 self.logger.warning(
                     f"High NRM data removal rate ({removal_rate:.1f}%). "
                     "Please check data quality and validation rules."
                 )
-            
+
             return df_clean
-            
+
         except Exception as e:
             self.logger.error(f"Error during NRM data cleaning: {e}", exc_info=True)
             raise ValueError(f"NRM data cleaning failed: {e}")
-    
+
     def merge_datasets(
-        self, 
-        water_df: pd.DataFrame, 
+        self,
+        water_df: pd.DataFrame,
         nrm_df: pd.DataFrame,
-        merge_on: List[str] = ['location_id', 'year']
+        merge_on: List[str] = ["location_id", "year"],
     ) -> pd.DataFrame:
         """
         Merge water data with NRM impact data.
-        
+
         This method performs a left join between water data and NRM impact data,
         adding indicators for data availability and performing validation.
-        
+
         Args:
             water_df: Water data DataFrame with columns location_id, year, season,
                      water_area_ha, water_body_count, etc.
             nrm_df: NRM impact data DataFrame with columns location_id, year,
                    intervention_type, pond_presence, etc.
             merge_on: List of column names to merge on. Default is ['location_id', 'year'].
-                     
+
         Returns:
             Merged DataFrame containing all water data with matched NRM data.
             Includes 'nrm_data_available' column indicating successful matches.
-            
+
         Raises:
             ValueError: If merge columns don't exist in both DataFrames
             pd.errors.MergeError: If merge operation fails
-            
+
         Example:
             >>> water_df = pd.DataFrame({
             ...     'location_id': ['V001', 'V001'], 'year': [2020, 2021],
@@ -844,29 +935,33 @@ class DataProcessor:
         # Input validation
         if water_df.empty:
             raise ValueError("Water data DataFrame cannot be empty")
-            
+
         if nrm_df.empty:
-            self.logger.warning("NRM data DataFrame is empty. Merge will result in all NRM fields as NaN.")
-        
+            self.logger.warning(
+                "NRM data DataFrame is empty. Merge will result in all NRM fields as NaN."
+            )
+
         if not merge_on:
             raise ValueError("merge_on cannot be empty")
-        
+
         # Ensure merge columns exist in both datasets
         missing_water_cols = [col for col in merge_on if col not in water_df.columns]
         missing_nrm_cols = [col for col in merge_on if col not in nrm_df.columns]
-        
+
         if missing_water_cols:
-            raise ValueError(f"Merge columns not found in water data: {missing_water_cols}")
-            
+            raise ValueError(
+                f"Merge columns not found in water data: {missing_water_cols}"
+            )
+
         if missing_nrm_cols:
             raise ValueError(f"Merge columns not found in NRM data: {missing_nrm_cols}")
-        
+
         self.logger.info(
             f"Merging datasets on columns: {merge_on}\n"
             f"- Water data: {len(water_df)} records\n"
             f"- NRM data: {len(nrm_df)} records"
         )
-        
+
         try:
             # Check for duplicate keys in NRM data that would cause ambiguous merge
             if len(nrm_df) > 0:
@@ -876,29 +971,31 @@ class DataProcessor:
                         f"Found {nrm_duplicates} duplicate keys in NRM data. "
                         "This may cause unexpected merge results."
                     )
-            
+
             # Perform left merge (keep all water data, add matching NRM data)
             merged_df = pd.merge(
-                water_df, 
-                nrm_df, 
-                on=merge_on, 
-                how='left',
+                water_df,
+                nrm_df,
+                on=merge_on,
+                how="left",
                 indicator=True,  # Add merge indicator
-                suffixes=('', '_nrm')  # Handle overlapping column names
+                suffixes=("", "_nrm"),  # Handle overlapping column names
             )
-            
+
             # Add indicator for NRM data availability
-            merged_df['nrm_data_available'] = merged_df['_merge'] == 'both'
-            
+            merged_df["nrm_data_available"] = merged_df["_merge"] == "both"
+
             # Remove the merge indicator column
-            merged_df = merged_df.drop(columns=['_merge'])
-            
+            merged_df = merged_df.drop(columns=["_merge"])
+
             # Log merge statistics
             total_records = len(merged_df)
-            matched_records = merged_df['nrm_data_available'].sum()
+            matched_records = merged_df["nrm_data_available"].sum()
             unmatched_records = total_records - matched_records
-            match_rate = (matched_records / total_records) * 100 if total_records > 0 else 0
-            
+            match_rate = (
+                (matched_records / total_records) * 100 if total_records > 0 else 0
+            )
+
             self.logger.info(
                 f"Merge completed:\n"
                 f"- Total records: {total_records}\n"
@@ -906,43 +1003,41 @@ class DataProcessor:
                 f"- Records without NRM data: {unmatched_records} ({100-match_rate:.1f}%)\n"
                 f"- Final columns: {len(merged_df.columns)}"
             )
-            
+
             # Warn if match rate is low
             if match_rate < 50:
                 self.logger.warning(
                     f"Low match rate ({match_rate:.1f}%). "
                     "Check if location_id and year values match between datasets."
                 )
-            
+
             # Sort for consistent ordering
             # Optimization: Use inplace sort to avoid creating an extra copy of the DataFrame
-            merged_df.sort_values(merge_on + ['season'], inplace=True)
+            merged_df.sort_values(merge_on + ["season"], inplace=True)
             merged_df.reset_index(drop=True, inplace=True)
-            
+
             return merged_df
-            
+
         except Exception as e:
             self.logger.error(f"Error during dataset merge: {e}", exc_info=True)
             raise ValueError(f"Failed to merge datasets: {e}")
-    
+
     def calculate_water_trends(
-        self, 
-        df: pd.DataFrame, 
-        group_by: List[str] = ['location_id', 'season']
+        self, df: pd.DataFrame, group_by: List[str] = ["location_id", "season"]
     ) -> pd.DataFrame:
         """
         Calculate water area trends over time.
-        
+
         This method calculates comprehensive trend statistics for water body areas
         grouped by specified dimensions (typically location and season). It includes
         linear trend analysis, descriptive statistics, and data quality indicators.
-        
+
         Args:
             df: Input DataFrame with columns location_id, year, season, water_area_ha
                  and optionally other water-related columns
             group_by: List of column names to group by for trend calculation.
                      Default is ['location_id', 'season'].
-                     
+
         Returns:
             DataFrame with trend statistics including:
             - location_id, season (from group_by)
@@ -950,10 +1045,10 @@ class DataProcessor:
             - trend_slope_ha_per_year (linear trend slope)
             - data_points, start_year, end_year
             - trend_quality (assessment of trend reliability)
-            
+
         Raises:
             ValueError: If DataFrame is empty or missing required columns
-            
+
         Example:
             >>> df = pd.DataFrame({
             ...     'location_id': ['V001', 'V001', 'V001'],
@@ -968,37 +1063,39 @@ class DataProcessor:
         # Input validation
         if df.empty:
             raise ValueError("DataFrame cannot be empty for trend calculation")
-        
+
         # Ensure group_by is a list
         group_by_list = [group_by] if isinstance(group_by, str) else list(group_by)
 
-        required_columns = ['water_area_ha', 'year'] + group_by_list
+        required_columns = ["water_area_ha", "year"] + group_by_list
         missing_columns = [col for col in required_columns if col not in df.columns]
         if missing_columns:
-            raise ValueError(f"Missing required columns for trend calculation: {missing_columns}")
-        
+            raise ValueError(
+                f"Missing required columns for trend calculation: {missing_columns}"
+            )
+
         if not group_by:
             raise ValueError("group_by cannot be empty")
-        
+
         self.logger.info(
             f"Calculating water trends for {len(df)} records grouped by: {group_by}"
         )
-        
+
         trend_stats: List[Dict[str, Any]] = []
         total_groups = 0
         successful_calculations = 0
-        
+
         try:
             # 1. Prepare data with validity masks
             # We work on a copy to avoid modifying original
             # Optimization: Select only necessary columns before copying to reduce memory and time overhead
             # when input df has many extra columns (e.g. after merging)
-            cols_needed = list(set(group_by_list + ['water_area_ha', 'year']))
+            cols_needed = list(set(group_by_list + ["water_area_ha", "year"]))
 
             # Optimization: Filter BEFORE copy to minimize memory usage and avoid double copying
             # Note: Explicit comparison with 0 checks for non-negative values
             # Comparing >= 0 returns False for NaNs, so explicit isna() check is redundant
-            valid_mask = df['water_area_ha'] >= 0
+            valid_mask = df["water_area_ha"] >= 0
 
             if not valid_mask.any():
                 raise ValueError("No valid data points found (water_area_ha >= 0)")
@@ -1008,12 +1105,12 @@ class DataProcessor:
             df_proc = df.loc[valid_mask, cols_needed].copy()
 
             # Convert year to float for calculations
-            df_proc['year'] = df_proc['year'].astype(float)
+            df_proc["year"] = df_proc["year"].astype(float)
 
             # Pre-calculate xy and xx for slope
             # Since inputs have NaNs for invalid rows, outputs will also be NaN correctly
-            df_proc['xy'] = df_proc['year'] * df_proc['water_area_ha']
-            df_proc['xx'] = df_proc['year'] ** 2
+            df_proc["xy"] = df_proc["year"] * df_proc["water_area_ha"]
+            df_proc["xx"] = df_proc["year"] ** 2
 
             # 2. Single GroupBy for all statistics
             # Optimization: groupby(sort=False) is faster. We sort the results explicitly
@@ -1023,10 +1120,15 @@ class DataProcessor:
             agg_funcs = {
                 # Optimization: removed 'mean' to avoid redundant calculation
                 # We derive it from sum / count later
-                'water_area_ha': ['std', 'min', 'max', 'median', 'count', 'sum'],
-                'year': ['min', 'max', 'sum', 'size'], # size counts all rows including NaNs
-                'xy': 'sum',
-                'xx': 'sum'
+                "water_area_ha": ["std", "min", "max", "median", "count", "sum"],
+                "year": [
+                    "min",
+                    "max",
+                    "sum",
+                    "size",
+                ],  # size counts all rows including NaNs
+                "xy": "sum",
+                "xx": "sum",
             }
 
             stats_df = grouped.agg(agg_funcs)
@@ -1040,108 +1142,126 @@ class DataProcessor:
 
             # Rename for compatibility with existing output format
             # Note: total_observations now counts only valid rows (water_area_ha >= 0)
-            stats_df = stats_df.rename(columns={
-                'water_area_ha_std': 'std_water_area_ha',
-                'water_area_ha_min': 'min_water_area_ha',
-                'water_area_ha_max': 'max_water_area_ha',
-                'water_area_ha_median': 'median_water_area_ha',
-                'water_area_ha_count': 'data_points',
-                'year_min': 'start_year',
-                'year_max': 'end_year',
-                'year_size': 'total_observations'
-            })
+            stats_df = stats_df.rename(
+                columns={
+                    "water_area_ha_std": "std_water_area_ha",
+                    "water_area_ha_min": "min_water_area_ha",
+                    "water_area_ha_max": "max_water_area_ha",
+                    "water_area_ha_median": "median_water_area_ha",
+                    "water_area_ha_count": "data_points",
+                    "year_min": "start_year",
+                    "year_max": "end_year",
+                    "year_size": "total_observations",
+                }
+            )
 
             # Calculate mean from sum and count to save one aggregation pass
-            stats_df['mean_water_area_ha'] = stats_df['water_area_ha_sum'] / stats_df['data_points']
+            stats_df["mean_water_area_ha"] = (
+                stats_df["water_area_ha_sum"] / stats_df["data_points"]
+            )
 
             # Filter out groups with 0 valid data points
             # (Equivalent to the previous logic where left join was on valid groups)
-            stats_df = stats_df[stats_df['data_points'] > 0].copy()
+            stats_df = stats_df[stats_df["data_points"] > 0].copy()
 
             # Calculate Derived Metrics
-            stats_df['year_span'] = stats_df['end_year'] - stats_df['start_year']
+            stats_df["year_span"] = stats_df["end_year"] - stats_df["start_year"]
 
             # Coefficient of Variation
-            stats_df['coefficient_of_variation'] = (
-                stats_df['std_water_area_ha'] / stats_df['mean_water_area_ha']
+            stats_df["coefficient_of_variation"] = (
+                stats_df["std_water_area_ha"] / stats_df["mean_water_area_ha"]
             ).fillna(0.0)
 
             # Slope Calculation (Vectorized)
             # m = (N * sum(xy) - sum(x) * sum(y)) / (N * sum(xx) - sum(x)^2)
-            N = stats_df['data_points']
-            sum_x = stats_df['year_sum']
-            sum_y = stats_df['water_area_ha_sum']
-            sum_xy = stats_df['xy_sum']
-            sum_xx = stats_df['xx_sum']
+            N = stats_df["data_points"]
+            sum_x = stats_df["year_sum"]
+            sum_y = stats_df["water_area_ha_sum"]
+            sum_xy = stats_df["xy_sum"]
+            sum_xx = stats_df["xx_sum"]
 
             numerator = N * sum_xy - sum_x * sum_y
-            denominator = N * sum_xx - sum_x ** 2
+            denominator = N * sum_xx - sum_x**2
 
             # Avoid division by zero
             # Denominator is 0 if variance of x is 0 (all years same) or N=0
             # Also if N < 2, slope is undefined (or 0 in our logic)
 
-            with np.errstate(divide='ignore', invalid='ignore'):
+            with np.errstate(divide="ignore", invalid="ignore"):
                 slope = numerator / denominator
 
             # Handle infinity (division by zero) and NaN
             # Replace infinity with 0.0 (consistent with original logic where slope is 0 if denominator is 0)
             slope = slope.replace([np.inf, -np.inf], np.nan).fillna(0.0)
-            stats_df['trend_slope_ha_per_year'] = slope
+            stats_df["trend_slope_ha_per_year"] = slope
 
             # Determine Trend Quality
             # Optimization: Use direct assignment with a default value to avoid repeated column assignment
-            stats_df['trend_quality'] = 'good'
+            stats_df["trend_quality"] = "good"
 
             # If denominator is 0 (constant year), set to constant_year
             # Also set slope to 0 explicitly if it wasn't already (though fillna(0) handled it)
             mask_const = denominator.abs() < 1e-10
-            stats_df.loc[mask_const, 'trend_quality'] = 'constant_year'
-            stats_df.loc[mask_const, 'trend_slope_ha_per_year'] = 0.0
-            
+            stats_df.loc[mask_const, "trend_quality"] = "constant_year"
+            stats_df.loc[mask_const, "trend_slope_ha_per_year"] = 0.0
+
             # If N < MIN, insufficient
-            mask_insuf = stats_df['data_points'] < MIN_DATA_POINTS_FOR_TREND
-            stats_df.loc[mask_insuf, 'trend_quality'] = 'insufficient_data'
-            stats_df.loc[mask_insuf, 'trend_slope_ha_per_year'] = 0.0
-            
+            mask_insuf = stats_df["data_points"] < MIN_DATA_POINTS_FOR_TREND
+            stats_df.loc[mask_insuf, "trend_quality"] = "insufficient_data"
+            stats_df.loc[mask_insuf, "trend_slope_ha_per_year"] = 0.0
+
             # If N == 2, minimal_data
-            mask_minimal = (stats_df['data_points'] == 2) & (~mask_const) # Only if not constant year
-            stats_df.loc[mask_minimal, 'trend_quality'] = 'minimal_data'
+            mask_minimal = (stats_df["data_points"] == 2) & (
+                ~mask_const
+            )  # Only if not constant year
+            stats_df.loc[mask_minimal, "trend_quality"] = "minimal_data"
 
             # Reset index to make group columns normal columns
             result_df = stats_df.reset_index()
 
             # Ensure float types for metrics
             float_cols = [
-                'mean_water_area_ha', 'std_water_area_ha', 'min_water_area_ha',
-                'max_water_area_ha', 'median_water_area_ha', 'trend_slope_ha_per_year',
-                'coefficient_of_variation'
+                "mean_water_area_ha",
+                "std_water_area_ha",
+                "min_water_area_ha",
+                "max_water_area_ha",
+                "median_water_area_ha",
+                "trend_slope_ha_per_year",
+                "coefficient_of_variation",
             ]
             for col in float_cols:
                 result_df[col] = result_df[col].astype(float)
 
             # Ensure int types
-            int_cols = ['data_points', 'start_year', 'end_year', 'year_span', 'total_observations']
+            int_cols = [
+                "data_points",
+                "start_year",
+                "end_year",
+                "year_span",
+                "total_observations",
+            ]
             for col in int_cols:
                 result_df[col] = result_df[col].fillna(0).astype(int)
-            
+
             # Clean up temporary columns
             cols_to_keep = (
-                (group_by if isinstance(group_by, list) else [group_by]) +
-                float_cols +
-                ['trend_quality'] +
-                int_cols
+                (group_by if isinstance(group_by, list) else [group_by])
+                + float_cols
+                + ["trend_quality"]
+                + int_cols
             )
             result_df = result_df[cols_to_keep]
 
             total_groups = len(result_df)
-            successful_calculations = (result_df['trend_quality'] != 'insufficient_data').sum()
+            successful_calculations = (
+                result_df["trend_quality"] != "insufficient_data"
+            ).sum()
 
             # Sort results
             # Optimization: result_df is already sorted by group_by because groupby(sort=True) is used by default.
             # result_df.reset_index() was called earlier, creating a fresh RangeIndex.
             # The subsequent column filtering preserves the index, so another reset_index(drop=True) is redundant.
-            
+
             # Log summary statistics
             self.logger.info(
                 f"Trend calculation completed:\n"
@@ -1150,68 +1270,68 @@ class DataProcessor:
                 f"- Success rate: {(successful_calculations/total_groups)*100:.1f}%\n"
                 f"- Average trend slope: {result_df['trend_slope_ha_per_year'].mean():.3f} ha/year"
             )
-            
+
             # Trend quality distribution
-            quality_dist = result_df['trend_quality'].value_counts().to_dict()
+            quality_dist = result_df["trend_quality"].value_counts().to_dict()
             self.logger.info(f"Trend quality distribution: {quality_dist}")
-            
+
             return result_df
-            
+
         except Exception as e:
             self.logger.error(f"Error during trend calculation: {e}", exc_info=True)
             raise ValueError(f"Failed to calculate water trends: {e}")
-    
-    def _simple_linear_regression(self, years: np.ndarray, water_areas: np.ndarray) -> float:
+
+    def _simple_linear_regression(
+        self, years: np.ndarray, water_areas: np.ndarray
+    ) -> float:
         """
         Calculate simple linear regression slope as fallback method.
-        
+
         This method provides a basic slope calculation when the main
         polynomial fitting fails due to numerical issues.
-        
+
         Args:
             years: Array of years
             water_areas: Array of water areas
-            
+
         Returns:
             Linear regression slope (water area change per year)
         """
         try:
             if len(years) < 2:
                 return 0.0
-            
+
             # Calculate covariance and variance
             year_mean = np.mean(years)
             area_mean = np.mean(water_areas)
-            
+
             numerator = np.sum((years - year_mean) * (water_areas - area_mean))
             denominator = np.sum((years - year_mean) ** 2)
-            
+
             if denominator == 0:
                 return 0.0
-            
+
             return float(numerator / denominator)
-            
+
         except Exception:
             return 0.0
-    
+
     def aggregate_by_intervention(
-        self, 
-        df: pd.DataFrame, 
-        intervention_col: str = 'pond_presence'
+        self, df: pd.DataFrame, intervention_col: str = "pond_presence"
     ) -> pd.DataFrame:
         """
         Aggregate water data by intervention presence.
-        
+
         This method calculates comprehensive statistics for water data grouped
         by intervention presence (e.g., ponds vs no ponds) to assess the impact
         of NRM interventions on water body characteristics.
-        
+
         Args:
             df: Input DataFrame with water data and intervention indicators
             intervention_col: Column name indicating intervention presence.
                            Should contain binary values (0/1) or boolean.
                            Default is 'pond_presence'.
-                           
+
         Returns:
             Aggregated DataFrame with statistics for each intervention group:
             - intervention_col, intervention_type (labels)
@@ -1219,10 +1339,10 @@ class DataProcessor:
             - water_body_count statistics (mean, std)
             - location_id_nunique (number of unique locations)
             - Additional derived metrics
-            
+
         Raises:
             ValueError: If intervention column doesn't exist or contains invalid data
-            
+
         Example:
             >>> df = pd.DataFrame({
             ...     'location_id': ['V001', 'V002', 'V003', 'V004'],
@@ -1236,32 +1356,30 @@ class DataProcessor:
         # Input validation
         if df.empty:
             raise ValueError("DataFrame cannot be empty for intervention aggregation")
-        
+
         if intervention_col not in df.columns:
             available_cols = df.columns.tolist()
             raise ValueError(
                 f"Intervention column '{intervention_col}' not found. "
                 f"Available columns: {available_cols}"
             )
-        
-        required_columns = ['water_area_ha', 'location_id']
+
+        required_columns = ["water_area_ha", "location_id"]
         missing_columns = [col for col in required_columns if col not in df.columns]
         if missing_columns:
             raise ValueError(f"Missing required columns: {missing_columns}")
-        
-        self.logger.info(
-            f"Aggregating data by intervention column: {intervention_col}"
-        )
-        
+
+        self.logger.info(f"Aggregating data by intervention column: {intervention_col}")
+
         try:
             # Optimization: Filter invalid water areas first to reduce data size for subsequent operations
             # This avoids copying and processing intervention columns for rows that will be dropped
-            valid_water_mask = df['water_area_ha'] >= 0
+            valid_water_mask = df["water_area_ha"] >= 0
 
             # Optimization: Subset columns before copying to reduce memory overhead
-            cols_needed = ['water_area_ha', 'location_id', intervention_col]
-            if 'water_body_count' in df.columns:
-                cols_needed.append('water_body_count')
+            cols_needed = ["water_area_ha", "location_id", intervention_col]
+            if "water_body_count" in df.columns:
+                cols_needed.append("water_body_count")
 
             # Ensure unique columns
             cols_needed = list(set(cols_needed))
@@ -1278,39 +1396,54 @@ class DataProcessor:
 
             if df_clean.empty:
                 raise ValueError("No valid data remaining after filtering")
-            
+
             # Convert intervention column to numeric if needed
             # Optimization: Check if already numeric to avoid overhead
             if not pd.api.types.is_numeric_dtype(df_clean[intervention_col]):
                 # Handle string representations
-                df_clean[intervention_col] = df_clean[intervention_col].astype(str).str.lower()
-                mapping = {'yes': 1, 'y': 1, 'true': 1, 't': 1, '1': 1, 'present': 1,
-                          'no': 0, 'n': 0, 'false': 0, 'f': 0, '0': 0, 'absent': 0, 'none': 0}
+                df_clean[intervention_col] = (
+                    df_clean[intervention_col].astype(str).str.lower()
+                )
+                mapping = {
+                    "yes": 1,
+                    "y": 1,
+                    "true": 1,
+                    "t": 1,
+                    "1": 1,
+                    "present": 1,
+                    "no": 0,
+                    "n": 0,
+                    "false": 0,
+                    "f": 0,
+                    "0": 0,
+                    "absent": 0,
+                    "none": 0,
+                }
                 df_clean[intervention_col] = df_clean[intervention_col].map(mapping)
-            
+
             # Convert to numeric and handle missing values
             df_clean[intervention_col] = pd.to_numeric(
-                df_clean[intervention_col], errors='coerce'
+                df_clean[intervention_col], errors="coerce"
             ).fillna(0)
-            
+
             # Ensure only 0 or 1 values
-            df_clean[intervention_col] = df_clean[intervention_col].clip(0, 1).astype(int)
-            
+            df_clean[intervention_col] = (
+                df_clean[intervention_col].clip(0, 1).astype(int)
+            )
+
             # Group by intervention presence and calculate comprehensive statistics
             agg_dict = {
-                'water_area_ha': [
-                    'mean', 'std', 'min', 'max', 'count', 'median'
-                ],
-                'location_id': 'nunique'
+                "water_area_ha": ["mean", "std", "min", "max", "count", "median"],
+                "location_id": "nunique",
             }
-            
+
             # Add water_body_count only if it exists
-            if 'water_body_count' in df_clean.columns:
-                agg_dict['water_body_count'] = ['mean', 'std', 'min', 'max', 'sum']
-            
+            if "water_body_count" in df_clean.columns:
+                agg_dict["water_body_count"] = ["mean", "std", "min", "max", "sum"]
+
             # Perform aggregation
             agg_stats = df_clean.groupby(intervention_col).agg(agg_dict)
-            
+
             # Flatten column names and handle custom functions
             new_columns = []
             for col in agg_stats.columns:
@@ -1319,50 +1452,55 @@ class DataProcessor:
                 else:
                     # Handle lambda function
                     new_columns.append(f"{col[0]}_valid_count")
-            
+
             agg_stats.columns = new_columns
 
             # Ensure water_area_ha_valid_count exists (previously attempted via lambda but often resulted in obscure names)
             # Since we filtered for water_area_ha >= 0, count is equivalent to valid_count
-            if 'water_area_ha_count' in agg_stats.columns:
-                agg_stats['water_area_ha_valid_count'] = agg_stats['water_area_ha_count']
+            if "water_area_ha_count" in agg_stats.columns:
+                agg_stats["water_area_ha_valid_count"] = agg_stats[
+                    "water_area_ha_count"
+                ]
             agg_stats = agg_stats.reset_index()
-            
+
             # Add intervention labels
-            intervention_labels = {
-                0: 'No Intervention',
-                1: 'With Intervention'
-            }
-            
-            agg_stats['intervention_type'] = agg_stats[intervention_col].map(intervention_labels)
-            
+            intervention_labels = {0: "No Intervention", 1: "With Intervention"}
+
+            agg_stats["intervention_type"] = agg_stats[intervention_col].map(
+                intervention_labels
+            )
+
             # Calculate additional derived metrics
-            if 'water_area_ha_mean' in agg_stats.columns and 'water_area_ha_std' in agg_stats.columns:
+            if (
+                "water_area_ha_mean" in agg_stats.columns
+                and "water_area_ha_std" in agg_stats.columns
+            ):
                 # Coefficient of variation
-                agg_stats['water_area_ha_cv'] = (
-                    agg_stats['water_area_ha_std'] / agg_stats['water_area_ha_mean']
+                agg_stats["water_area_ha_cv"] = (
+                    agg_stats["water_area_ha_std"] / agg_stats["water_area_ha_mean"]
                 ).fillna(0)
-            
+
             # Calculate percentage difference if both groups exist
             if len(agg_stats) == 2:
                 with_intervention = agg_stats[agg_stats[intervention_col] == 1]
                 without_intervention = agg_stats[agg_stats[intervention_col] == 0]
-                
+
                 if not with_intervention.empty and not without_intervention.empty:
-                    with_mean = with_intervention['water_area_ha_mean'].iloc[0]
-                    without_mean = without_intervention['water_area_ha_mean'].iloc[0]
-                    
+                    with_mean = with_intervention["water_area_ha_mean"].iloc[0]
+                    without_mean = without_intervention["water_area_ha_mean"].iloc[0]
+
                     if without_mean > 0:
-                        percent_increase = ((with_mean - without_mean) / without_mean) * 100
-                        agg_stats['water_area_increase_pct'] = agg_stats[intervention_col].map({
-                            1: percent_increase,
-                            0: 0.0
-                        })
-            
+                        percent_increase = (
+                            (with_mean - without_mean) / without_mean
+                        ) * 100
+                        agg_stats["water_area_increase_pct"] = agg_stats[
+                            intervention_col
+                        ].map({1: percent_increase, 0: 0.0})
+
             # Sort by intervention presence for consistent ordering
             # Optimization: agg_stats is already sorted by intervention_col because groupby(sort=True) is used by default.
             # agg_stats.reset_index() was called earlier, preserving the order.
-            
+
             # Log summary statistics
             self.logger.info(
                 f"Intervention aggregation completed:\n"
@@ -1370,41 +1508,41 @@ class DataProcessor:
                 f"- Total records: {len(df_clean)}\n"
                 f"- Unique locations: {agg_stats['location_id_nunique'].sum()}"
             )
-            
+
             # Log group-specific information
             for _, row in agg_stats.iterrows():
-                group_name = row['intervention_type']
-                locations = row['location_id_nunique']
-                mean_area = row.get('water_area_ha_mean', 'N/A')
+                group_name = row["intervention_type"]
+                locations = row["location_id_nunique"]
+                mean_area = row.get("water_area_ha_mean", "N/A")
                 self.logger.info(
                     f"{group_name}: {locations} locations, "
                     f"mean water area: {mean_area} ha"
                 )
-            
+
             return agg_stats
-            
+
         except Exception as e:
-            self.logger.error(f"Error during intervention aggregation: {e}", exc_info=True)
+            self.logger.error(
+                f"Error during intervention aggregation: {e}", exc_info=True
+            )
             raise ValueError(f"Failed to aggregate by intervention: {e}")
-    
+
     def create_seasonal_summary(
-        self, 
-        df: pd.DataFrame, 
-        location_level: str = 'location_id'
+        self, df: pd.DataFrame, location_level: str = "location_id"
     ) -> pd.DataFrame:
         """
         Create seasonal summary statistics.
-        
+
         This method generates comprehensive seasonal summaries of water data,
         aggregated by specified spatial level (typically location_id). It includes
         descriptive statistics, data quality indicators, and temporal coverage.
-        
+
         Args:
             df: Input DataFrame with water data including location_id, season,
                 water_area_ha, water_body_count, year, etc.
             location_level: Column name for spatial aggregation level.
                           Default is 'location_id'. Can be any geographic identifier.
-                          
+
         Returns:
             Seasonal summary DataFrame with columns:
             - location_level, season (grouping columns)
@@ -1412,10 +1550,10 @@ class DataProcessor:
             - water_body_count statistics (mean, std, min, max, sum)
             - Temporal coverage (year_min, year_max, year_count, year_span)
             - Data quality indicators (data_completeness, coefficient_of_variation)
-            
+
         Raises:
             ValueError: If DataFrame is empty or missing required columns
-            
+
         Example:
             >>> df = pd.DataFrame({
             ...     'location_id': ['V001', 'V001', 'V001', 'V002'],
@@ -1429,94 +1567,113 @@ class DataProcessor:
         # Input validation
         if df.empty:
             raise ValueError("DataFrame cannot be empty for seasonal summary")
-        
-        required_columns = [location_level, 'season', 'water_area_ha', 'year']
+
+        required_columns = [location_level, "season", "water_area_ha", "year"]
         missing_columns = [col for col in required_columns if col not in df.columns]
         if missing_columns:
             raise ValueError(f"Missing required columns: {missing_columns}")
-        
+
         self.logger.info(
             f"Creating seasonal summary for {len(df)} records at level: {location_level}"
         )
-        
+
         try:
             # Filter for valid data
             # Optimization: Filter directly to avoid copying rows that will be dropped
-            valid_mask = df['water_area_ha'] >= 0
+            valid_mask = df["water_area_ha"] >= 0
 
             # Optimization: Subset columns before copying to reduce memory overhead
             # We use set to handle potential duplicates if location_level is in required_columns
             cols_needed = required_columns.copy()
-            if 'water_body_count' in df.columns:
-                cols_needed.append('water_body_count')
+            if "water_body_count" in df.columns:
+                cols_needed.append("water_body_count")
 
             # Ensure unique columns
             cols_needed = list(set(cols_needed))
 
             df_clean = df.loc[valid_mask, cols_needed].copy()
-            
+
             if df_clean.empty:
                 raise ValueError("No valid data remaining after filtering")
-            
+
             # Group by location and season for comprehensive statistics
             agg_dict = {
                 # Optimization: calculate mean from sum/count to save aggregation overhead (~30-40% faster)
-                'water_area_ha': ['sum', 'std', 'min', 'max', 'median', 'count'],
-                'year': ['min', 'max', 'nunique'],
-                'location_id': 'count'  # Total observations per group
+                "water_area_ha": ["sum", "std", "min", "max", "median", "count"],
+                "year": ["min", "max", "nunique"],
+                "location_id": "count",  # Total observations per group
             }
-            
+
             # Add water_body_count statistics if available
-            if 'water_body_count' in df_clean.columns:
+            if "water_body_count" in df_clean.columns:
                 # Optimization: removed 'mean', added 'count' for post-calc
-                agg_dict['water_body_count'] = ['std', 'min', 'max', 'sum', 'count']
-            
+                agg_dict["water_body_count"] = ["std", "min", "max", "sum", "count"]
+
             # Perform aggregation
             # Optimization: sort=False is faster, sort result explicitly
-            seasonal_summary = df_clean.groupby([location_level, 'season'], sort=False).agg(agg_dict)
+            seasonal_summary = df_clean.groupby(
+                [location_level, "season"], sort=False
+            ).agg(agg_dict)
             seasonal_summary.sort_index(inplace=True)
-            
+
             # Flatten column names
-            seasonal_summary.columns = ['_'.join(col).strip() for col in seasonal_summary.columns]
+            seasonal_summary.columns = [
+                "_".join(col).strip() for col in seasonal_summary.columns
+            ]
             seasonal_summary = seasonal_summary.reset_index()
-            
+
             # Calculate derived metrics
             # Optimization: Calculate means from sums and counts
-            seasonal_summary['water_area_ha_mean'] = seasonal_summary['water_area_ha_sum'] / seasonal_summary['water_area_ha_count']
+            seasonal_summary["water_area_ha_mean"] = (
+                seasonal_summary["water_area_ha_sum"]
+                / seasonal_summary["water_area_ha_count"]
+            )
 
-            if 'water_body_count_sum' in seasonal_summary.columns:
-                seasonal_summary['water_body_count_mean'] = seasonal_summary['water_body_count_sum'] / seasonal_summary['water_body_count_count']
+            if "water_body_count_sum" in seasonal_summary.columns:
+                seasonal_summary["water_body_count_mean"] = (
+                    seasonal_summary["water_body_count_sum"]
+                    / seasonal_summary["water_body_count_count"]
+                )
 
             # Year span
-            seasonal_summary['year_span'] = seasonal_summary['year_max'] - seasonal_summary['year_min']
-            
+            seasonal_summary["year_span"] = (
+                seasonal_summary["year_max"] - seasonal_summary["year_min"]
+            )
+
             # Coefficient of variation for water area
-            seasonal_summary['water_area_ha_cv'] = (
-                seasonal_summary['water_area_ha_std'] / seasonal_summary['water_area_ha_mean']
+            seasonal_summary["water_area_ha_cv"] = (
+                seasonal_summary["water_area_ha_std"]
+                / seasonal_summary["water_area_ha_mean"]
             ).fillna(0)
-            
+
             # Data completeness (years with data / total possible years)
-            seasonal_summary['data_completeness'] = (
-                seasonal_summary['year_nunique'] / seasonal_summary['year_span']
+            seasonal_summary["data_completeness"] = (
+                seasonal_summary["year_nunique"] / seasonal_summary["year_span"]
             ).fillna(0)
-            
+
             # Add data quality flags
-            seasonal_summary['data_quality'] = 'good'  # Default
-            
+            seasonal_summary["data_quality"] = "good"  # Default
+
             # Flag groups with limited data
-            seasonal_summary.loc[seasonal_summary['water_area_ha_count'] < 3, 'data_quality'] = 'limited_data'
-            seasonal_summary.loc[seasonal_summary['water_area_ha_cv'] > 1.0, 'data_quality'] = 'high_variability'
-            seasonal_summary.loc[seasonal_summary['data_completeness'] < 0.5, 'data_quality'] = 'gaps_in_data'
-            
+            seasonal_summary.loc[
+                seasonal_summary["water_area_ha_count"] < 3, "data_quality"
+            ] = "limited_data"
+            seasonal_summary.loc[
+                seasonal_summary["water_area_ha_cv"] > 1.0, "data_quality"
+            ] = "high_variability"
+            seasonal_summary.loc[
+                seasonal_summary["data_completeness"] < 0.5, "data_quality"
+            ] = "gaps_in_data"
+
             # Sort for consistent ordering
             # Optimization: seasonal_summary is already sorted by [location_level, 'season'] because groupby(sort=True) is used by default.
             # seasonal_summary.reset_index() was called earlier, preserving the order.
-            
+
             # Log summary statistics
             total_groups = len(seasonal_summary)
             unique_locations = seasonal_summary[location_level].nunique()
-            seasons_covered = seasonal_summary['season'].unique()
-            
+            seasons_covered = seasonal_summary["season"].unique()
+
             self.logger.info(
                 f"Seasonal summary completed:\n"
                 f"- Total groups: {total_groups}\n"
@@ -1524,40 +1681,37 @@ class DataProcessor:
                 f"- Seasons covered: {sorted(seasons_covered)}\n"
                 f"- Year range: {seasonal_summary['year_min'].min()}-{seasonal_summary['year_max'].max()}"
             )
-            
+
             # Data quality distribution
-            quality_dist = seasonal_summary['data_quality'].value_counts().to_dict()
+            quality_dist = seasonal_summary["data_quality"].value_counts().to_dict()
             self.logger.info(f"Data quality distribution: {quality_dist}")
-            
+
             return seasonal_summary
-            
+
         except Exception as e:
             self.logger.error(f"Error creating seasonal summary: {e}", exc_info=True)
             raise ValueError(f"Failed to create seasonal summary: {e}")
-    
+
     def export_processed_data(
-        self, 
-        df: pd.DataFrame, 
-        filename: str, 
-        format: str = 'csv'
+        self, df: pd.DataFrame, filename: str, format: str = "csv"
     ) -> None:
         """
         Export processed data to file.
-        
+
         This method exports processed DataFrames to various formats with proper
         validation, error handling, and logging. It creates the output directory
         if needed and provides feedback on the export operation.
-        
+
         Args:
             df: DataFrame to export
             filename: Output filename without extension
             format: Export format. Supported formats: 'csv', 'excel', 'parquet'.
                    Default is 'csv'.
-                   
+
         Raises:
             ValueError: If DataFrame is empty, filename is invalid, or format unsupported
             OSError: If unable to create output directory or write file
-            
+
         Example:
             >>> processor = DataProcessor('./data')
             >>> df = pd.DataFrame({'col1': [1, 2], 'col2': ['a', 'b']})
@@ -1567,61 +1721,61 @@ class DataProcessor:
         # Input validation
         if df.empty:
             raise ValueError("Cannot export empty DataFrame")
-        
+
         if not filename or not isinstance(filename, str):
             raise ValueError("Filename must be a non-empty string")
-        
+
         # Sanitize filename
         filename = sanitize_filename(filename)
 
-        supported_formats = ['csv', 'excel', 'parquet']
+        supported_formats = ["csv", "excel", "parquet"]
         if format not in supported_formats:
             raise ValueError(
                 f"Unsupported export format: {format}. "
                 f"Supported formats: {supported_formats}"
             )
-        
+
         # Create output path
-        output_path = self.data_dir / 'processed' / filename
-        
+        output_path = self.data_dir / "processed" / filename
+
         try:
             # Create processed directory if it doesn't exist
             output_path.parent.mkdir(parents=True, exist_ok=True)
-            
+
             # Check if file already exists
             final_path = output_path.with_suffix(self._get_file_extension(format))
             if final_path.exists():
                 self.logger.warning(f"Overwriting existing file: {final_path}")
-            
+
             # Sanitize data before export to prevent injection
             # Only needed for CSV and Excel
-            if format in ['csv', 'excel']:
+            if format in ["csv", "excel"]:
                 df = sanitize_dataframe(df)
 
             # Export based on format
-            if format == 'csv':
-                df.to_csv(final_path, index=False, encoding='utf-8')
-            elif format == 'excel':
+            if format == "csv":
+                df.to_csv(final_path, index=False, encoding="utf-8")
+            elif format == "excel":
                 try:
-                    df.to_excel(final_path, index=False, engine='openpyxl')
+                    df.to_excel(final_path, index=False, engine="openpyxl")
                 except ImportError:
                     # Fallback to xlsxwriter if openpyxl not available
-                    df.to_excel(final_path, index=False, engine='xlsxwriter')
-            elif format == 'parquet':
+                    df.to_excel(final_path, index=False, engine="xlsxwriter")
+            elif format == "parquet":
                 try:
-                    df.to_parquet(final_path, index=False, engine='pyarrow')
+                    df.to_parquet(final_path, index=False, engine="pyarrow")
                 except ImportError:
                     # Fallback to fastparquet if pyarrow not available
-                    df.to_parquet(final_path, index=False, engine='fastparquet')
-            
+                    df.to_parquet(final_path, index=False, engine="fastparquet")
+
             # Get file size for logging
             file_size_mb = final_path.stat().st_size / (1024 * 1024)
-            
+
             self.logger.info(
                 f"Successfully exported {len(df)} rows and {len(df.columns)} columns "
                 f"to {final_path} ({file_size_mb:.2f} MB)"
             )
-            
+
         except PermissionError:
             raise OSError(f"Permission denied when writing to {final_path}")
         except OSError as e:
@@ -1629,52 +1783,52 @@ class DataProcessor:
         except Exception as e:
             self.logger.error(f"Error during data export: {e}", exc_info=True)
             raise ValueError(f"Failed to export data: {e}")
-    
+
     def _get_file_extension(self, format: str) -> str:
         """
         Get file extension for export format.
-        
+
         Args:
             format: Export format name
-            
+
         Returns:
             File extension including dot
         """
-        extensions = {
-            'csv': '.csv',
-            'excel': '.xlsx',
-            'parquet': '.parquet'
-        }
-        return extensions.get(format, '.csv')
+        extensions = {"csv": ".csv", "excel": ".xlsx", "parquet": ".parquet"}
+        return extensions.get(format, ".csv")
 
 
 # Utility functions for convenience
 def load_sample_data() -> Tuple[pd.DataFrame, pd.DataFrame]:
     """
     Load sample datasets for testing and demonstration.
-    
+
     Returns:
         Tuple of (water_data, nrm_data) DataFrames
     """
     processor = DataProcessor()
-    
+
     # Create sample water data
-    water_data = pd.DataFrame({
-        'location_id': ['V001', 'V001', 'V001', 'V002', 'V002', 'V002'] * 3,
-        'year': [2020, 2021, 2022] * 6,
-        'season': ['perennial', 'winter', 'monsoon'] * 6,
-        'water_area_ha': np.random.uniform(10, 100, 18),
-        'water_body_count': np.random.randint(1, 20, 18),
-        'data_quality': ['good'] * 18
-    })
-    
+    water_data = pd.DataFrame(
+        {
+            "location_id": ["V001", "V001", "V001", "V002", "V002", "V002"] * 3,
+            "year": [2020, 2021, 2022] * 6,
+            "season": ["perennial", "winter", "monsoon"] * 6,
+            "water_area_ha": np.random.uniform(10, 100, 18),
+            "water_body_count": np.random.randint(1, 20, 18),
+            "data_quality": ["good"] * 18,
+        }
+    )
+
     # Create sample NRM data
-    nrm_data = pd.DataFrame({
-        'location_id': ['V001', 'V002'],
-        'year': [2021, 2021],
-        'pond_presence': [1, 0],
-        'crop_yield_ton_per_ha': [2.5, 1.8],
-        'drought_sensitivity': ['low', 'high']
-    })
-    
+    nrm_data = pd.DataFrame(
+        {
+            "location_id": ["V001", "V002"],
+            "year": [2021, 2021],
+            "pond_presence": [1, 0],
+            "crop_yield_ton_per_ha": [2.5, 1.8],
+            "drought_sensitivity": ["low", "high"],
+        }
+    )
+
     return water_data, nrm_data
