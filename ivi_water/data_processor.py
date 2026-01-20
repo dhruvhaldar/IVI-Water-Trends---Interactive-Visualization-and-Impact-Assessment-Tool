@@ -1102,7 +1102,8 @@ class DataProcessor:
 
             # Create working copy with only valid rows and necessary columns
             # This is significantly faster than masking with NaN and processing all rows
-            df_proc = df.loc[valid_mask, cols_needed].copy()
+            # Optimization: Remove redundant .copy() as loc with boolean mask already returns a copy
+            df_proc = df.loc[valid_mask, cols_needed]
 
             # Convert year to float for calculations
             df_proc["year"] = df_proc["year"].astype(float)
@@ -1395,7 +1396,8 @@ class DataProcessor:
                     f"Found {dropped_count} records with negative water areas. "
                     "These will be excluded from aggregation."
                 )
-                df_clean = df.loc[valid_water_mask, cols_needed].copy()
+                # Optimization: Remove redundant .copy() as loc with boolean mask already returns a copy
+                df_clean = df.loc[valid_water_mask, cols_needed]
             else:
                 df_clean = df[cols_needed].copy()
 
@@ -1596,7 +1598,8 @@ class DataProcessor:
             # Ensure unique columns
             cols_needed = list(set(cols_needed))
 
-            df_clean = df.loc[valid_mask, cols_needed].copy()
+            # Optimization: Remove redundant .copy() as loc with boolean mask already returns a copy
+            df_clean = df.loc[valid_mask, cols_needed]
 
             if df_clean.empty:
                 raise ValueError("No valid data remaining after filtering")
