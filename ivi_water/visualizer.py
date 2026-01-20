@@ -8,6 +8,7 @@ analysis using Plotly and optional 3D visualization with PyVista.
 # Standard library imports
 import os
 import logging
+import html
 from typing import Dict, List, Optional, Union, Tuple, Any
 from pathlib import Path
 
@@ -145,6 +146,20 @@ class WaterTrendsVisualizer:
             f"dimensions={self.width}x{self.height}px"
         )
 
+    def _sanitize_text(self, text: Optional[str]) -> Optional[str]:
+        """
+        Sanitize text to prevent XSS in HTML-based charts.
+
+        Args:
+            text: Input text string
+
+        Returns:
+            Sanitized text string with HTML characters escaped
+        """
+        if text is None:
+            return None
+        return html.escape(str(text))
+
     def create_seasonal_stacked_area_chart(
         self,
         df: pd.DataFrame,
@@ -280,9 +295,12 @@ class WaterTrendsVisualizer:
                 )
 
             # Update layout with comprehensive styling
+            # Sanitize title to prevent XSS
+            safe_title = self._sanitize_text(title)
+
             fig.update_layout(
                 title=dict(
-                    text=title,
+                    text=safe_title,
                     x=0.5,
                     xanchor="center",
                     font=dict(size=16, family="Arial, sans-serif"),
@@ -367,12 +385,16 @@ class WaterTrendsVisualizer:
             {0: "Without Intervention", 1: "With Intervention"}
         )
 
+        safe_title = self._sanitize_text(
+            title or "Water Area Trends by Intervention Presence"
+        )
+
         fig = px.line(
             avg_data,
             x="year",
             y="water_area_ha",
             color=intervention_col,
-            title=title or "Water Area Trends by Intervention Presence",
+            title=safe_title,
             labels={
                 "water_area_ha": "Average Water Area (hectares)",
                 "year": "Year",
@@ -413,11 +435,13 @@ class WaterTrendsVisualizer:
             df_filtered = df
             title = title or "Water Body Count Distribution - All Seasons"
 
+        safe_title = self._sanitize_text(title)
+
         fig = px.histogram(
             df_filtered,
             x="water_body_count",
             color="season",
-            title=title,
+            title=safe_title,
             labels={"water_body_count": "Number of Water Bodies", "count": "Frequency"},
             nbins=30,
             barmode="overlay",
@@ -454,9 +478,13 @@ class WaterTrendsVisualizer:
             index="location_id", columns="year", values=metric, aggfunc="mean"
         )
 
+        safe_title = self._sanitize_text(
+            title or f"Water Trends Heatmap - {metric.replace('_', ' ').title()}"
+        )
+
         fig = px.imshow(
             heatmap_data,
-            title=title or f"Water Trends Heatmap - {metric.replace('_', ' ').title()}",
+            title=safe_title,
             labels=dict(x="Year", y="Location", color=metric.replace("_", " ").title()),
             aspect="auto",
         )
@@ -492,11 +520,13 @@ class WaterTrendsVisualizer:
                 (df_filtered["year"] >= start_year) & (df_filtered["year"] <= end_year)
             ]
 
+        safe_title = self._sanitize_text(title or "Water Area Distribution by Season")
+
         fig = px.box(
             df_filtered,
             x="season",
             y="water_area_ha",
-            title=title or "Water Area Distribution by Season",
+            title=safe_title,
             labels={"water_area_ha": "Water Area (hectares)", "season": "Season"},
             color="season",
         )
@@ -535,12 +565,16 @@ class WaterTrendsVisualizer:
             {0: "Without Intervention", 1: "With Intervention"}
         )
 
+        safe_title = self._sanitize_text(
+            title or f"Water Area vs {impact_col.replace('_', ' ').title()}"
+        )
+
         fig = px.scatter(
             df,
             x="water_area_ha",
             y=impact_col,
             color="intervention_status",
-            title=title or f"Water Area vs {impact_col.replace('_', ' ').title()}",
+            title=safe_title,
             labels={
                 "water_area_ha": "Water Area (hectares)",
                 impact_col: impact_col.replace("_", " ").title(),
@@ -592,6 +626,8 @@ class WaterTrendsVisualizer:
                 index="year", columns="season", values="water_area_ha"
             ).fillna(0)
 
+            safe_location = self._sanitize_text(location)
+
             for season in ["perennial", "winter", "monsoon"]:
                 if season in pivot_data.columns:
                     fig.add_trace(
@@ -600,7 +636,7 @@ class WaterTrendsVisualizer:
                             y=pivot_data[season],
                             mode="lines",
                             stackgroup="one",
-                            name=f"{location} - {season}",
+                            name=f"{safe_location} - {season}",
                             showlegend=False,
                         ),
                         row=1,
@@ -609,6 +645,7 @@ class WaterTrendsVisualizer:
 
         # Plot 2: Water body count over time
         for location in location_ids[:3]:
+            safe_location = self._sanitize_text(location)
             loc_data = df_filtered[df_filtered["location_id"] == location]
             avg_counts = loc_data.groupby("year")["water_body_count"].mean()
 
@@ -617,7 +654,7 @@ class WaterTrendsVisualizer:
                     x=avg_counts.index,
                     y=avg_counts.values,
                     mode="lines+markers",
-                    name=f"{location} - Bodies",
+                    name=f"{safe_location} - Bodies",
                     showlegend=False,
                 ),
                 row=1,
@@ -631,6 +668,7 @@ class WaterTrendsVisualizer:
             .reset_index()
         )
         for location in location_ids[:3]:
+            safe_location = self._sanitize_text(location)
             loc_data = yearly_avg[yearly_avg["location_id"] == location]
 
             fig.add_trace(
@@ -638,7 +676,7 @@ class WaterTrendsVisualizer:
                     x=loc_data["year"],
                     y=loc_data["water_area_ha"],
                     mode="lines+markers",
-                    name=location,
+                    name=safe_location,
                     showlegend=False,
                 ),
                 row=2,
@@ -657,10 +695,13 @@ class WaterTrendsVisualizer:
             col=2,
         )
 
+        # Sanitize location IDs for the main title
+        safe_location_ids = [self._sanitize_text(loc) for loc in location_ids[:3]]
+
         fig.update_layout(
             height=2 * self.height,
             width=2 * self.width,
-            title_text=f"Water Trends Dashboard - {', '.join(location_ids[:3])}",
+            title_text=f"Water Trends Dashboard - {', '.join(filter(None, safe_location_ids))}",
             showlegend=False,
         )
 
@@ -722,7 +763,8 @@ class WaterTrendsVisualizer:
             sphere = pv.Sphere(radius=radius, center=(x, y, z))
             plotter.add_mesh(sphere, color="blue", opacity=0.7)
 
-        plotter.add_title(f"3D Water Bodies - {location_id or 'Sample'}")
+        safe_location_id = self._sanitize_text(location_id)
+        plotter.add_title(f"3D Water Bodies - {safe_location_id or 'Sample'}")
         plotter.show_grid()
 
         return plotter
