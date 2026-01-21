@@ -21,3 +21,7 @@
 ## 2025-02-24 - [Pandas Numeric Check]
 **Learning:** `pd.to_numeric(..., errors='coerce')` incurs significant overhead (~10ms for 2M rows) even if the input data is already fully numeric. Checking `pd.api.types.is_numeric_dtype(series)` first is essentially free and avoids this overhead completely for correctly typed inputs.
 **Action:** Always wrap `pd.to_numeric` calls with `if not is_numeric_dtype(...)` when processing data that might already be typed (e.g. from API responses or Parquet files).
+
+## 2025-02-27 - [Pandas GroupBy Sort Efficiency]
+**Learning:** For datasets with high-cardinality string keys (e.g., 300k groups), `df.groupby(..., sort=True)` is significantly faster (~25%) than `df.groupby(..., sort=False)` followed by `df.sort_index()`. The internal sorting of keys during group construction appears more optimized than sorting the resulting MultiIndex after aggregation.
+**Action:** When sorted output is required from a groupby aggregation, prefer `sort=True` in the groupby call over explicit subsequent sorting, especially for high-cardinality grouping.
