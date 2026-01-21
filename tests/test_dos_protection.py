@@ -5,6 +5,8 @@ import os
 import pandas as pd
 import stat
 from ivi_water.data_processor import DataProcessor
+from requests.exceptions import RequestException
+from ivi_water.api_client import CoREStackClient
 
 
 class TestDoSProtection(unittest.TestCase):
@@ -55,6 +57,43 @@ class TestDoSProtection(unittest.TestCase):
         except ValueError as e:
             self.fail(f"load_nrm_impact_data raised ValueError unexpectedly: {e}")
 
+
+class TestAPIResponseDoSProtection(unittest.TestCase):
+    def test_large_response_dos_protection(self):
+        """
+        Verify that the client raises an error when the response size exceeds the limit.
+        """
+        # Set a small limit for testing (1KB)
+        test_limit = 1024
+
+        # Create a mock response that simulates a stream larger than the limit
+        mock_response = MagicMock()
+        mock_response.headers = {'Content-Type': 'application/json'}
+        mock_response.status_code = 200
+
+        # Create chunks that exceed the limit
+        # 2 chunks of 600 bytes = 1200 bytes > 1024 bytes
+        chunk_content = b'x' * 600
+        # Use side_effect for iter_content to return a fresh iterator each time if needed
+        mock_response.iter_content.return_value = iter([chunk_content, chunk_content])
+
+        # Also mock 'content' property behavior for non-streaming access (legacy behavior)
+        mock_response.content = b'x' * 1200
+        mock_response.text = '{"key": "value"}'
+        mock_response.json.return_value = {"key": "value"}
+        # Mock encoding for clean logging
+        mock_response.encoding = 'utf-8'
+
+        with patch.dict(os.environ, {'CORE_API_MAX_RESPONSE_SIZE': str(test_limit)}):
+            client = CoREStackClient(api_key="test-key")
+
+            # Patch the session.request to return our mock
+            with patch.object(client.session, 'request', return_value=mock_response):
+                # Expect a RequestException (wrapping ValueError) due to size limit
+                with self.assertRaises(RequestException) as cm:
+                    client._make_request("test-endpoint", use_cache=False)
+
+                self.assertIn("Response size exceeds limit", str(cm.exception))
 
 if __name__ == "__main__":
     unittest.main()

@@ -17,6 +17,8 @@ class TestAPISecurity:
         mock_response = MagicMock()
         mock_response.status_code = 200
         mock_response.json.return_value = {"data": "success"}
+        mock_response.encoding = "utf-8"
+        mock_response.iter_content.return_value = iter([b'{"data": "success"}'])
         client.session.request = MagicMock(return_value=mock_response)
 
         # Sensitive parameters
@@ -53,6 +55,9 @@ class TestAPISecurity:
         mock_response = MagicMock()
         mock_response.status_code = 200
         mock_response.json.return_value = {"data": "success"}
+        mock_response.encoding = "utf-8"
+        # Use side_effect to return a fresh iterator for each call
+        mock_response.iter_content.side_effect = lambda chunk_size=None: iter([b'{"data": "success"}'])
         client.session.request = MagicMock(return_value=mock_response)
 
         params = {"a": 1, "b": 2}
@@ -83,6 +88,8 @@ class TestAPISecurity:
         mock_response = MagicMock()
         mock_response.status_code = 200
         mock_response.json.return_value = {"data": "success"}
+        mock_response.encoding = "utf-8"
+        mock_response.iter_content.return_value = iter([b'{"data": "success"}'])
         client.session.request = MagicMock(return_value=mock_response)
 
         # Make request
