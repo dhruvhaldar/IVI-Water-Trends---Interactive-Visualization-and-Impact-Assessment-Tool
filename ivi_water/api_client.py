@@ -7,11 +7,9 @@ for fetching spatial units and seasonal surface water data.
 
 # Standard library imports
 import os
-import time
 import json
 import logging
 import threading
-import hashlib
 import socket
 import ipaddress
 from datetime import datetime, timedelta
@@ -523,6 +521,7 @@ class CoREStackClient:
                 params=params if method.upper() == "GET" else None,
                 json=params if method.upper() == "POST" else None,
                 timeout=REQUEST_TIMEOUT,
+                stream=True,  # Stream response to validate size
             )
 
             # Handle different response statuses
@@ -542,13 +541,35 @@ class CoREStackClient:
 
             response.raise_for_status()
 
+            # Enforce maximum response size to prevent DoS via memory exhaustion
+            # Default limit: 50MB
+            max_size = int(os.getenv("CORE_API_MAX_RESPONSE_SIZE", "52428800"))
+            content = bytearray()
+
+            for chunk in response.iter_content(chunk_size=8192):
+                if chunk:
+                    content.extend(chunk)
+                    if len(content) > max_size:
+                        response.close()
+                        msg = f"Response size exceeds limit of {max_size} bytes"
+                        self.logger.error(f"DoS protection triggered: {msg}")
+                        raise ValueError(msg)
+
             # Parse JSON response
             try:
-                data = response.json()
+                # Manually decode JSON from accumulated content
+                # Use response encoding or fallback to utf-8
+                encoding = response.encoding or "utf-8"
+                data = json.loads(content.decode(encoding))
             except json.JSONDecodeError as e:
                 self.logger.error(f"Invalid JSON response from {safe_url}: {e}")
                 # Redact response text to prevent leakage of secrets in logs
-                safe_text = redact_text_content(response.text[:500])
+                try:
+                    text_preview = content[:500].decode(encoding, errors="replace")
+                except Exception:
+                    text_preview = "Unreadable binary data"
+
+                safe_text = redact_text_content(text_preview)
                 self.logger.debug(f"Response content: {safe_text}")
                 raise json.JSONDecodeError(
                     f"Invalid JSON response from API: {e}", e.doc, e.pos
