@@ -8,7 +8,6 @@ for water trends and NRM impact assessment data.
 # Standard library imports
 import os
 import logging
-from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Optional, Union, Tuple, Any
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -23,6 +22,7 @@ from .export_utils import sanitize_dataframe, sanitize_filename
 # Constants
 DEFAULT_DATA_DIR = "./data"
 DEFAULT_OUTPUT_DIR = "./outputs"
+MAX_BATCH_SIZE = 100  # Maximum number of locations per batch request
 MIN_DATA_POINTS_FOR_TREND = 2
 MAX_WATER_AREA_HA = 10000.0  # Maximum reasonable water area in hectares
 MIN_WATER_AREA_HA = 0.0
@@ -120,6 +120,12 @@ class DataProcessor:
         if not location_ids:
             raise ValueError("location_ids cannot be empty")
 
+        if len(location_ids) > MAX_BATCH_SIZE:
+            raise ValueError(
+                f"Batch size exceeds limit of {MAX_BATCH_SIZE} locations. "
+                f"Requested: {len(location_ids)}. Please split into smaller batches."
+            )
+
         if start_year > end_year:
             raise ValueError("start_year must be less than or equal to end_year")
 
@@ -167,9 +173,7 @@ class DataProcessor:
 
                     # Validate API response
                     if not water_data:
-                        self.logger.warning(
-                            f"No data returned for location {location_id}"
-                        )
+                        self.logger.warning(f"No data returned for location {location_id}")
                         continue
 
                     # Convert API response to list of rows
@@ -180,13 +184,9 @@ class DataProcessor:
                     if rows:
                         all_rows.extend(rows)
                         successful_locations += 1
-                        self.logger.debug(
-                            f"Successfully loaded {len(rows)} records for {location_id}"
-                        )
+                        self.logger.debug(f"Successfully loaded {len(rows)} records for {location_id}")
                     else:
-                        self.logger.warning(
-                            f"No valid rows created for location {location_id}"
-                        )
+                        self.logger.warning(f"No valid rows created for location {location_id}")
 
                 except Exception as e:
                     self.logger.error(
@@ -201,9 +201,7 @@ class DataProcessor:
                 "Check API connection and location IDs."
             )
 
-        self.logger.info(
-            f"Successfully loaded data for {successful_locations}/{len(location_ids)} locations"
-        )
+        self.logger.info(f"Successfully loaded data for {successful_locations}/{len(location_ids)} locations")
 
         try:
             # Create DataFrame once at the end
@@ -215,9 +213,7 @@ class DataProcessor:
             self.logger.error(f"Failed to create DataFrame: {e}", exc_info=True)
             raise ValueError(f"Error combining water data: {e}")
 
-    def _convert_api_response_to_tuples(
-        self, api_data: Dict[str, Any], location_id: str
-    ) -> List[Tuple[Any, ...]]:
+    def _convert_api_response_to_tuples(self, api_data: Dict[str, Any], location_id: str) -> List[Tuple[Any, ...]]:
         """
         Convert API response data to list of tuples.
 
@@ -295,9 +291,7 @@ class DataProcessor:
 
         return rows
 
-    def _convert_api_response_to_df(
-        self, api_data: Dict[str, Any], location_id: str
-    ) -> pd.DataFrame:
+    def _convert_api_response_to_df(self, api_data: Dict[str, Any], location_id: str) -> pd.DataFrame:
         """
         Convert API response data to DataFrame format.
 
@@ -333,20 +327,14 @@ class DataProcessor:
         rows = self._convert_api_response_to_tuples(api_data, location_id)
 
         if not rows:
-            self.logger.warning(
-                f"No valid data rows created for location {location_id}"
-            )
+            self.logger.warning(f"No valid data rows created for location {location_id}")
             return pd.DataFrame()
 
         df = pd.DataFrame(rows, columns=WATER_DATA_COLUMNS)
-        self.logger.debug(
-            f"Created DataFrame with {len(df)} rows for location {location_id}"
-        )
+        self.logger.debug(f"Created DataFrame with {len(df)} rows for location {location_id}")
         return df
 
-    def _clean_water_data(
-        self, df: pd.DataFrame, inplace: bool = False
-    ) -> pd.DataFrame:
+    def _clean_water_data(self, df: pd.DataFrame, inplace: bool = False) -> pd.DataFrame:
         """
         Clean and validate water data.
 
@@ -401,26 +389,21 @@ class DataProcessor:
                 df_clean["year"] = pd.to_numeric(df_clean["year"], errors="coerce")
 
             if not pd.api.types.is_numeric_dtype(df_clean["water_area_ha"]):
-                df_clean["water_area_ha"] = pd.to_numeric(
-                    df_clean["water_area_ha"], errors="coerce"
-                ).fillna(0)
+                df_clean["water_area_ha"] = pd.to_numeric(df_clean["water_area_ha"], errors="coerce").fillna(0)
 
             if not pd.api.types.is_numeric_dtype(df_clean["water_body_count"]):
-                df_clean["water_body_count"] = pd.to_numeric(
-                    df_clean["water_body_count"], errors="coerce"
-                ).fillna(0)
+                df_clean["water_body_count"] = pd.to_numeric(df_clean["water_body_count"], errors="coerce").fillna(0)
 
             # Legacy support: clip negative counts to 0 to match previous API loader behavior
             if pd.api.types.is_numeric_dtype(df_clean["water_body_count"]):
-                df_clean["water_body_count"] = df_clean["water_body_count"].clip(
-                    lower=0
-                )
+                df_clean["water_body_count"] = df_clean["water_body_count"].clip(lower=0)
 
             # Initialize keep mask for efficient filtering
             keep_mask = np.ones(len(df_clean), dtype=bool)
 
             # 1. Validate year range
-            # Note: NaN year compares False to both < 1900 and > 2100, so we use inverse logic to preserve NaNs for dropna step
+            # Note: NaN year compares False to both < 1900 and > 2100,
+            # so we use inverse logic to preserve NaNs for dropna step
             invalid_years_mask = (df_clean["year"] < 1900) | (df_clean["year"] > 2100)
             valid_years = ~invalid_years_mask
 
@@ -443,19 +426,13 @@ class DataProcessor:
             # Equivalent to dropna(subset=['year', 'season', 'water_area_ha'])
             # Optimization: Explicit Series check is faster than df subset .any(axis=1)
             # (~3-4x faster for large datasets by avoiding intermediate DataFrame creation)
-            is_na = (
-                df_clean["year"].isna()
-                | df_clean["season"].isna()
-                | df_clean["water_area_ha"].isna()
-            )
+            is_na = df_clean["year"].isna() | df_clean["season"].isna() | df_clean["water_area_ha"].isna()
 
             # Optimization: check intersection with keep_mask early to avoid processing already invalid rows
             removed_mask = keep_mask & is_na
             if removed_mask.any():
                 count = removed_mask.sum()
-                self.logger.warning(
-                    f"Removed {count} records with missing critical data"
-                )
+                self.logger.warning(f"Removed {count} records with missing critical data")
                 keep_mask &= ~is_na
 
             # 4. Remove invalid water areas (negative or unreasonably large)
@@ -473,9 +450,7 @@ class DataProcessor:
             removed_mask = keep_mask & (~valid_count)
             if removed_mask.any():
                 count = removed_mask.sum()
-                self.logger.warning(
-                    f"Removed {count} records with negative water body counts"
-                )
+                self.logger.warning(f"Removed {count} records with negative water body counts")
                 keep_mask &= valid_count
 
             # Apply all filters at once to minimize DataFrame copies
@@ -501,9 +476,7 @@ class DataProcessor:
             # Log summary statistics
             final_count = len(df_clean)
             total_removed = original_count - final_count
-            removal_rate = (
-                (total_removed / original_count) * 100 if original_count > 0 else 0
-            )
+            removal_rate = (total_removed / original_count) * 100 if original_count > 0 else 0
 
             self.logger.info(
                 f"Data cleaning completed:\n"
@@ -518,8 +491,7 @@ class DataProcessor:
             # Warn if too much data was removed
             if removal_rate > 50:
                 self.logger.warning(
-                    f"High data removal rate ({removal_rate:.1f}%). "
-                    "Please check data quality and validation rules."
+                    f"High data removal rate ({removal_rate:.1f}%). " "Please check data quality and validation rules."
                 )
 
             return df_clean
@@ -568,15 +540,12 @@ class DataProcessor:
 
         if file_size_mb > 100:  # Warn for files larger than 100MB but allowed
             self.logger.warning(
-                f"Large file detected ({file_size_mb:.1f}MB). "
-                "Consider processing in chunks or optimizing the data."
+                f"Large file detected ({file_size_mb:.1f}MB). " "Consider processing in chunks or optimizing the data."
             )
 
         return pd.read_csv(file_path, **kwargs)
 
-    def load_nrm_impact_data(
-        self, file_path: Optional[Union[str, Path]] = None
-    ) -> pd.DataFrame:
+    def load_nrm_impact_data(self, file_path: Optional[Union[str, Path]] = None) -> pd.DataFrame:
         """
         Load NRM impact data from CSV file.
 
@@ -625,8 +594,7 @@ class DataProcessor:
                 raise ValueError("CSV file is empty or contains no valid data")
 
             self.logger.info(
-                f"Successfully loaded {len(df)} rows and {len(df.columns)} columns "
-                f"from NRM impact data file"
+                f"Successfully loaded {len(df)} rows and {len(df.columns)} columns " f"from NRM impact data file"
             )
 
             # Use inplace=True to avoid unnecessary DataFrame copy
@@ -641,19 +609,14 @@ class DataProcessor:
             # Try with different encoding
             try:
                 df = self.load_csv_safe(file_path, encoding="latin-1")
-                self.logger.warning(
-                    "File read with latin-1 encoding. Consider saving as UTF-8."
-                )
+                self.logger.warning("File read with latin-1 encoding. Consider saving as UTF-8.")
                 return self._clean_nrm_data(df, inplace=True)
             except Exception as fallback_error:
                 raise ValueError(
-                    f"Unable to read file with any encoding. "
-                    f"Original error: {e}, Fallback error: {fallback_error}"
+                    f"Unable to read file with any encoding. " f"Original error: {e}, Fallback error: {fallback_error}"
                 )
         except Exception as e:
-            self.logger.error(
-                f"Unexpected error loading NRM impact data: {e}", exc_info=True
-            )
+            self.logger.error(f"Unexpected error loading NRM impact data: {e}", exc_info=True)
             raise ValueError(f"Failed to load NRM impact data from {file_path}: {e}")
 
     def _clean_nrm_data(self, df: pd.DataFrame, inplace: bool = False) -> pd.DataFrame:
@@ -701,20 +664,14 @@ class DataProcessor:
 
         try:
             # Standardize column names (lowercase, replace spaces with underscores)
-            df_clean.columns = (
-                df_clean.columns.str.lower().str.replace(" ", "_").str.replace("-", "_")
-            )
+            df_clean.columns = df_clean.columns.str.lower().str.replace(" ", "_").str.replace("-", "_")
             self.logger.debug(f"Standardized columns: {df_clean.columns.tolist()}")
 
             # Check for required columns
             required_columns = ["location_id", "year"]
-            missing_columns = [
-                col for col in required_columns if col not in df_clean.columns
-            ]
+            missing_columns = [col for col in required_columns if col not in df_clean.columns]
             if missing_columns:
-                raise ValueError(
-                    f"Missing required columns in NRM data: {missing_columns}"
-                )
+                raise ValueError(f"Missing required columns in NRM data: {missing_columns}")
 
             # Initialize keep mask for efficient filtering
             # Optimization: Use boolean masking instead of repeated DataFrame slicing to avoid copies
@@ -731,9 +688,7 @@ class DataProcessor:
                 count_invalid = (keep_mask & invalid_range).sum()
 
                 if count_invalid > 0:
-                    self.logger.warning(
-                        f"Removing {count_invalid} records with invalid years"
-                    )
+                    self.logger.warning(f"Removing {count_invalid} records with invalid years")
                     keep_mask &= ~invalid_range
 
                 # Logic 2: NaNs (equivalent to dropna)
@@ -744,9 +699,7 @@ class DataProcessor:
 
                 total_year_removed = count_invalid + count_nan
                 if total_year_removed > 0:
-                    self.logger.warning(
-                        f"Removed {total_year_removed} records with invalid year data"
-                    )
+                    self.logger.warning(f"Removed {total_year_removed} records with invalid year data")
 
             # Clean and validate pond_presence if present
             if "pond_presence" in df_clean.columns:
@@ -754,9 +707,7 @@ class DataProcessor:
                 # This provides ~38x speedup when data is already numeric (common case)
                 if not pd.api.types.is_numeric_dtype(df_clean["pond_presence"]):
                     # Convert to string and standardize
-                    df_clean["pond_presence"] = (
-                        df_clean["pond_presence"].astype(str).str.strip().str.lower()
-                    )
+                    df_clean["pond_presence"] = df_clean["pond_presence"].astype(str).str.strip().str.lower()
 
                     # Map various representations to 0/1
                     pond_mapping = {
@@ -775,18 +726,12 @@ class DataProcessor:
                         "none": 0,
                     }
 
-                    df_clean["pond_presence"] = df_clean["pond_presence"].map(
-                        pond_mapping
-                    )
+                    df_clean["pond_presence"] = df_clean["pond_presence"].map(pond_mapping)
 
-                df_clean["pond_presence"] = pd.to_numeric(
-                    df_clean["pond_presence"], errors="coerce"
-                ).fillna(0)
+                df_clean["pond_presence"] = pd.to_numeric(df_clean["pond_presence"], errors="coerce").fillna(0)
 
                 # Ensure only 0 or 1 values
-                df_clean["pond_presence"] = (
-                    df_clean["pond_presence"].clip(0, 1).astype(int)
-                )
+                df_clean["pond_presence"] = df_clean["pond_presence"].clip(0, 1).astype(int)
 
                 # Note: Original logic calculated removal count but didn't actually filter rows based on pond_presence
                 # so we don't update keep_mask here.
@@ -794,24 +739,18 @@ class DataProcessor:
             # Clean intervention_type if present
             if "intervention_type" in df_clean.columns:
                 # Standardize intervention types
-                df_clean["intervention_type"] = (
-                    df_clean["intervention_type"].astype(str).str.strip().str.lower()
-                )
+                df_clean["intervention_type"] = df_clean["intervention_type"].astype(str).str.strip().str.lower()
 
                 # Validate intervention types
                 # Optimization: Use boolean mask instead of creating intermediate DataFrame
-                is_invalid_intervention = ~df_clean["intervention_type"].isin(
-                    VALID_INTERVENTION_TYPES + ["none", ""]
-                )
+                is_invalid_intervention = ~df_clean["intervention_type"].isin(VALID_INTERVENTION_TYPES + ["none", ""])
 
                 # Check only rows that are currently kept
                 relevant_invalid_mask = keep_mask & is_invalid_intervention
 
                 if relevant_invalid_mask.any():
                     # Only extract values when needed for logging
-                    invalid_values = df_clean.loc[
-                        relevant_invalid_mask, "intervention_type"
-                    ].unique()
+                    invalid_values = df_clean.loc[relevant_invalid_mask, "intervention_type"].unique()
                     self.logger.warning(
                         f"Found {relevant_invalid_mask.sum()} records with unrecognized intervention types: "
                         f"{invalid_values}"
@@ -833,9 +772,7 @@ class DataProcessor:
             new_removals = (keep_mask & is_na_combined.values).sum()
 
             if new_removals > 0:
-                self.logger.warning(
-                    f"Removed {new_removals} records with missing critical data"
-                )
+                self.logger.warning(f"Removed {new_removals} records with missing critical data")
                 keep_mask &= ~is_na_combined.values
 
             # Apply all filters at once to minimize DataFrame copies
@@ -856,9 +793,7 @@ class DataProcessor:
             # Log summary statistics
             final_count = len(df_clean)
             total_removed = original_count - final_count
-            removal_rate = (
-                (total_removed / original_count) * 100 if original_count > 0 else 0
-            )
+            removal_rate = (total_removed / original_count) * 100 if original_count > 0 else 0
 
             self.logger.info(
                 f"NRM data cleaning completed:\n"
@@ -875,9 +810,7 @@ class DataProcessor:
                 self.logger.info(f"Pond presence distribution: {pond_stats}")
 
             if "intervention_type" in df_clean.columns:
-                intervention_stats = (
-                    df_clean["intervention_type"].value_counts().to_dict()
-                )
+                intervention_stats = df_clean["intervention_type"].value_counts().to_dict()
                 self.logger.info(f"Intervention types: {intervention_stats}")
 
             # Warn if too much data was removed
@@ -937,9 +870,7 @@ class DataProcessor:
             raise ValueError("Water data DataFrame cannot be empty")
 
         if nrm_df.empty:
-            self.logger.warning(
-                "NRM data DataFrame is empty. Merge will result in all NRM fields as NaN."
-            )
+            self.logger.warning("NRM data DataFrame is empty. Merge will result in all NRM fields as NaN.")
 
         if not merge_on:
             raise ValueError("merge_on cannot be empty")
@@ -949,9 +880,7 @@ class DataProcessor:
         missing_nrm_cols = [col for col in merge_on if col not in nrm_df.columns]
 
         if missing_water_cols:
-            raise ValueError(
-                f"Merge columns not found in water data: {missing_water_cols}"
-            )
+            raise ValueError(f"Merge columns not found in water data: {missing_water_cols}")
 
         if missing_nrm_cols:
             raise ValueError(f"Merge columns not found in NRM data: {missing_nrm_cols}")
@@ -992,9 +921,7 @@ class DataProcessor:
             total_records = len(merged_df)
             matched_records = merged_df["nrm_data_available"].sum()
             unmatched_records = total_records - matched_records
-            match_rate = (
-                (matched_records / total_records) * 100 if total_records > 0 else 0
-            )
+            match_rate = (matched_records / total_records) * 100 if total_records > 0 else 0
 
             self.logger.info(
                 f"Merge completed:\n"
@@ -1022,9 +949,7 @@ class DataProcessor:
             self.logger.error(f"Error during dataset merge: {e}", exc_info=True)
             raise ValueError(f"Failed to merge datasets: {e}")
 
-    def calculate_water_trends(
-        self, df: pd.DataFrame, group_by: List[str] = ["location_id", "season"]
-    ) -> pd.DataFrame:
+    def calculate_water_trends(self, df: pd.DataFrame, group_by: List[str] = ["location_id", "season"]) -> pd.DataFrame:
         """
         Calculate water area trends over time.
 
@@ -1070,18 +995,13 @@ class DataProcessor:
         required_columns = ["water_area_ha", "year"] + group_by_list
         missing_columns = [col for col in required_columns if col not in df.columns]
         if missing_columns:
-            raise ValueError(
-                f"Missing required columns for trend calculation: {missing_columns}"
-            )
+            raise ValueError(f"Missing required columns for trend calculation: {missing_columns}")
 
         if not group_by:
             raise ValueError("group_by cannot be empty")
 
-        self.logger.info(
-            f"Calculating water trends for {len(df)} records grouped by: {group_by}"
-        )
+        self.logger.info(f"Calculating water trends for {len(df)} records grouped by: {group_by}")
 
-        trend_stats: List[Dict[str, Any]] = []
         total_groups = 0
         successful_calculations = 0
 
@@ -1138,10 +1058,7 @@ class DataProcessor:
             stats_df.sort_index(inplace=True)
 
             # Flatten MultiIndex columns
-            stats_df.columns = [
-                f"{col[0]}_{col[1]}" if isinstance(col, tuple) else col
-                for col in stats_df.columns
-            ]
+            stats_df.columns = [f"{col[0]}_{col[1]}" if isinstance(col, tuple) else col for col in stats_df.columns]
 
             # Rename for compatibility with existing output format
             # Note: total_observations now counts only valid rows (water_area_ha >= 0)
@@ -1162,9 +1079,7 @@ class DataProcessor:
             stats_df["data_points"] = stats_df["total_observations"]
 
             # Calculate mean from sum and count to save one aggregation pass
-            stats_df["mean_water_area_ha"] = (
-                stats_df["water_area_ha_sum"] / stats_df["data_points"]
-            )
+            stats_df["mean_water_area_ha"] = stats_df["water_area_ha_sum"] / stats_df["data_points"]
 
             # Filter out groups with 0 valid data points
             # (Equivalent to the previous logic where left join was on valid groups)
@@ -1217,9 +1132,7 @@ class DataProcessor:
             stats_df.loc[mask_insuf, "trend_slope_ha_per_year"] = 0.0
 
             # If N == 2, minimal_data
-            mask_minimal = (stats_df["data_points"] == 2) & (
-                ~mask_const
-            )  # Only if not constant year
+            mask_minimal = (stats_df["data_points"] == 2) & (~mask_const)  # Only if not constant year
             stats_df.loc[mask_minimal, "trend_quality"] = "minimal_data"
 
             # Reset index to make group columns normal columns
@@ -1251,17 +1164,12 @@ class DataProcessor:
 
             # Clean up temporary columns
             cols_to_keep = (
-                (group_by if isinstance(group_by, list) else [group_by])
-                + float_cols
-                + ["trend_quality"]
-                + int_cols
+                (group_by if isinstance(group_by, list) else [group_by]) + float_cols + ["trend_quality"] + int_cols
             )
             result_df = result_df[cols_to_keep]
 
             total_groups = len(result_df)
-            successful_calculations = (
-                result_df["trend_quality"] != "insufficient_data"
-            ).sum()
+            successful_calculations = (result_df["trend_quality"] != "insufficient_data").sum()
 
             # Sort results
             # Optimization: result_df is already sorted by group_by because groupby(sort=True) is used by default.
@@ -1287,9 +1195,7 @@ class DataProcessor:
             self.logger.error(f"Error during trend calculation: {e}", exc_info=True)
             raise ValueError(f"Failed to calculate water trends: {e}")
 
-    def _simple_linear_regression(
-        self, years: np.ndarray, water_areas: np.ndarray
-    ) -> float:
+    def _simple_linear_regression(self, years: np.ndarray, water_areas: np.ndarray) -> float:
         """
         Calculate simple linear regression slope as fallback method.
 
@@ -1322,9 +1228,7 @@ class DataProcessor:
         except Exception:
             return 0.0
 
-    def aggregate_by_intervention(
-        self, df: pd.DataFrame, intervention_col: str = "pond_presence"
-    ) -> pd.DataFrame:
+    def aggregate_by_intervention(self, df: pd.DataFrame, intervention_col: str = "pond_presence") -> pd.DataFrame:
         """
         Aggregate water data by intervention presence.
 
@@ -1366,8 +1270,7 @@ class DataProcessor:
         if intervention_col not in df.columns:
             available_cols = df.columns.tolist()
             raise ValueError(
-                f"Intervention column '{intervention_col}' not found. "
-                f"Available columns: {available_cols}"
+                f"Intervention column '{intervention_col}' not found. " f"Available columns: {available_cols}"
             )
 
         required_columns = ["water_area_ha", "location_id"]
@@ -1408,9 +1311,7 @@ class DataProcessor:
             # Optimization: Check if already numeric to avoid overhead
             if not pd.api.types.is_numeric_dtype(df_clean[intervention_col]):
                 # Handle string representations
-                df_clean[intervention_col] = (
-                    df_clean[intervention_col].astype(str).str.lower()
-                )
+                df_clean[intervention_col] = df_clean[intervention_col].astype(str).str.lower()
                 mapping = {
                     "yes": 1,
                     "y": 1,
@@ -1429,14 +1330,10 @@ class DataProcessor:
                 df_clean[intervention_col] = df_clean[intervention_col].map(mapping)
 
             # Convert to numeric and handle missing values
-            df_clean[intervention_col] = pd.to_numeric(
-                df_clean[intervention_col], errors="coerce"
-            ).fillna(0)
+            df_clean[intervention_col] = pd.to_numeric(df_clean[intervention_col], errors="coerce").fillna(0)
 
             # Ensure only 0 or 1 values
-            df_clean[intervention_col] = (
-                df_clean[intervention_col].clip(0, 1).astype(int)
-            )
+            df_clean[intervention_col] = df_clean[intervention_col].clip(0, 1).astype(int)
 
             # Group by intervention presence and calculate comprehensive statistics
             agg_dict = {
@@ -1465,23 +1362,16 @@ class DataProcessor:
             # Ensure water_area_ha_valid_count exists (previously attempted via lambda but often resulted in obscure names)
             # Since we filtered for water_area_ha >= 0, count is equivalent to valid_count
             if "water_area_ha_count" in agg_stats.columns:
-                agg_stats["water_area_ha_valid_count"] = agg_stats[
-                    "water_area_ha_count"
-                ]
+                agg_stats["water_area_ha_valid_count"] = agg_stats["water_area_ha_count"]
             agg_stats = agg_stats.reset_index()
 
             # Add intervention labels
             intervention_labels = {0: "No Intervention", 1: "With Intervention"}
 
-            agg_stats["intervention_type"] = agg_stats[intervention_col].map(
-                intervention_labels
-            )
+            agg_stats["intervention_type"] = agg_stats[intervention_col].map(intervention_labels)
 
             # Calculate additional derived metrics
-            if (
-                "water_area_ha_mean" in agg_stats.columns
-                and "water_area_ha_std" in agg_stats.columns
-            ):
+            if "water_area_ha_mean" in agg_stats.columns and "water_area_ha_std" in agg_stats.columns:
                 # Coefficient of variation
                 agg_stats["water_area_ha_cv"] = (
                     agg_stats["water_area_ha_std"] / agg_stats["water_area_ha_mean"]
@@ -1497,12 +1387,10 @@ class DataProcessor:
                     without_mean = without_intervention["water_area_ha_mean"].iloc[0]
 
                     if without_mean > 0:
-                        percent_increase = (
-                            (with_mean - without_mean) / without_mean
-                        ) * 100
-                        agg_stats["water_area_increase_pct"] = agg_stats[
-                            intervention_col
-                        ].map({1: percent_increase, 0: 0.0})
+                        percent_increase = ((with_mean - without_mean) / without_mean) * 100
+                        agg_stats["water_area_increase_pct"] = agg_stats[intervention_col].map(
+                            {1: percent_increase, 0: 0.0}
+                        )
 
             # Sort by intervention presence for consistent ordering
             # Optimization: agg_stats is already sorted by intervention_col because groupby(sort=True) is used by default.
@@ -1521,22 +1409,15 @@ class DataProcessor:
                 group_name = row["intervention_type"]
                 locations = row["location_id_nunique"]
                 mean_area = row.get("water_area_ha_mean", "N/A")
-                self.logger.info(
-                    f"{group_name}: {locations} locations, "
-                    f"mean water area: {mean_area} ha"
-                )
+                self.logger.info(f"{group_name}: {locations} locations, " f"mean water area: {mean_area} ha")
 
             return agg_stats
 
         except Exception as e:
-            self.logger.error(
-                f"Error during intervention aggregation: {e}", exc_info=True
-            )
+            self.logger.error(f"Error during intervention aggregation: {e}", exc_info=True)
             raise ValueError(f"Failed to aggregate by intervention: {e}")
 
-    def create_seasonal_summary(
-        self, df: pd.DataFrame, location_level: str = "location_id"
-    ) -> pd.DataFrame:
+    def create_seasonal_summary(self, df: pd.DataFrame, location_level: str = "location_id") -> pd.DataFrame:
         """
         Create seasonal summary statistics.
 
@@ -1580,9 +1461,7 @@ class DataProcessor:
         if missing_columns:
             raise ValueError(f"Missing required columns: {missing_columns}")
 
-        self.logger.info(
-            f"Creating seasonal summary for {len(df)} records at level: {location_level}"
-        )
+        self.logger.info(f"Creating seasonal summary for {len(df)} records at level: {location_level}")
 
         try:
             # Filter for valid data
@@ -1619,39 +1498,30 @@ class DataProcessor:
 
             # Perform aggregation
             # Optimization: sort=False is faster, sort result explicitly
-            seasonal_summary = df_clean.groupby(
-                [location_level, "season"], sort=False
-            ).agg(agg_dict)
+            seasonal_summary = df_clean.groupby([location_level, "season"], sort=False).agg(agg_dict)
             seasonal_summary.sort_index(inplace=True)
 
             # Flatten column names
-            seasonal_summary.columns = [
-                "_".join(col).strip() for col in seasonal_summary.columns
-            ]
+            seasonal_summary.columns = ["_".join(col).strip() for col in seasonal_summary.columns]
             seasonal_summary = seasonal_summary.reset_index()
 
             # Calculate derived metrics
             # Optimization: Calculate means from sums and counts
             seasonal_summary["water_area_ha_mean"] = (
-                seasonal_summary["water_area_ha_sum"]
-                / seasonal_summary["water_area_ha_count"]
+                seasonal_summary["water_area_ha_sum"] / seasonal_summary["water_area_ha_count"]
             )
 
             if "water_body_count_sum" in seasonal_summary.columns:
                 seasonal_summary["water_body_count_mean"] = (
-                    seasonal_summary["water_body_count_sum"]
-                    / seasonal_summary["water_body_count_count"]
+                    seasonal_summary["water_body_count_sum"] / seasonal_summary["water_body_count_count"]
                 )
 
             # Year span
-            seasonal_summary["year_span"] = (
-                seasonal_summary["year_max"] - seasonal_summary["year_min"]
-            )
+            seasonal_summary["year_span"] = seasonal_summary["year_max"] - seasonal_summary["year_min"]
 
             # Coefficient of variation for water area
             seasonal_summary["water_area_ha_cv"] = (
-                seasonal_summary["water_area_ha_std"]
-                / seasonal_summary["water_area_ha_mean"]
+                seasonal_summary["water_area_ha_std"] / seasonal_summary["water_area_ha_mean"]
             ).fillna(0)
 
             # Data completeness (years with data / total possible years)
@@ -1663,15 +1533,9 @@ class DataProcessor:
             seasonal_summary["data_quality"] = "good"  # Default
 
             # Flag groups with limited data
-            seasonal_summary.loc[
-                seasonal_summary["water_area_ha_count"] < 3, "data_quality"
-            ] = "limited_data"
-            seasonal_summary.loc[
-                seasonal_summary["water_area_ha_cv"] > 1.0, "data_quality"
-            ] = "high_variability"
-            seasonal_summary.loc[
-                seasonal_summary["data_completeness"] < 0.5, "data_quality"
-            ] = "gaps_in_data"
+            seasonal_summary.loc[seasonal_summary["water_area_ha_count"] < 3, "data_quality"] = "limited_data"
+            seasonal_summary.loc[seasonal_summary["water_area_ha_cv"] > 1.0, "data_quality"] = "high_variability"
+            seasonal_summary.loc[seasonal_summary["data_completeness"] < 0.5, "data_quality"] = "gaps_in_data"
 
             # Sort for consistent ordering
             # Optimization: seasonal_summary is already sorted by [location_level, 'season'] because groupby(sort=True) is used by default.
@@ -1700,9 +1564,7 @@ class DataProcessor:
             self.logger.error(f"Error creating seasonal summary: {e}", exc_info=True)
             raise ValueError(f"Failed to create seasonal summary: {e}")
 
-    def export_processed_data(
-        self, df: pd.DataFrame, filename: str, format: str = "csv"
-    ) -> None:
+    def export_processed_data(self, df: pd.DataFrame, filename: str, format: str = "csv") -> None:
         """
         Export processed data to file.
 
@@ -1738,10 +1600,7 @@ class DataProcessor:
 
         supported_formats = ["csv", "excel", "parquet"]
         if format not in supported_formats:
-            raise ValueError(
-                f"Unsupported export format: {format}. "
-                f"Supported formats: {supported_formats}"
-            )
+            raise ValueError(f"Unsupported export format: {format}. " f"Supported formats: {supported_formats}")
 
         # Create output path
         output_path = self.data_dir / "processed" / filename
@@ -1814,8 +1673,6 @@ def load_sample_data() -> Tuple[pd.DataFrame, pd.DataFrame]:
     Returns:
         Tuple of (water_data, nrm_data) DataFrames
     """
-    processor = DataProcessor()
-
     # Create sample water data
     water_data = pd.DataFrame(
         {

@@ -22,3 +22,8 @@
 **Vulnerability:** The API client used `requests.request` without `stream=True` and blindly called `response.json()`, causing the entire response body to be loaded into memory. This created a Denial of Service (DoS) vulnerability where a malicious or misconfigured server could exhaust the client's memory by sending a massive response.
 **Learning:** Relying on default behavior of HTTP clients often leads to unsafe memory usage for untrusted inputs. Always assume external inputs can be arbitrarily large.
 **Prevention:** Use `stream=True` and iterate over the response content in chunks. Enforce a strict maximum size limit (e.g., `CORE_API_MAX_RESPONSE_SIZE`) and abort the connection if the limit is exceeded.
+
+## 2024-05-26 - DoS via Unbounded Batch Requests
+**Vulnerability:** The `get_water_trends_summary` and `load_water_data_from_api` methods accepted an unlimited list of `location_ids`. A malicious user could supply a massive list, causing the application to issue thousands of concurrent API requests or process excessive data, leading to Resource Exhaustion (DoS).
+**Learning:** API clients and data processors often trust input lists size, assuming they are reasonable. Explicit limits are necessary at the entry point of batch operations.
+**Prevention:** Enforce `MAX_BATCH_SIZE` limits on all methods that accept lists of items for batch processing.
