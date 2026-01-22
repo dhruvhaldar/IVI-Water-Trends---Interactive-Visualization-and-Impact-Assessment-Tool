@@ -22,3 +22,8 @@
 **Vulnerability:** The API client used `requests.request` without `stream=True` and blindly called `response.json()`, causing the entire response body to be loaded into memory. This created a Denial of Service (DoS) vulnerability where a malicious or misconfigured server could exhaust the client's memory by sending a massive response.
 **Learning:** Relying on default behavior of HTTP clients often leads to unsafe memory usage for untrusted inputs. Always assume external inputs can be arbitrarily large.
 **Prevention:** Use `stream=True` and iterate over the response content in chunks. Enforce a strict maximum size limit (e.g., `CORE_API_MAX_RESPONSE_SIZE`) and abort the connection if the limit is exceeded.
+
+## 2024-05-25 - DoS via Zip Bomb in CSV Loading
+**Vulnerability:** The `load_csv_safe` method enforced a file size limit based on the file size on disk (`file_path.stat().st_size`). This was vulnerable to "Zip Bomb" (decompression bomb) attacks where a small compressed file (e.g., `.csv.gz`) expands to consume excessive memory upon loading by Pandas.
+**Learning:** Checking file size on disk is insufficient for compressed files. Security controls must account for the *expanded* size of data in memory.
+**Prevention:** Implement chunked reading (`pd.read_csv(..., chunksize=N)`) and monitor the cumulative memory usage of the chunks. If the expanded data size exceeds the limit, abort the process and release memory.

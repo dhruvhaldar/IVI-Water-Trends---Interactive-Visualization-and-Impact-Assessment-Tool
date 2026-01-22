@@ -572,7 +572,45 @@ class DataProcessor:
                 "Consider processing in chunks or optimizing the data."
             )
 
-        return pd.read_csv(file_path, **kwargs)
+        # Protection against Zip Bomb / Decompression Bomb
+        # Read file in chunks to monitor expanded size in memory
+        chunk_size = 100000  # Process 100k rows at a time
+        max_size_bytes = max_size_mb * 1024 * 1024
+        current_size_bytes = 0
+        chunks = []
+
+        # Ensure we return a DataFrame, not an iterator
+        if "chunksize" in kwargs:
+            self.logger.warning(
+                "Ignoring provided 'chunksize' in load_csv_safe to enforce security limits."
+            )
+            kwargs.pop("chunksize")
+
+        try:
+            with pd.read_csv(file_path, chunksize=chunk_size, **kwargs) as reader:
+                for chunk in reader:
+                    # Calculate memory usage of current chunk
+                    chunk_bytes = chunk.memory_usage(deep=True).sum()
+                    current_size_bytes += chunk_bytes
+
+                    if current_size_bytes > max_size_bytes:
+                        raise ValueError(
+                            f"Expanded file size exceeds maximum limit of {max_size_mb}MB. "
+                            "Processing rejected to prevent memory exhaustion (DoS/Zip Bomb)."
+                        )
+
+                    chunks.append(chunk)
+
+            if not chunks:
+                # Handle empty files by re-reading to get empty DataFrame structure/error
+                return pd.read_csv(file_path, **kwargs)
+
+            return pd.concat(chunks, ignore_index=True)
+
+        except Exception as e:
+            # Clear memory explicitly
+            del chunks
+            raise e
 
     def load_nrm_impact_data(
         self, file_path: Optional[Union[str, Path]] = None
