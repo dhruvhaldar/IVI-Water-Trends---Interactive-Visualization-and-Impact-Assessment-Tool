@@ -28,6 +28,7 @@ MAX_WATER_AREA_HA = 10000.0  # Maximum reasonable water area in hectares
 MIN_WATER_AREA_HA = 0.0
 VALID_SEASONS = ["perennial", "winter", "monsoon", "summer"]
 VALID_INTERVENTION_TYPES = ["pond", "check_dam", "contour_bund", "other"]
+MAX_BATCH_SIZE = 100
 
 # Columns for water data DataFrame
 WATER_DATA_COLUMNS = [
@@ -119,6 +120,11 @@ class DataProcessor:
         # Input validation
         if not location_ids:
             raise ValueError("location_ids cannot be empty")
+
+        if len(location_ids) > MAX_BATCH_SIZE:
+            raise ValueError(
+                f"Batch size exceeds maximum limit of {MAX_BATCH_SIZE} locations"
+            )
 
         if start_year > end_year:
             raise ValueError("start_year must be less than or equal to end_year")

@@ -39,6 +39,7 @@ RETRY_STATUS_CODES = [429, 500, 502, 503, 504]
 REQUEST_TIMEOUT = 30  # seconds
 DEFAULT_BASE_URL = "https://api.corestack.org/v1"
 USER_AGENT = "IVI-Water-Trends/0.1.0"
+MAX_BATCH_SIZE = 100
 
 # Logger setup
 logger = logging.getLogger(__name__)
@@ -866,6 +867,12 @@ class CoREStackClient:
         # Input validation
         if not isinstance(location_ids, list) or not location_ids:
             raise ValueError("location_ids must be a non-empty list")
+
+        # Validate batch size
+        if len(location_ids) > MAX_BATCH_SIZE:
+            raise ValueError(
+                f"Batch size exceeds maximum limit of {MAX_BATCH_SIZE} locations"
+            )
 
         # Validate each location ID
         valid_location_ids = []
