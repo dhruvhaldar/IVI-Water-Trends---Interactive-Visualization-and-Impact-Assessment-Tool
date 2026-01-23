@@ -1213,17 +1213,26 @@ class DataProcessor:
             stats_df["year_span"] = stats_df["end_year"] - stats_df["start_year"]
 
             # Coefficient of Variation
-            stats_df["coefficient_of_variation"] = (
-                stats_df["std_water_area_ha"] / stats_df["mean_water_area_ha"]
-            ).fillna(0.0)
+            # Optimization: Use numpy arrays for element-wise division and handling NaNs
+            # This avoids Series alignment overhead and slow replace/fillna operations
+            std_vals = stats_df["std_water_area_ha"].values
+            mean_vals = stats_df["mean_water_area_ha"].values
+
+            with np.errstate(divide="ignore", invalid="ignore"):
+                cv = std_vals / mean_vals
+
+            # Replace Inf/NaN with 0.0 directly in the array
+            cv[~np.isfinite(cv)] = 0.0
+            stats_df["coefficient_of_variation"] = cv
 
             # Slope Calculation (Vectorized)
             # m = (N * sum(xy) - sum(x) * sum(y)) / (N * sum(xx) - sum(x)^2)
-            N = stats_df["data_points"]
-            sum_x = stats_df["year_sum"]
-            sum_y = stats_df["water_area_ha_sum"]
-            sum_xy = stats_df["xy_sum"]
-            sum_xx = stats_df["xx_sum"]
+            # Optimization: Use numpy arrays to bypass Series index alignment and overhead
+            N = stats_df["data_points"].values
+            sum_x = stats_df["year_sum"].values
+            sum_y = stats_df["water_area_ha_sum"].values
+            sum_xy = stats_df["xy_sum"].values
+            sum_xx = stats_df["xx_sum"].values
 
             numerator = N * sum_xy - sum_x * sum_y
             denominator = N * sum_xx - sum_x**2
@@ -1236,8 +1245,9 @@ class DataProcessor:
                 slope = numerator / denominator
 
             # Handle infinity (division by zero) and NaN
-            # Replace infinity with 0.0 (consistent with original logic where slope is 0 if denominator is 0)
-            slope = slope.replace([np.inf, -np.inf], np.nan).fillna(0.0)
+            # Optimization: Direct boolean masking on numpy array is significantly faster
+            # than Series.replace().fillna()
+            slope[~np.isfinite(slope)] = 0.0
             stats_df["trend_slope_ha_per_year"] = slope
 
             # Determine Trend Quality
@@ -1246,7 +1256,8 @@ class DataProcessor:
 
             # If denominator is 0 (constant year), set to constant_year
             # Also set slope to 0 explicitly if it wasn't already (though fillna(0) handled it)
-            mask_const = denominator.abs() < 1e-10
+            # Note: denominator is now a numpy array, so using np.abs
+            mask_const = np.abs(denominator) < 1e-10
             stats_df.loc[mask_const, "trend_quality"] = "constant_year"
             stats_df.loc[mask_const, "trend_slope_ha_per_year"] = 0.0
 
