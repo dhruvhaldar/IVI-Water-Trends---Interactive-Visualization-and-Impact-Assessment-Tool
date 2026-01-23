@@ -68,32 +68,33 @@ class TestAPIResponseDoSProtection(unittest.TestCase):
 
         # Create a mock response that simulates a stream larger than the limit
         mock_response = MagicMock()
-        mock_response.headers = {'Content-Type': 'application/json'}
+        mock_response.headers = {"Content-Type": "application/json"}
         mock_response.status_code = 200
 
         # Create chunks that exceed the limit
         # 2 chunks of 600 bytes = 1200 bytes > 1024 bytes
-        chunk_content = b'x' * 600
+        chunk_content = b"x" * 600
         # Use side_effect for iter_content to return a fresh iterator each time if needed
         mock_response.iter_content.return_value = iter([chunk_content, chunk_content])
 
         # Also mock 'content' property behavior for non-streaming access (legacy behavior)
-        mock_response.content = b'x' * 1200
+        mock_response.content = b"x" * 1200
         mock_response.text = '{"key": "value"}'
         mock_response.json.return_value = {"key": "value"}
         # Mock encoding for clean logging
-        mock_response.encoding = 'utf-8'
+        mock_response.encoding = "utf-8"
 
-        with patch.dict(os.environ, {'CORE_API_MAX_RESPONSE_SIZE': str(test_limit)}):
+        with patch.dict(os.environ, {"CORE_API_MAX_RESPONSE_SIZE": str(test_limit)}):
             client = CoREStackClient(api_key="test-key")
 
             # Patch the session.request to return our mock
-            with patch.object(client.session, 'request', return_value=mock_response):
+            with patch.object(client.session, "request", return_value=mock_response):
                 # Expect a RequestException (wrapping ValueError) due to size limit
                 with self.assertRaises(RequestException) as cm:
                     client._make_request("test-endpoint", use_cache=False)
 
                 self.assertIn("Response size exceeds limit", str(cm.exception))
+
 
 if __name__ == "__main__":
     unittest.main()

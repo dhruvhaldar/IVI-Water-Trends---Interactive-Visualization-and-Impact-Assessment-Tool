@@ -21,3 +21,7 @@
 ## 2025-02-24 - [Pandas Numeric Check]
 **Learning:** `pd.to_numeric(..., errors='coerce')` incurs significant overhead (~10ms for 2M rows) even if the input data is already fully numeric. Checking `pd.api.types.is_numeric_dtype(series)` first is essentially free and avoids this overhead completely for correctly typed inputs.
 **Action:** Always wrap `pd.to_numeric` calls with `if not is_numeric_dtype(...)` when processing data that might already be typed (e.g. from API responses or Parquet files).
+
+## 2025-02-24 - [Pandas Slope Calculation Optimization]
+**Learning:** Calculating slope or other element-wise operations on large Pandas Series using chained methods like `replace([np.inf, -np.inf], np.nan).fillna(0.0)` is significantly slower than using NumPy array operations. Direct division of `.values` followed by boolean masking `arr[~np.isfinite(arr)] = 0.0` provides a massive speedup (~13x for the operation).
+**Action:** For element-wise mathematical operations on large Series that may produce Inf/NaN, prefer operating on `.values` with boolean masking over Pandas replace/fillna chains.
