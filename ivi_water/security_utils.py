@@ -8,7 +8,7 @@ such as redacting sensitive information from logs.
 import re
 import hmac
 import hashlib
-from typing import Dict, Any, Union, List, Optional
+from typing import Any, Optional
 from urllib.parse import urlparse, urlunparse, parse_qsl, urlencode
 
 # List of keys that are considered sensitive and should be redacted
@@ -274,14 +274,6 @@ def redact_text_content(text: str) -> str:
     # Simple pattern for standard assignments (key=value, key: value) without internal spaces/commas in value
     # We handle quoted values specially
 
-    # 1. Match quoted values: key="value with spaces"
-    pattern_quoted = re.compile(
-        r"(?i)\b(" + keys_pattern + r')\b\s*[:=]\s*(["\'])(.*?)\2', re.DOTALL
-    )
-
-    # 2. Match unquoted values: key=value (stops at space/comma/semicolon/newline)
-    # The first definition of pattern_unquoted was redundant and confusing.
-
     # Apply redaction
     # For quoted: Replace group 3 with ***REDACTED***
     # Use \g<0> approach to preserve separator?
@@ -304,15 +296,19 @@ def redact_text_content(text: str) -> str:
     # to correctly handle escaping within each type.
 
     # 1. Double quotes: "value" - handles escaped double quotes \"
+    # Update: Match closing quote OR end of string ($) to handle truncated logs
     pattern_double = re.compile(
-        r'(?i)(["\']?)(' + keys_pattern + r')\1(\s*[:=]\s*)(")((?:[^"\\]|\\.)*)"',
+        r'(?i)(["\']?)(' + keys_pattern + r')\1(\s*[:=]\s*)(")((?:[^"\\]|\\.)*)(?:"|$)',
         re.DOTALL,
     )
     text = pattern_double.sub(r'\1\2\1\3"***REDACTED***"', text)
 
     # 2. Single quotes: 'value' - handles escaped single quotes \'
+    # Update: Match closing quote OR end of string ($) to handle truncated logs
     pattern_single = re.compile(
-        r'(?i)(["\']?)(' + keys_pattern + r")\1(\s*[:=]\s*)(\')((?:[^\'\\]|\\.)*)\'",
+        r'(?i)(["\']?)('
+        + keys_pattern
+        + r")\1(\s*[:=]\s*)(\')((?:[^\'\\]|\\.)*)(?:'|$)",
         re.DOTALL,
     )
     # Note: Use plain string with ' for replacement to avoid double escaping issues

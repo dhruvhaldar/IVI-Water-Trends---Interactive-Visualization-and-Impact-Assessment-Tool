@@ -1,5 +1,4 @@
-import pytest
-from ivi_water.security_utils import redact_text_content, SENSITIVE_KEYS
+from ivi_water.security_utils import redact_text_content
 
 
 def test_redact_text_content_empty():
@@ -53,4 +52,26 @@ def test_redact_text_content_with_quotes():
 
     text = 'token="my-token-val"'
     expected = 'token="***REDACTED***"'
+    assert redact_text_content(text) == expected
+
+
+def test_redact_text_content_truncated_json():
+    # Test truncated JSON where closing quote is missing
+    text = '{"api_key": "super_secret_value_that_got_trun'
+    # The function should close the quote in the redacted output
+    expected = '{"api_key": "***REDACTED***"'
+    assert redact_text_content(text) == expected
+
+
+def test_redact_text_content_mismatched_quotes():
+    # Test mismatched quotes (e.g. log typo or truncation)
+    text = "api_key=\"super_secret_value'"
+    expected = 'api_key="***REDACTED***"'
+    assert redact_text_content(text) == expected
+
+
+def test_redact_text_content_unquoted_leak():
+    # Test value starting with quote but no closing quote (end of string)
+    text = 'api_key="secret'
+    expected = 'api_key="***REDACTED***"'
     assert redact_text_content(text) == expected
