@@ -57,6 +57,36 @@ class TestDoSProtection(unittest.TestCase):
         except ValueError as e:
             self.fail(f"load_nrm_impact_data raised ValueError unexpectedly: {e}")
 
+    def test_zip_bomb_prevention(self):
+        """Test that decompression bombs are detected even if file size is small."""
+        # This test mocks the scenario where file on disk is small but expands to huge size
+
+        # 1. Create a dummy compressed file (small on disk)
+        import gzip
+        compressed_file = "test_bomb.csv.gz"
+
+        # Create content that compresses well (2MB uncompressed)
+        # 2000 rows * 1024 chars = ~2MB
+        content = ("A" * 1024 + "\n") * 2000
+        with gzip.open(compressed_file, 'wt') as f:
+            f.write(content)
+
+        # 2. Set strict limit (smaller than expanded size)
+        # Set limit to 1MB
+        # Note: We must patch os.environ for load_csv_safe to see the new limit
+        with patch.dict(os.environ, {'MAX_FILE_SIZE_MB': '1'}):
+            try:
+                # 3. Attempt to load
+                # The disk size check should pass (gzip is very small)
+                # The chunked read check should fail (expands to > 1MB)
+                with self.assertRaises(ValueError) as cm:
+                    self.processor.load_csv_safe(compressed_file)
+
+                self.assertIn("Decompression Bomb detected", str(cm.exception))
+            finally:
+                if os.path.exists(compressed_file):
+                    os.remove(compressed_file)
+
 
 class TestAPIResponseDoSProtection(unittest.TestCase):
     def test_large_response_dos_protection(self):
