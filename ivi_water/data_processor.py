@@ -572,7 +572,46 @@ class DataProcessor:
                 "Consider processing in chunks or optimizing the data."
             )
 
-        return pd.read_csv(file_path, **kwargs)
+        # Enforce chunked reading to prevent Zip Bombs/Decompression DoS
+        # Override user-provided chunksize to ensure we control memory usage monitoring
+        if "chunksize" in kwargs:
+            self.logger.warning(
+                "Ignoring user-provided 'chunksize' in load_csv_safe to enforce security limits."
+            )
+            kwargs.pop("chunksize")
+
+        chunk_size = 100000
+        chunks = []
+        total_memory_bytes = 0
+        max_bytes = max_size_mb * 1024 * 1024
+
+        try:
+            # Use chunksize to read file incrementally
+            with pd.read_csv(file_path, chunksize=chunk_size, **kwargs) as reader:
+                for chunk in reader:
+                    # Calculate memory usage of current chunk
+                    chunk_memory = chunk.memory_usage(deep=True).sum()
+                    total_memory_bytes += chunk_memory
+
+                    if total_memory_bytes > max_bytes:
+                        raise ValueError(
+                            f"Decompression Bomb detected! Memory usage ({total_memory_bytes / (1024*1024):.2f} MB) "
+                            f"exceeded limit of {max_size_mb} MB. Processing aborted to prevent DoS."
+                        )
+
+                    chunks.append(chunk)
+
+            if not chunks:
+                return pd.DataFrame()
+
+            return pd.concat(chunks, ignore_index=False)
+
+        except Exception as e:
+            # Re-raise ValueErrors (our limit) and other critical errors
+            if isinstance(e, ValueError) and "Decompression Bomb" in str(e):
+                self.logger.error(f"Security violation: {e}")
+                raise
+            raise
 
     def load_nrm_impact_data(
         self, file_path: Optional[Union[str, Path]] = None
