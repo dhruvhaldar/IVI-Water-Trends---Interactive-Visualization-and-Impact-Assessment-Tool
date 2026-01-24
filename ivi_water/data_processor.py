@@ -1219,11 +1219,12 @@ class DataProcessor:
 
             # Slope Calculation (Vectorized)
             # m = (N * sum(xy) - sum(x) * sum(y)) / (N * sum(xx) - sum(x)^2)
-            N = stats_df["data_points"]
-            sum_x = stats_df["year_sum"]
-            sum_y = stats_df["water_area_ha_sum"]
-            sum_xy = stats_df["xy_sum"]
-            sum_xx = stats_df["xx_sum"]
+            # Optimization: Use .values for faster NumPy element-wise operations
+            N = stats_df["data_points"].values
+            sum_x = stats_df["year_sum"].values
+            sum_y = stats_df["water_area_ha_sum"].values
+            sum_xy = stats_df["xy_sum"].values
+            sum_xx = stats_df["xx_sum"].values
 
             numerator = N * sum_xy - sum_x * sum_y
             denominator = N * sum_xx - sum_x**2
@@ -1236,8 +1237,8 @@ class DataProcessor:
                 slope = numerator / denominator
 
             # Handle infinity (division by zero) and NaN
-            # Replace infinity with 0.0 (consistent with original logic where slope is 0 if denominator is 0)
-            slope = slope.replace([np.inf, -np.inf], np.nan).fillna(0.0)
+            # Optimization: Use NumPy boolean masking instead of slow replace/fillna
+            slope[~np.isfinite(slope)] = 0.0
             stats_df["trend_slope_ha_per_year"] = slope
 
             # Determine Trend Quality
@@ -1246,7 +1247,7 @@ class DataProcessor:
 
             # If denominator is 0 (constant year), set to constant_year
             # Also set slope to 0 explicitly if it wasn't already (though fillna(0) handled it)
-            mask_const = denominator.abs() < 1e-10
+            mask_const = np.abs(denominator) < 1e-10
             stats_df.loc[mask_const, "trend_quality"] = "constant_year"
             stats_df.loc[mask_const, "trend_slope_ha_per_year"] = 0.0
 
