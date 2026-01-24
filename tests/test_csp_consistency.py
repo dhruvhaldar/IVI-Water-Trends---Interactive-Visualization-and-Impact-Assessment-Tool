@@ -2,11 +2,19 @@
 import os
 import shutil
 import pytest
+import re
 import pandas as pd
 import plotly.graph_objects as go
 from ivi_water.visualizer import WaterTrendsVisualizer
 from ivi_water.export_utils import ExportUtils
 from ivi_water.security_utils import CSP_META_CONTENT
+
+# Check if BS4 is available
+try:
+    import bs4
+    HAS_BS4 = True
+except ImportError:
+    HAS_BS4 = False
 
 @pytest.fixture
 def temp_output_dir(monkeypatch):
@@ -39,9 +47,28 @@ def verify_csp(filepath):
 
     # Check for critical directives
     assert "default-src 'none'" in content
-    assert "script-src 'unsafe-inline'" in content
-    assert "style-src 'unsafe-inline'" in content
     assert "img-src 'self' data:" in content
+
+    # Check style-src (always unsafe-inline for now)
+    assert "style-src 'unsafe-inline'" in content
+
+    # Check script-src
+    if HAS_BS4:
+        # Check that we DON'T have unsafe-inline for scripts
+        match = re.search(r"script-src ([^;]+)", content)
+        assert match, "script-src directive not found"
+
+        script_src_val = match.group(1)
+        assert "'unsafe-inline'" not in script_src_val, "Hash-based CSP should not allow unsafe-inline for scripts"
+        # It should contain hashes if there are scripts, or just 'self' if none.
+        # But 'sha256-' is likely if it's a plot.
+        if "sha256-" not in script_src_val:
+            # If no hashes, ensure it's not open
+            assert "'self'" in script_src_val
+        else:
+            assert "'sha256-" in script_src_val
+    else:
+        assert "script-src 'unsafe-inline'" in content
 
 def test_visualizer_save_figure_csp(temp_output_dir):
     """Test CSP in save_figure"""
@@ -71,12 +98,6 @@ def test_export_utils_visualization_csp(temp_output_dir):
 
 def test_export_utils_report_csp(temp_output_dir, sample_df):
     """Test CSP in generate_summary_report (HTML fallback)"""
-    # Force REPORTLAB_AVAILABLE to False to trigger HTML generation if possible,
-    # but since we can't easily mock module imports here without patching,
-    # we'll call _create_html_report directly or hope reportlab isn't installed in test env.
-    # Actually, ExportUtils prefers PDF if available.
-    # Let's call _create_html_report directly to ensure coverage of that method.
-
     exporter = ExportUtils(output_dir=temp_output_dir)
     filepath = exporter._create_html_report(sample_df, exporter.output_dir, 'test_report')
 

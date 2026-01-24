@@ -8,8 +8,16 @@ such as redacting sensitive information from logs.
 import re
 import hmac
 import hashlib
+import base64
 from typing import Dict, Any, Union, List, Optional
 from urllib.parse import urlparse, urlunparse, parse_qsl, urlencode
+
+try:
+    from bs4 import BeautifulSoup
+
+    BS4_AVAILABLE = True
+except ImportError:
+    BS4_AVAILABLE = False
 
 # List of keys that are considered sensitive and should be redacted
 SENSITIVE_KEYS = {
@@ -348,14 +356,72 @@ def inject_csp_meta_tag(html_content: str) -> str:
     if not html_content or not isinstance(html_content, str):
         return html_content
 
-    # Prepare CSP tag
-    csp_tag = (
-        f'<meta http-equiv="Content-Security-Policy" content="{CSP_META_CONTENT}">'
-    )
-
     # Check if CSP is already present to avoid duplication
     if 'http-equiv="Content-Security-Policy"' in html_content:
         return html_content
+
+    csp_string = CSP_META_CONTENT
+
+    # Attempt to use BeautifulSoup to calculate script hashes for stricter CSP
+    if BS4_AVAILABLE:
+        try:
+            soup = BeautifulSoup(html_content, "html.parser")
+            scripts = soup.find_all("script")
+            hashes = []
+            sources = set(["'self'"])
+
+            for script in scripts:
+                # Hash inline scripts
+                if script.string:
+                    # SHA-256 hash of the script content
+                    h = hashlib.sha256(script.string.encode("utf-8")).digest()
+                    b64 = base64.b64encode(h).decode("utf-8")
+                    hashes.append(f"'sha256-{b64}'")
+
+                # Whitelist external scripts
+                if script.get("src"):
+                    src = script["src"]
+                    if src.startswith("http"):
+                        # For simplicity, whitelist the full URL
+                        # Ideally, we should whitelist domains
+                        sources.add(src)
+                    # Relative URLs are covered by 'self'
+
+            if hashes or sources:
+                # Construct strict CSP
+                script_src = f"script-src {' '.join(sorted(sources))} {' '.join(hashes)}"
+                # Keep unsafe-inline for styles as Plotly uses style attributes heavily
+                style_src = "style-src 'unsafe-inline'"
+                img_src = "img-src 'self' data:"
+                default_src = "default-src 'none'"
+
+                csp_string = f"{default_src}; {script_src}; {style_src}; {img_src};"
+
+                # Create meta tag
+                meta_tag = soup.new_tag(
+                    "meta", **{"http-equiv": "Content-Security-Policy", "content": csp_string}
+                )
+
+                if soup.head:
+                    soup.head.insert(0, meta_tag)
+                elif soup.html:
+                    head = soup.new_tag("head")
+                    head.insert(0, meta_tag)
+                    soup.html.insert(0, head)
+                else:
+                    # No structure, trigger fallback to string manipulation
+                    raise ValueError("HTML structure not found for safe injection")
+
+                return str(soup)
+
+        except Exception:
+            # Fallback to simple injection if parsing fails
+            pass
+
+    # Prepare fallback CSP tag
+    csp_tag = (
+        f'<meta http-equiv="Content-Security-Policy" content="{csp_string}">'
+    )
 
     # Insert into <head>
     if "<head>" in html_content:

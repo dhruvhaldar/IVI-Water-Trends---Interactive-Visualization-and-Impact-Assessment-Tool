@@ -76,4 +76,12 @@ def test_save_figure_csp_injection(temp_output_dir):
 
     assert "Content-Security-Policy" in content
     assert "default-src 'none'" in content
-    assert "script-src 'unsafe-inline'" in content
+
+    # Check for script-src
+    if "script-src 'unsafe-inline'" in content:
+        # Fallback CSP
+        pass
+    else:
+        # Hash-based CSP
+        assert "script-src" in content
+        assert "'sha256-" in content or "'self'" in content
