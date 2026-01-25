@@ -421,7 +421,9 @@ class DataProcessor:
 
             # 1. Validate year range
             # Note: NaN year compares False to both < 1900 and > 2100, so we use inverse logic to preserve NaNs for dropna step
-            invalid_years_mask = (df_clean["year"] < 1900) | (df_clean["year"] > 2100)
+            # Optimization: Use .values to perform comparison on numpy array (faster than Series)
+            years_arr = df_clean["year"].values
+            invalid_years_mask = (years_arr < 1900) | (years_arr > 2100)
             valid_years = ~invalid_years_mask
 
             # Calculate removed items for logging (items currently kept AND invalid)
@@ -432,7 +434,8 @@ class DataProcessor:
                 keep_mask &= valid_years
 
             # 2. Validate seasons
-            valid_seasons = df_clean["season"].isin(VALID_SEASONS)
+            # Optimization: Use .values for faster boolean operations
+            valid_seasons = df_clean["season"].isin(VALID_SEASONS).values
             removed_mask = keep_mask & (~valid_seasons)
             if removed_mask.any():
                 count = removed_mask.sum()
@@ -443,10 +446,11 @@ class DataProcessor:
             # Equivalent to dropna(subset=['year', 'season', 'water_area_ha'])
             # Optimization: Explicit Series check is faster than df subset .any(axis=1)
             # (~3-4x faster for large datasets by avoiding intermediate DataFrame creation)
+            # Optimization: Use .values for boolean operations to avoid index alignment overhead
             is_na = (
-                df_clean["year"].isna()
-                | df_clean["season"].isna()
-                | df_clean["water_area_ha"].isna()
+                df_clean["year"].isna().values
+                | df_clean["season"].isna().values
+                | df_clean["water_area_ha"].isna().values
             )
 
             # Optimization: check intersection with keep_mask early to avoid processing already invalid rows
@@ -459,8 +463,10 @@ class DataProcessor:
                 keep_mask &= ~is_na
 
             # 4. Remove invalid water areas (negative or unreasonably large)
-            valid_area = (df_clean["water_area_ha"] >= MIN_WATER_AREA_HA) & (
-                df_clean["water_area_ha"] <= MAX_WATER_AREA_HA
+            # Optimization: Use .values for comparisons to avoid Series overhead
+            water_area_vals = df_clean["water_area_ha"].values
+            valid_area = (water_area_vals >= MIN_WATER_AREA_HA) & (
+                water_area_vals <= MAX_WATER_AREA_HA
             )
             removed_mask = keep_mask & (~valid_area)
             if removed_mask.any():
@@ -469,14 +475,7 @@ class DataProcessor:
                 keep_mask &= valid_area
 
             # 5. Remove negative water body counts
-            valid_count = df_clean["water_body_count"] >= 0
-            removed_mask = keep_mask & (~valid_count)
-            if removed_mask.any():
-                count = removed_mask.sum()
-                self.logger.warning(
-                    f"Removed {count} records with negative water body counts"
-                )
-                keep_mask &= valid_count
+            # Redundant check removed: water_body_count is already clipped to 0 earlier
 
             # Apply all filters at once to minimize DataFrame copies
             # Optimization: Using .loc[keep_mask] is equivalent but explicit.

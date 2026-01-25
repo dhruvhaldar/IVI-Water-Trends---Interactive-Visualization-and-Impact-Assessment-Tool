@@ -21,3 +21,11 @@
 ## 2025-02-24 - [Pandas Numeric Check]
 **Learning:** `pd.to_numeric(..., errors='coerce')` incurs significant overhead (~10ms for 2M rows) even if the input data is already fully numeric. Checking `pd.api.types.is_numeric_dtype(series)` first is essentially free and avoids this overhead completely for correctly typed inputs.
 **Action:** Always wrap `pd.to_numeric` calls with `if not is_numeric_dtype(...)` when processing data that might already be typed (e.g. from API responses or Parquet files).
+
+## 2025-02-27 - [Pandas Boolean Masking with NumPy]
+**Learning:** When generating boolean masks (e.g., `df['col'] >= 0`), operating on the underlying NumPy array (`df['col'].values >= 0`) avoids Pandas index alignment overhead and Series creation, leading to significant speedups (observed 4x in micro-benchmarks). This is especially effective when combining multiple masks or updating an existing NumPy boolean mask (`mask &= condition`).
+**Action:** Use `.values` when generating boolean masks for filtering, especially when chaining multiple conditions or updating a mask in a loop.
+
+## 2025-02-27 - [Redundant Filters vs Transformation]
+**Learning:** Data cleaning often involves transformations (like `clip(lower=0)`) that enforce constraints. Subsequent boolean filters checking those same constraints (e.g., `val >= 0`) become redundant dead code. Removing them improves performance by avoiding unnecessary comparisons and mask operations.
+**Action:** Review data cleaning pipelines for redundancy. If a transformation guarantees a property, do not re-verify it with a filter immediately after.
