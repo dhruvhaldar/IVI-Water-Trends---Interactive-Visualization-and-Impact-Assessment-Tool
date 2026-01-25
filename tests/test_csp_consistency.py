@@ -39,7 +39,37 @@ def verify_csp(filepath):
 
     # Check for critical directives
     assert "default-src 'none'" in content
-    assert "script-src 'unsafe-inline'" in content
+
+    # script-src should now use hash-based security (no unsafe-inline)
+    # But if no scripts are present (e.g. static HTML report), it might be just 'self' or empty?
+    # Actually inject_csp_meta_tag adds 'self' always.
+    assert "script-src" in content
+
+    # We should NOT see 'unsafe-inline' in script-src
+    # However, 'style-src' still has 'unsafe-inline'
+
+    # Extract CSP content
+    import re
+    match = re.search(r'content="([^"]+)"', content)
+    if match:
+        csp_value = match.group(1)
+        directives = {}
+        for d in csp_value.split(';'):
+            parts = d.strip().split()
+            if parts:
+                directives[parts[0]] = parts[1:]
+
+        script_src = directives.get('script-src', [])
+
+        # Verify unsafe-inline is NOT in script-src
+        assert "'unsafe-inline'" not in script_src, f"script-src contains unsafe-inline: {script_src}"
+
+        # Verify hashes are present if there are scripts
+        # Plotly charts always have scripts
+        if '<script>' in content:
+            has_hash = any(s.startswith("'sha256-") for s in script_src)
+            assert has_hash, f"No sha256 hash found in script-src for content with scripts: {script_src}"
+
     assert "style-src 'unsafe-inline'" in content
     assert "img-src 'self' data:" in content
 

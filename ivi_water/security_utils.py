@@ -8,6 +8,8 @@ such as redacting sensitive information from logs.
 import re
 import hmac
 import hashlib
+import base64
+from html.parser import HTMLParser
 from typing import Dict, Any, Union, List, Optional
 from urllib.parse import urlparse, urlunparse, parse_qsl, urlencode
 
@@ -53,6 +55,65 @@ MAX_ID_LENGTH = 128
 # - Images: 'self' and data: URIs (For embedded plots)
 # Blocks everything else (default-src 'none') to prevent XSS/exfiltration
 CSP_META_CONTENT = "default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src 'self' data:;"
+
+
+class ScriptHasher(HTMLParser):
+    """
+    HTML Parser to extract inline scripts for hashing and external script sources.
+    This enables strict CSP generation by avoiding 'unsafe-inline' for scripts.
+    """
+
+    def __init__(self):
+        super().__init__()
+        self.hashes = set()
+        self.sources = set()
+        self.in_script = False
+        self.current_script = []
+        self.current_script_has_src = False
+
+    def handle_starttag(self, tag, attrs):
+        if tag == "script":
+            self.in_script = True
+            self.current_script = []
+            self.current_script_has_src = False
+
+            # Check for src attribute
+            attrs_dict = dict(attrs)
+            src = attrs_dict.get("src")
+            if src:
+                self.current_script_has_src = True
+                # Add domain to sources
+                try:
+                    parsed = urlparse(src)
+                    if parsed.scheme and parsed.netloc:
+                        origin = f"{parsed.scheme}://{parsed.netloc}"
+                        self.sources.add(origin)
+                    elif src.startswith("//"):
+                        # Protocol relative, assume https
+                        parsed = urlparse(f"https:{src}")
+                        if parsed.netloc:
+                            origin = f"https://{parsed.netloc}"
+                            self.sources.add(origin)
+                except Exception:
+                    pass
+
+    def handle_endtag(self, tag):
+        if tag == "script":
+            if self.in_script and not self.current_script_has_src:
+                script_content = "".join(self.current_script)
+                if script_content:
+                    # Calculate SHA-256 hash
+                    sha256_hash = hashlib.sha256(script_content.encode("utf-8")).digest()
+                    base64_hash = base64.b64encode(sha256_hash).decode("utf-8")
+                    self.hashes.add(f"'sha256-{base64_hash}'")
+
+            self.in_script = False
+            self.current_script = []
+            self.current_script_has_src = False
+
+    def handle_data(self, data):
+        if self.in_script:
+            self.current_script.append(data)
 
 
 def redact_sensitive_data(
@@ -339,6 +400,8 @@ def inject_csp_meta_tag(html_content: str) -> str:
     This ensures that all generated HTML files (dashboards, reports) enforce
     strict security controls, preventing XSS and data exfiltration.
 
+    It calculates SHA-256 hashes for inline scripts to avoid 'unsafe-inline'.
+
     Args:
         html_content: The original HTML string.
 
@@ -348,9 +411,45 @@ def inject_csp_meta_tag(html_content: str) -> str:
     if not html_content or not isinstance(html_content, str):
         return html_content
 
+    # Try to calculate hashes for stricter CSP
+    try:
+        parser = ScriptHasher()
+        parser.feed(html_content)
+
+        script_srcs = ["'self'"]
+
+        # Add hashes
+        if parser.hashes:
+            script_srcs.extend(sorted(list(parser.hashes)))
+
+        # Add allowed sources (CDNs)
+        if parser.sources:
+            script_srcs.extend(sorted(list(parser.sources)))
+
+        script_policy = " ".join(script_srcs)
+
+        # If we have hashes or sources, use them. Otherwise fallback to unsafe-inline
+        # (though ideally we should fail closed, but empty script_srcs means no scripts found,
+        # so 'self' is fine).
+        # Wait, if there ARE scripts but parser failed to find them (unlikely with this parser),
+        # they would be blocked. This is good (Fail Closed).
+
+        # Construct strict policy
+        # Note: style-src 'unsafe-inline' is still needed for Plotly's inline styles
+        csp_content = (
+            f"default-src 'none'; "
+            f"script-src {script_policy}; "
+            f"style-src 'unsafe-inline'; "
+            f"img-src 'self' data: https:;"
+        )
+
+    except Exception:
+        # Fallback to legacy unsafe-inline if parsing fails
+        csp_content = CSP_META_CONTENT
+
     # Prepare CSP tag
     csp_tag = (
-        f'<meta http-equiv="Content-Security-Policy" content="{CSP_META_CONTENT}">'
+        f'<meta http-equiv="Content-Security-Policy" content="{csp_content}">'
     )
 
     # Check if CSP is already present to avoid duplication
