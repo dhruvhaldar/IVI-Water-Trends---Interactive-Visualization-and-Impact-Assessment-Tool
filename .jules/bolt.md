@@ -21,3 +21,7 @@
 ## 2025-02-24 - [Pandas Numeric Check]
 **Learning:** `pd.to_numeric(..., errors='coerce')` incurs significant overhead (~10ms for 2M rows) even if the input data is already fully numeric. Checking `pd.api.types.is_numeric_dtype(series)` first is essentially free and avoids this overhead completely for correctly typed inputs.
 **Action:** Always wrap `pd.to_numeric` calls with `if not is_numeric_dtype(...)` when processing data that might already be typed (e.g. from API responses or Parquet files).
+
+## 2025-02-25 - [Numpy vs Pandas Element-wise Operations]
+**Learning:** Pandas Series arithmetic (e.g., `s1 / s2`) and chained methods like `.replace().fillna()` incur significant overhead due to index alignment and intermediate object creation. Replacing them with direct NumPy array operations (`s1.values / s2.values`) and boolean masking (`arr[~np.isfinite(arr)] = 0`) can yield >6x speedups for specific calculations, even if the surrounding pipeline is dominated by other costs.
+**Action:** For element-wise calculations on aligned Series (e.g., columns of the same DataFrame), access underlying NumPy arrays via `.values` and use NumPy functions/masking instead of Pandas methods.

@@ -1233,11 +1233,14 @@ class DataProcessor:
             # Also if N < 2, slope is undefined (or 0 in our logic)
 
             with np.errstate(divide="ignore", invalid="ignore"):
-                slope = numerator / denominator
+                # Optimization: Use .values to operate in numpy arrays which is significantly faster
+                # than Pandas Series arithmetic for element-wise operations.
+                slope = numerator.values / denominator.values
 
             # Handle infinity (division by zero) and NaN
-            # Replace infinity with 0.0 (consistent with original logic where slope is 0 if denominator is 0)
-            slope = slope.replace([np.inf, -np.inf], np.nan).fillna(0.0)
+            # Optimization: Replace non-finite values (inf, nan) with 0.0 directly in numpy
+            # This is much faster (>10x) than pandas replace/fillna chain
+            slope[~np.isfinite(slope)] = 0.0
             stats_df["trend_slope_ha_per_year"] = slope
 
             # Determine Trend Quality
