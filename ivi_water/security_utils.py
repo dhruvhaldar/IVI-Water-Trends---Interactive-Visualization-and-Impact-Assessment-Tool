@@ -304,15 +304,17 @@ def redact_text_content(text: str) -> str:
     # to correctly handle escaping within each type.
 
     # 1. Double quotes: "value" - handles escaped double quotes \"
+    # Changed to use non-capturing group (?:"|$) for closing quote to handle truncated logs
     pattern_double = re.compile(
-        r'(?i)(["\']?)(' + keys_pattern + r')\1(\s*[:=]\s*)(")((?:[^"\\]|\\.)*)"',
+        r'(?i)(["\']?)(' + keys_pattern + r')\1(\s*[:=]\s*)(")((?:[^"\\]|\\.)*)(?:"|$)',
         re.DOTALL,
     )
     text = pattern_double.sub(r'\1\2\1\3"***REDACTED***"', text)
 
     # 2. Single quotes: 'value' - handles escaped single quotes \'
+    # Changed to use non-capturing group (?:'|$) for closing quote to handle truncated logs
     pattern_single = re.compile(
-        r'(?i)(["\']?)(' + keys_pattern + r")\1(\s*[:=]\s*)(\')((?:[^\'\\]|\\.)*)\'",
+        r'(?i)(["\']?)(' + keys_pattern + r")\1(\s*[:=]\s*)(\')((?:[^\'\\]|\\.)*)(?:'|$)",
         re.DOTALL,
     )
     # Note: Use plain string with ' for replacement to avoid double escaping issues

@@ -27,3 +27,8 @@
 **Vulnerability:** The `load_csv_safe` method in `DataProcessor` only checked the file size on disk (`st_size`) before loading. This was insufficient for compressed files (like `.csv.gz`), allowing a "Zip Bomb" (a small file on disk expanding to huge memory usage) to cause a Denial of Service (DoS) via memory exhaustion.
 **Learning:** File size on disk is not a proxy for memory usage for compressed formats. Pandas `read_csv` transparently handles compression, hiding the expansion risk.
 **Prevention:** Enforce chunked reading (`chunksize`) when loading untrusted CSVs. Iterate through chunks, track cumulative memory usage (using `df.memory_usage(deep=True)`), and abort if the limit is exceeded. Also, explicitly disable user-provided `chunksize` to ensure the security control cannot be bypassed.
+
+## 2024-05-25 - Data Leakage via Truncated Logs
+**Vulnerability:** The regex pattern used for redacting sensitive data in logs relied on matching a closing quote (e.g., `".*?"`). When logs were truncated (e.g., due to size limits or network issues), the closing quote was missing, causing the regex to fail and the partial secret to be exposed in cleartext.
+**Learning:** Regex patterns for security redaction must be resilient to partial inputs. Standard "balanced quote" matching is unsafe for stream processing or truncated data.
+**Prevention:** Use a non-capturing group that matches either the closing quote OR the end of the string (e.g., `(?:"|$)`) to ensuring redaction occurs even if the input ends prematurely.
