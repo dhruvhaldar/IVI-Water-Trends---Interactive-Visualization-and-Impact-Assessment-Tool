@@ -76,4 +76,18 @@ def test_save_figure_csp_injection(temp_output_dir):
 
     assert "Content-Security-Policy" in content
     assert "default-src 'none'" in content
-    assert "script-src 'unsafe-inline'" in content
+
+    # Verify strict CSP implementation
+    import re
+    match = re.search(r'content="([^"]+)"', content)
+    assert match, "CSP meta tag content not found"
+
+    csp = match.group(1)
+    directives = {d.split()[0]: d.split()[1:] for d in csp.split(';') if d.strip()}
+    script_src = directives.get('script-src', [])
+
+    # Ensure unsafe-inline is removed from script-src
+    assert "'unsafe-inline'" not in script_src, "script-src should not contain 'unsafe-inline'"
+
+    # Ensure hashes are present (Plotly figures contain scripts)
+    assert any(s.startswith("'sha256-") for s in script_src), "script-src should contain hash"

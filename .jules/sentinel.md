@@ -27,3 +27,8 @@
 **Vulnerability:** The `load_csv_safe` method in `DataProcessor` only checked the file size on disk (`st_size`) before loading. This was insufficient for compressed files (like `.csv.gz`), allowing a "Zip Bomb" (a small file on disk expanding to huge memory usage) to cause a Denial of Service (DoS) via memory exhaustion.
 **Learning:** File size on disk is not a proxy for memory usage for compressed formats. Pandas `read_csv` transparently handles compression, hiding the expansion risk.
 **Prevention:** Enforce chunked reading (`chunksize`) when loading untrusted CSVs. Iterate through chunks, track cumulative memory usage (using `df.memory_usage(deep=True)`), and abort if the limit is exceeded. Also, explicitly disable user-provided `chunksize` to ensure the security control cannot be bypassed.
+
+## 2024-05-25 - Strict CSP with Hash-based Script Validation
+**Vulnerability:** The application relied on `script-src 'unsafe-inline'` in its Content Security Policy (CSP) to support Plotly visualizations, effectively negating XSS protection against inline script injection.
+**Learning:** Modern visualization libraries often rely on inline scripts, but allowing all inline scripts is dangerous. Using a custom HTML parser to extract and hash inline scripts allows generating a strict CSP that permits only the necessary scripts while blocking malicious injections.
+**Prevention:** Implement a `ScriptHasher` (using `html.parser`) to scan generated HTML, calculate SHA-256 hashes of all inline scripts, and dynamically construct a `script-src` directive containing these hashes, enabling the removal of `'unsafe-inline'`.
