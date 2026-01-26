@@ -1135,7 +1135,6 @@ class DataProcessor:
             f"Calculating water trends for {len(df)} records grouped by: {group_by}"
         )
 
-        trend_stats: List[Dict[str, Any]] = []
         total_groups = 0
         successful_calculations = 0
 
@@ -1164,8 +1163,9 @@ class DataProcessor:
 
             # Pre-calculate xy and xx for slope
             # Since inputs have NaNs for invalid rows, outputs will also be NaN correctly
-            df_proc["xy"] = df_proc["year"] * df_proc["water_area_ha"]
-            df_proc["xx"] = df_proc["year"] ** 2
+            # Optimization: Use .values to operate in numpy arrays which is significantly faster
+            df_proc["xy"] = df_proc["year"].values * df_proc["water_area_ha"].values
+            df_proc["xx"] = df_proc["year"].values ** 2
 
             # 2. Single GroupBy for all statistics
             # Optimization: groupby(sort=True) is faster than sort=False + explicit sort_index
@@ -1215,8 +1215,9 @@ class DataProcessor:
             stats_df["data_points"] = stats_df["total_observations"]
 
             # Calculate mean from sum and count to save one aggregation pass
+            # Optimization: Use .values for faster element-wise division
             stats_df["mean_water_area_ha"] = (
-                stats_df["water_area_ha_sum"] / stats_df["data_points"]
+                stats_df["water_area_ha_sum"].values / stats_df["data_points"].values
             )
 
             # Filter out groups with 0 valid data points
@@ -1227,17 +1228,23 @@ class DataProcessor:
             stats_df["year_span"] = stats_df["end_year"] - stats_df["start_year"]
 
             # Coefficient of Variation
-            stats_df["coefficient_of_variation"] = (
-                stats_df["std_water_area_ha"] / stats_df["mean_water_area_ha"]
-            ).fillna(0.0)
+            # Optimization: Use .values and numpy masking instead of Series division and fillna
+            with np.errstate(divide="ignore", invalid="ignore"):
+                cv = (
+                    stats_df["std_water_area_ha"].values
+                    / stats_df["mean_water_area_ha"].values
+                )
+            cv[~np.isfinite(cv)] = 0.0
+            stats_df["coefficient_of_variation"] = cv
 
             # Slope Calculation (Vectorized)
             # m = (N * sum(xy) - sum(x) * sum(y)) / (N * sum(xx) - sum(x)^2)
-            N = stats_df["data_points"]
-            sum_x = stats_df["year_sum"]
-            sum_y = stats_df["water_area_ha_sum"]
-            sum_xy = stats_df["xy_sum"]
-            sum_xx = stats_df["xx_sum"]
+            # Optimization: Access values once to use numpy arrays for all calculations
+            N = stats_df["data_points"].values
+            sum_x = stats_df["year_sum"].values
+            sum_y = stats_df["water_area_ha_sum"].values
+            sum_xy = stats_df["xy_sum"].values
+            sum_xx = stats_df["xx_sum"].values
 
             numerator = N * sum_xy - sum_x * sum_y
             denominator = N * sum_xx - sum_x**2
@@ -1249,7 +1256,7 @@ class DataProcessor:
             with np.errstate(divide="ignore", invalid="ignore"):
                 # Optimization: Use .values to operate in numpy arrays which is significantly faster
                 # than Pandas Series arithmetic for element-wise operations.
-                slope = numerator.values / denominator.values
+                slope = numerator / denominator
 
             # Handle infinity (division by zero) and NaN
             # Optimization: Replace non-finite values (inf, nan) with 0.0 directly in numpy
@@ -1263,12 +1270,12 @@ class DataProcessor:
 
             # If denominator is 0 (constant year), set to constant_year
             # Also set slope to 0 explicitly if it wasn't already (though fillna(0) handled it)
-            mask_const = denominator.abs() < 1e-10
+            mask_const = np.abs(denominator) < 1e-10
             stats_df.loc[mask_const, "trend_quality"] = "constant_year"
             stats_df.loc[mask_const, "trend_slope_ha_per_year"] = 0.0
 
             # If N < MIN, insufficient
-            mask_insuf = stats_df["data_points"] < MIN_DATA_POINTS_FOR_TREND
+            mask_insuf = N < MIN_DATA_POINTS_FOR_TREND
             stats_df.loc[mask_insuf, "trend_quality"] = "insufficient_data"
             stats_df.loc[mask_insuf, "trend_slope_ha_per_year"] = 0.0
 
