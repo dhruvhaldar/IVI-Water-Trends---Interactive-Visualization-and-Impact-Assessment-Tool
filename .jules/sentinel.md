@@ -32,3 +32,8 @@
 **Vulnerability:** The application relied on `script-src 'unsafe-inline'` in its Content Security Policy (CSP) to support Plotly visualizations, effectively negating XSS protection against inline script injection.
 **Learning:** Modern visualization libraries often rely on inline scripts, but allowing all inline scripts is dangerous. Using a custom HTML parser to extract and hash inline scripts allows generating a strict CSP that permits only the necessary scripts while blocking malicious injections.
 **Prevention:** Implement a `ScriptHasher` (using `html.parser`) to scan generated HTML, calculate SHA-256 hashes of all inline scripts, and dynamically construct a `script-src` directive containing these hashes, enabling the removal of `'unsafe-inline'`.
+
+## 2024-05-25 - Information Leakage in Truncated Logs
+**Vulnerability:** The regex-based redaction utility (`redact_text_content`) required a closing quote to identify sensitive values (e.g., `key="value"`). If a log message was truncated (e.g., due to buffer limits), the closing quote would be missing, causing the regex to fail and the partial sensitive value to be leaked in plain text.
+**Learning:** Security controls based on pattern matching must account for data stream interruptions. Regexes that strictly expect complete syntax (like closing quotes) fail securely in "open" contexts but fail insecurely in truncated contexts.
+**Prevention:** Design redaction patterns to be resilient to truncation. Modify regexes to accept either the expected terminator (closing quote) OR the end of the string (`$`) as a valid match termination condition, ensuring that even partial secrets are redacted.
