@@ -23,6 +23,7 @@ from .export_utils import sanitize_dataframe, sanitize_filename
 # Constants
 DEFAULT_DATA_DIR = "./data"
 DEFAULT_OUTPUT_DIR = "./outputs"
+MAX_BATCH_SIZE = 100
 MIN_DATA_POINTS_FOR_TREND = 2
 MAX_WATER_AREA_HA = 10000.0  # Maximum reasonable water area in hectares
 MIN_WATER_AREA_HA = 0.0
@@ -119,6 +120,12 @@ class DataProcessor:
         # Input validation
         if not location_ids:
             raise ValueError("location_ids cannot be empty")
+
+        if len(location_ids) > MAX_BATCH_SIZE:
+            raise ValueError(
+                f"Batch size {len(location_ids)} exceeds maximum limit of {MAX_BATCH_SIZE}. "
+                "Please split your request into smaller batches."
+            )
 
         if start_year > end_year:
             raise ValueError("start_year must be less than or equal to end_year")
