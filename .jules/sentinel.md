@@ -9,7 +9,7 @@
 **Prevention:** Enforce a strict whitelist of allowed schemes (e.g., `{'https'}`) before performing other validations.
 
 ## 2024-05-25 - Inconsistent Security Controls in CLI vs Core
-**Vulnerability:** While the core `DataProcessor` enforced file size limits to prevent DoS via memory exhaustion, the CLI bypassed this control by directly using `pd.read_csv` for some operations, creating an inconsistency where the same operation (loading data) was secure in one context but not another.
+**Vulnerability:** While the core `DataProcessor` enforced file size limits to prevent DoS via memory exhaustion, the CLI bypassed this control by directly using `pd.read_csv` for operations, creating an inconsistency where the same operation (loading data) was secure in one context but not another.
 **Learning:** Security controls implemented in business logic (e.g., `DataProcessor`) must be encapsulated in reusable methods (like `load_csv_safe`) and strictly used by all interfaces (CLI, API, etc.). Ad-hoc implementations in entry points often miss these controls.
 **Prevention:** Centralize sensitive operations (like file loading) into secure utility methods and ensure all entry points use them instead of raw library calls.
 
@@ -37,3 +37,8 @@
 **Vulnerability:** The regex-based redaction utility (`redact_text_content`) required a closing quote to identify sensitive values (e.g., `key="value"`). If a log message was truncated (e.g., due to buffer limits), the closing quote would be missing, causing the regex to fail and the partial sensitive value to be leaked in plain text.
 **Learning:** Security controls based on pattern matching must account for data stream interruptions. Regexes that strictly expect complete syntax (like closing quotes) fail securely in "open" contexts but fail insecurely in truncated contexts.
 **Prevention:** Design redaction patterns to be resilient to truncation. Modify regexes to accept either the expected terminator (closing quote) OR the end of the string (`$`) as a valid match termination condition, ensuring that even partial secrets are redacted.
+
+## 2024-05-25 - Partial Redaction of Authorization Headers
+**Vulnerability:** The generic redaction regex treated spaces as delimiters for unquoted values. This caused `Authorization: Bearer <token>` to be redacted as `Authorization: ***REDACTED*** <token>`, effectively leaking the sensitive token because the regex only matched the "Bearer" prefix.
+**Learning:** Generic redaction patterns often fail for structured headers where values contain spaces (like "Type Token"). Treating space as a universal delimiter is unsafe for Authorization headers.
+**Prevention:** Implement specific regex patterns for known structured headers (like `Authorization`) that match the full value pattern (e.g., `Prefix Value`) *before* applying generic unquoted value matching. Also, explicitly list common auth schemes (Bearer, Basic, etc.) to strictly scope this behavior.

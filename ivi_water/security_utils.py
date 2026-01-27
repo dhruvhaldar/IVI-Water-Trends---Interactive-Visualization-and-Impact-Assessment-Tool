@@ -31,6 +31,10 @@ SENSITIVE_KEYS = {
     "auth",
     "private_key",
     "public_key",
+    "passphrase",
+    "proxy-authorization",
+    "signature",
+    "credential",
     # Added hyphenated variants for broader coverage
     "api-key",
     "access-token",
@@ -47,6 +51,9 @@ SAFE_ID_PATTERN = re.compile(r"^[a-zA-Z0-9_-]+$")
 
 # Maximum length for identifiers to prevent DoS/memory issues
 MAX_ID_LENGTH = 128
+
+# Authorization prefixes that are followed by space-separated tokens
+AUTH_PREFIXES = r"Bearer|Basic|Digest|Negotiate|OAuth|Token|AWS"
 
 # Standard Content Security Policy for HTML reports/dashboards
 # Allows:
@@ -331,6 +338,19 @@ def redact_text_content(text: str) -> str:
 
     # We construct the regex dynamically based on SENSITIVE_KEYS
     keys_pattern = "|".join(re.escape(k) for k in SENSITIVE_KEYS)
+
+    # Special pattern for Authorization headers with prefixes (e.g. Bearer <token>)
+    # This must be applied BEFORE the standard unquoted pattern to handle the space correctly.
+    # We target specific authorization-related keys to avoid broad matching issues.
+    auth_keys = {"authorization", "proxy-authorization"}
+    auth_keys_pattern = "|".join(re.escape(k) for k in auth_keys if k in SENSITIVE_KEYS)
+
+    if auth_keys_pattern:
+        pattern_auth_multi = re.compile(
+            r'(?i)(["\']?)(' + auth_keys_pattern + r')\1(\s*[:=]\s*)((?:' + AUTH_PREFIXES + r')\s+[^"\'\s,;}\]]+)',
+            re.DOTALL,
+        )
+        text = pattern_auth_multi.sub(r"\1\2\1\3***REDACTED***", text)
 
     # Simple pattern for standard assignments (key=value, key: value) without internal spaces/commas in value
     # We handle quoted values specially
