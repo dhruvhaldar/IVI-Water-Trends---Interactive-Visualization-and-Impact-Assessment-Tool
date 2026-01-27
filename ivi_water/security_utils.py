@@ -56,6 +56,32 @@ MAX_ID_LENGTH = 128
 # Blocks everything else (default-src 'none') to prevent XSS/exfiltration
 CSP_META_CONTENT = "default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src 'self' data:;"
 
+# Pre-compile regex patterns for redaction to improve performance
+# We construct the regex dynamically based on SENSITIVE_KEYS
+KEYS_PATTERN = "|".join(re.escape(k) for k in SENSITIVE_KEYS)
+
+# 1. Double quotes: "value" - handles escaped double quotes \" and truncated strings
+# We use \\.? to handle escaped characters, including if the string is truncated right after backslash
+PATTERN_DOUBLE = re.compile(
+    r'(?i)(["\']?)(' + KEYS_PATTERN + r')\1(\s*[:=]\s*)(")((?:[^"\\]|\\.?)*)(?:"|$)',
+    re.DOTALL,
+)
+
+# 2. Single quotes: 'value' - handles escaped single quotes \' and truncated strings
+PATTERN_SINGLE = re.compile(
+    r'(?i)(["\']?)(' + KEYS_PATTERN + r")\1(\s*[:=]\s*)(\')((?:[^\'\\]|\\.?)*)(?:'|$)",
+    re.DOTALL,
+)
+
+# For unquoted: Replace group 4 (value) with ***REDACTED***
+# Group 1: Optional Quote
+# Group 2: Key
+# Group 3: Separator with optional surrounding whitespace
+# Group 4: Value (non-whitespace, non-separator chars)
+PATTERN_UNQUOTED = re.compile(
+    r'(?i)(["\']?)(' + KEYS_PATTERN + r')\1(\s*[:=]\s*)([^"\'\s,;}\]]+)', re.DOTALL
+)
+
 
 class ScriptHasher(HTMLParser):
     """
@@ -318,78 +344,17 @@ def redact_text_content(text: str) -> str:
     if not text or not isinstance(text, str):
         return text
 
-    # Pattern explanation:
-    # (?i)          : Case-insensitive
-    # \b            : Word boundary (start of key)
-    # (KEY1|KEY2...) : Match any sensitive key
-    # \b            : Word boundary (end of key)
-    # \s*[:=]\s*    : Separator (: or =) with optional whitespace
-    # (["']?)       : Capture group 2: Optional opening quote
-    # (.*?)         : Capture group 3: The value (non-greedy)
-    # \2            : Match the closing quote (same as group 2)
-    # (?=[\s,;}]|$) : Lookahead for separator (space, comma, semicolon, closing brace) or end of string
+    # Apply redaction using pre-compiled patterns
 
-    # We construct the regex dynamically based on SENSITIVE_KEYS
-    keys_pattern = "|".join(re.escape(k) for k in SENSITIVE_KEYS)
+    # 1. Double quotes: "value"
+    text = PATTERN_DOUBLE.sub(r'\1\2\1\3"***REDACTED***"', text)
 
-    # Simple pattern for standard assignments (key=value, key: value) without internal spaces/commas in value
-    # We handle quoted values specially
-
-    # 1. Match quoted values: key="value with spaces"
-    pattern_quoted = re.compile(
-        r"(?i)\b(" + keys_pattern + r')\b\s*[:=]\s*(["\'])(.*?)\2', re.DOTALL
-    )
-
-    # 2. Match unquoted values: key=value (stops at space/comma/semicolon/newline)
-    # The first definition of pattern_unquoted was redundant and confusing.
-
-    # Apply redaction
-    # For quoted: Replace group 3 with ***REDACTED***
-    # Use \g<0> approach to preserve separator?
-    # No, we can capture the separator group if we modify regex.
-    # Current regex: \b(KEY)\b\s*[:=]\s*(["'])(.*?)\2
-    # It consumes the separator.
-    # To fix test_json_like failure where separator changed from : to =,
-    # we need to capture the separator.
-
-    # Redefine patterns to capture separator and surrounding whitespace
-    # Group 1: Key (optionally quoted)
-    # Group 2: Separator with optional surrounding whitespace
-    # Group 3: Opening quote
-    # Group 4: Value
-
-    # We need to handle optional quotes around the key for JSON-like strings
-    # "key": "value" or 'key': 'value'
-
-    # We use two patterns: one for double quotes, one for single quotes,
-    # to correctly handle escaping within each type.
-
-    # 1. Double quotes: "value" - handles escaped double quotes \" and truncated strings
-    # We use \\.? to handle escaped characters, including if the string is truncated right after backslash
-    pattern_double = re.compile(
-        r'(?i)(["\']?)(' + keys_pattern + r')\1(\s*[:=]\s*)(")((?:[^"\\]|\\.?)*)(?:"|$)',
-        re.DOTALL,
-    )
-    text = pattern_double.sub(r'\1\2\1\3"***REDACTED***"', text)
-
-    # 2. Single quotes: 'value' - handles escaped single quotes \' and truncated strings
-    pattern_single = re.compile(
-        r'(?i)(["\']?)(' + keys_pattern + r")\1(\s*[:=]\s*)(\')((?:[^\'\\]|\\.?)*)(?:'|$)",
-        re.DOTALL,
-    )
+    # 2. Single quotes: 'value'
     # Note: Use plain string with ' for replacement to avoid double escaping issues
-    text = pattern_single.sub(r"\1\2\1\3'***REDACTED***'", text)
+    text = PATTERN_SINGLE.sub(r"\1\2\1\3'***REDACTED***'", text)
 
-    # For unquoted: Replace group 4 (value) with ***REDACTED***
-    # Group 1: Optional Quote
-    # Group 2: Key
-    # Group 3: Separator with optional surrounding whitespace
-    # Group 4: Value (non-whitespace, non-separator chars)
-    pattern_unquoted = re.compile(
-        r'(?i)(["\']?)(' + keys_pattern + r')\1(\s*[:=]\s*)([^"\'\s,;}\]]+)', re.DOTALL
-    )
-
-    text = pattern_unquoted.sub(r"\1\2\1\3***REDACTED***", text)
+    # 3. Unquoted
+    text = PATTERN_UNQUOTED.sub(r"\1\2\1\3***REDACTED***", text)
 
     return text
 
