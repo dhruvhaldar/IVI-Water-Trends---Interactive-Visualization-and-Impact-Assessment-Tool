@@ -23,6 +23,7 @@ from .api_client import CoREStackClient
 from .data_processor import DataProcessor
 from .visualizer import WaterTrendsVisualizer
 from .export_utils import ExportUtils, sanitize_dataframe, sanitize_filename
+from .security_utils import sanitize_for_terminal
 
 # Constants
 DEFAULT_DATA_DIR = "./data"
@@ -283,9 +284,10 @@ def get_spatial_units(
 
             # Format for better display
             for idx, row in sample_df.iterrows():
-                click.echo(
-                    f"  {row.get('id', 'N/A'):<15} | {row.get('name', 'N/A'):<30} | {row.get('state', 'N/A')}"
-                )
+                safe_id = sanitize_for_terminal(str(row.get("id", "N/A")))
+                safe_name = sanitize_for_terminal(str(row.get("name", "N/A")))
+                safe_state = sanitize_for_terminal(str(row.get("state", "N/A")))
+                click.echo(f"  {safe_id:<15} | {safe_name:<30} | {safe_state}")
 
             if len(df) > sample_size:
                 click.echo(f"  ... and {len(df) - sample_size} more entries")
@@ -481,8 +483,10 @@ def fetch_water_data(
             sample_df = water_df.head(sample_size)
 
             for idx, row in sample_df.iterrows():
+                safe_loc = sanitize_for_terminal(str(row["location_id"]))
+                safe_season = sanitize_for_terminal(str(row["season"]))
                 click.echo(
-                    f"  {row['location_id']:<8} | {row['year']:<6} | {row['season']:<10} | "
+                    f"  {safe_loc:<8} | {row['year']:<6} | {safe_season:<10} | "
                     f"{row['water_area_ha']:<8.2f} ha | {row['water_body_count']:<3} bodies"
                 )
 
