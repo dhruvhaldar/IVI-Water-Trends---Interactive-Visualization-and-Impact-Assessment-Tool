@@ -1680,11 +1680,10 @@ class DataProcessor:
                 agg_dict["water_body_count"] = ["std", "min", "max", "sum", "count"]
 
             # Perform aggregation
-            # Optimization: sort=False is faster, sort result explicitly
+            # Optimization: groupby(sort=True) is faster for high-cardinality groups than sort=False + sort_index
             seasonal_summary = df_clean.groupby(
-                [location_level, "season"], sort=False
+                [location_level, "season"], sort=True
             ).agg(agg_dict)
-            seasonal_summary.sort_index(inplace=True)
 
             # Flatten column names
             seasonal_summary.columns = [
