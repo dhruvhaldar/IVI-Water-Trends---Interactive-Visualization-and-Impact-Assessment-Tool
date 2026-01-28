@@ -469,3 +469,31 @@ def inject_csp_meta_tag(html_content: str) -> str:
     else:
         # No structure, prepend it
         return f"{csp_tag}\n{html_content}"
+
+
+def sanitize_for_terminal(text: str) -> str:
+    """
+    Sanitize text for safe terminal output.
+
+    Removes ANSI escape sequences and other control characters to prevent
+    terminal injection attacks (e.g. hiding output, spoofing, or executing commands
+    in vulnerable terminals).
+
+    Args:
+        text: Input text.
+
+    Returns:
+        Sanitized string safe for printing to terminal.
+    """
+    if not isinstance(text, str):
+        return str(text)
+
+    # Remove ANSI escape sequences
+    # Pattern covers 7-bit C1 ANSI sequences
+    ansi_escape = re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])')
+    text = ansi_escape.sub('', text)
+
+    # Remove other control characters (except newlines and tabs)
+    # We allow \n, \r, \t. We remove everything else < 32 (space) and DEL (127).
+    # This prevents bell characters (\a), backspaces (\b) used for hiding text, etc.
+    return "".join(ch for ch in text if ch in '\n\r\t' or ch >= ' ')
