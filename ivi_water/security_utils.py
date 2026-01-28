@@ -42,6 +42,17 @@ SENSITIVE_KEYS = {
     "x-auth-token",
 }
 
+# List of authentication schemes that might appear in Authorization headers
+AUTH_PREFIXES = {
+    "Bearer",
+    "Basic",
+    "Digest",
+    "Negotiate",
+    "HOBA",
+    "Mutual",
+    "AWS4-HMAC-SHA256",
+}
+
 # Regex for validating safe identifiers (alphanumeric, -, _)
 SAFE_ID_PATTERN = re.compile(r"^[a-zA-Z0-9_-]+$")
 
@@ -380,7 +391,33 @@ def redact_text_content(text: str) -> str:
     # Note: Use plain string with ' for replacement to avoid double escaping issues
     text = pattern_single.sub(r"\1\2\1\3'***REDACTED***'", text)
 
-    # For unquoted: Replace group 4 (value) with ***REDACTED***
+    # 3. Special handling for Authorization headers with schemes (Bearer/Basic etc.)
+    # Matches: Authorization: Scheme <token>
+    # We construct a pattern for the schemes
+    schemes_pattern = "|".join(re.escape(s) for s in AUTH_PREFIXES)
+
+    # Matches:
+    # Group 1: Quote (optional)
+    # Group 2: Key (Authorization/Proxy-Authorization)
+    # Group 3: Separator
+    # Group 4: Scheme + Space
+    # Group 5: Token (non-separator)
+    auth_keys_pattern = r"(?:Proxy-)?Authorization"
+
+    pattern_auth = re.compile(
+        r'(?i)(["\']?)\b('
+        + auth_keys_pattern
+        + r')\1(\s*[:=]\s*)((?:'
+        + schemes_pattern
+        + r")\s+)([^\"'\s,;}\]]+)",
+        re.DOTALL,
+    )
+
+    # Replace with: \1\2\1\3\4***REDACTED***
+    # \1 (Quote), \2 (Key), \1 (Quote Match), \3 (Separator), \4 (Scheme+Space)
+    text = pattern_auth.sub(r"\1\2\1\3\4***REDACTED***", text)
+
+    # 4. For unquoted: Replace group 4 (value) with ***REDACTED***
     # Group 1: Optional Quote
     # Group 2: Key
     # Group 3: Separator with optional surrounding whitespace
