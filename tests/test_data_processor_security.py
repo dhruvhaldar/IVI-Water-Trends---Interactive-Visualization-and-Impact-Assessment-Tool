@@ -1,6 +1,7 @@
 
 import logging
 import unittest
+import pandas as pd
 from unittest.mock import MagicMock
 from ivi_water.data_processor import DataProcessor
 from ivi_water.security_utils import sanitize_for_terminal
@@ -90,6 +91,45 @@ class TestDataProcessorSecurity(unittest.TestCase):
             # Check debug logs
             self.assertNotIn("\x1b[", log_output, "ANSI escape sequence found in success logs!")
             self.assertIn(SANITIZED_ID, log_output, "Sanitized ID not found in success logs")
+
+        finally:
+            logger.removeHandler(handler)
+
+    def test_nrm_data_log_injection(self):
+        """
+        Verify that user inputs in NRM data (intervention types) are sanitized before logging.
+        """
+        # Setup capturing logger
+        logger = logging.getLogger("ivi_water.data_processor")
+        logger.setLevel(logging.INFO)
+
+        from io import StringIO
+        capture = StringIO()
+        handler = logging.StreamHandler(capture)
+        logger.addHandler(handler)
+
+        try:
+            processor = DataProcessor()
+
+            # Create DataFrame with ANSI escape sequence in intervention_type
+            malicious_type = "\x1b[31mmalicious_type\x1b[0m"
+            sanitized_type = sanitize_for_terminal(malicious_type)
+
+            df = pd.DataFrame({
+                'location_id': ['V001'],
+                'year': [2020],
+                'intervention_type': [malicious_type],
+                'pond_presence': [0]
+            })
+
+            # Call _clean_nrm_data
+            processor._clean_nrm_data(df)
+
+            log_output = capture.getvalue()
+
+            # Check logs
+            self.assertNotIn("\x1b[", log_output, "ANSI escape sequence found in NRM logs!")
+            self.assertIn(sanitized_type, log_output, "Sanitized intervention type not found in NRM logs")
 
         finally:
             logger.removeHandler(handler)
