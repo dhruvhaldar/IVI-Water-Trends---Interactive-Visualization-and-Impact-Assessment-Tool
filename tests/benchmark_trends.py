@@ -36,6 +36,10 @@ def benchmark_trend_calculation():
     data["water_area_ha"][mask_nan] = np.nan
 
     df = pd.DataFrame(data)
+    # Simulate the effect of _clean_water_data optimization
+    df["season"] = df["season"].astype("category")
+    df["location_id"] = df["location_id"].astype("category")
+
     processor = DataProcessor()
 
     print("Starting benchmark...")
