@@ -437,12 +437,26 @@ def redact_text_content(text: str) -> str:
     # Group 1: Optional Quote
     # Group 2: Key
     # Group 3: Separator with optional surrounding whitespace
-    # Group 4: Value (non-whitespace, non-separator chars)
-    pattern_unquoted = re.compile(
-        r'(?i)(["\']?)(' + keys_pattern + r')\1(\s*[:=]\s*)([^"\'\s,;}\]]+)', re.DOTALL
-    )
+    # Group 4: Value (varies based on separator)
 
-    text = pattern_unquoted.sub(r"\1\2\1\3***REDACTED***", text)
+    # 3. Unquoted values with '=' (strict whitespace termination)
+    # Handles query params, shell-style (key=value next=val)
+    # Stops at whitespace, comma, semicolon, braces/brackets
+    pattern_unquoted_equals = re.compile(
+        r'(?i)(["\']?)(' + keys_pattern + r')\1(\s*=\s*)([^"\'\s,;}\]]+)', re.DOTALL
+    )
+    text = pattern_unquoted_equals.sub(r"\1\2\1\3***REDACTED***", text)
+
+    # 4. Unquoted values with ':' (permissive space, strict delimiter termination)
+    # Handles HTTP headers (Authorization: Bearer token), YAML-style, JSON-like (key: value with spaces)
+    # Allows spaces but stops at newline, comma, semicolon, braces/brackets
+    # Explicitly excludes newlines (\n\r) to prevent multi-line consumption
+    # Uses lookahead (?=\S) to ensure value starts with non-whitespace, preventing
+    # matches on just the space before a quoted value (e.g. "key": "value")
+    pattern_unquoted_colon = re.compile(
+        r'(?i)(["\']?)(' + keys_pattern + r')\1(\s*:\s*)(?=\S)([^"\'\n\r,;}\]]+)', re.DOTALL
+    )
+    text = pattern_unquoted_colon.sub(r"\1\2\1\3***REDACTED***", text)
 
     return text
 

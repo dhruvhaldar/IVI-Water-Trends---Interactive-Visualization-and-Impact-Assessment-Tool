@@ -54,3 +54,37 @@ def test_redact_text_content_with_quotes():
     text = 'token="my-token-val"'
     expected = 'token="***REDACTED***"'
     assert redact_text_content(text) == expected
+
+
+def test_authorization_header_redaction():
+    # Test space-separated Bearer token (previously vulnerable)
+    header = "Authorization: Bearer secret_token_12345"
+    redacted = redact_text_content(header)
+    assert "secret_token_12345" not in redacted
+    assert "***REDACTED***" in redacted
+    assert "Bearer" not in redacted  # It's part of the value, so it should be redacted
+
+
+def test_key_value_with_spaces_colon():
+    text = "api_key: value with spaces"
+    redacted = redact_text_content(text)
+    assert "value with spaces" not in redacted
+    assert "***REDACTED***" in redacted
+
+
+def test_key_value_equals_still_strict():
+    # Ensure we didn't break strictly space-separated values for =
+    # Use public_id as non-sensitive key to ensure it's not redacted
+    text = "api_key=secret public_id=value"
+    redacted = redact_text_content(text)
+    assert "secret" not in redacted
+    assert "public_id" in redacted # Should not consume next key
+    assert "value" in redacted # public_id is not sensitive
+
+
+def test_json_like_string_unquoted():
+    # {key: value, ...}
+    text = "{api_key: secret value, other: value}"
+    redacted = redact_text_content(text)
+    assert "secret value" not in redacted
+    assert "other" in redacted
