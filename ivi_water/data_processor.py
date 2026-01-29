@@ -19,6 +19,7 @@ import numpy as np
 
 # Local imports
 from .export_utils import sanitize_dataframe, sanitize_filename
+from .security_utils import sanitize_for_terminal
 
 # Constants
 DEFAULT_DATA_DIR = "./data"
@@ -169,13 +170,16 @@ class DataProcessor:
             # Process results as they complete
             for future in as_completed(future_to_loc):
                 location_id = future_to_loc[future]
+                # Sanitize location ID for logging to prevent terminal injection
+                safe_loc_id = sanitize_for_terminal(location_id)
+
                 try:
                     water_data = future.result()
 
                     # Validate API response
                     if not water_data:
                         self.logger.warning(
-                            f"No data returned for location {location_id}"
+                            f"No data returned for location {safe_loc_id}"
                         )
                         continue
 
@@ -188,16 +192,16 @@ class DataProcessor:
                         all_rows.extend(rows)
                         successful_locations += 1
                         self.logger.debug(
-                            f"Successfully loaded {len(rows)} records for {location_id}"
+                            f"Successfully loaded {len(rows)} records for {safe_loc_id}"
                         )
                     else:
                         self.logger.warning(
-                            f"No valid rows created for location {location_id}"
+                            f"No valid rows created for location {safe_loc_id}"
                         )
 
                 except Exception as e:
                     self.logger.error(
-                        f"Failed to load water data for {location_id}: {e}",
+                        f"Failed to load water data for {safe_loc_id}: {e}",
                         exc_info=True,
                     )
                     continue
@@ -340,14 +344,16 @@ class DataProcessor:
         rows = self._convert_api_response_to_tuples(api_data, location_id)
 
         if not rows:
+            safe_loc_id = sanitize_for_terminal(location_id)
             self.logger.warning(
-                f"No valid data rows created for location {location_id}"
+                f"No valid data rows created for location {safe_loc_id}"
             )
             return pd.DataFrame()
 
         df = pd.DataFrame(rows, columns=WATER_DATA_COLUMNS)
+        safe_loc_id = sanitize_for_terminal(location_id)
         self.logger.debug(
-            f"Created DataFrame with {len(df)} rows for location {location_id}"
+            f"Created DataFrame with {len(df)} rows for location {safe_loc_id}"
         )
         return df
 
@@ -665,7 +671,8 @@ class DataProcessor:
         # Convert to Path object for consistent handling
         file_path = Path(file_path)
 
-        self.logger.info(f"Loading NRM impact data from: {file_path}")
+        safe_path = sanitize_for_terminal(str(file_path))
+        self.logger.info(f"Loading NRM impact data from: {safe_path}")
 
         try:
             # Load CSV with error handling using safe loader
