@@ -200,6 +200,18 @@ def redact_url(url: str) -> str:
 
     try:
         parsed = urlparse(url)
+        is_fallback = False
+
+        # If no password found but @ present and no scheme, try fallback parsing
+        if not parsed.password and "@" in url and "://" not in url:
+            try:
+                # Prepend // to treat as netloc-relative URL
+                parsed_fb = urlparse("//" + url)
+                if parsed_fb.password:
+                    parsed = parsed_fb
+                    is_fallback = True
+            except Exception:
+                pass
 
         # Redact password in netloc
         if parsed.password:
@@ -243,12 +255,16 @@ def redact_url(url: str) -> str:
             new_query = urlencode(redacted_params, doseq=True, safe="*")
             parsed = parsed._replace(query=new_query)
 
-        return urlunparse(parsed)
+        # Handle dummy scheme cleanup if fallback was used
+        result = urlunparse(parsed)
+        if is_fallback and result.startswith("//") and not url.startswith("//"):
+            result = result[2:]
+
+        return result
     except Exception:
-        # If parsing fails, return original URL (safer than returning empty or partial)
-        # But for security, maybe we should return a placeholder?
-        # Standard practice is to try best effort.
-        return url
+        # If parsing fails, return a placeholder to prevent leaking secrets
+        # contained in malformed URLs (e.g. invalid ports)
+        return "<REDACTION FAILED>"
 
 
 def validate_safe_id(identifier: str) -> str:
