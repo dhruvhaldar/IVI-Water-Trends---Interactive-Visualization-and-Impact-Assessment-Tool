@@ -29,6 +29,7 @@ from .security_utils import (
     validate_safe_id,
     hash_data,
     redact_text_content,
+    sanitize_for_terminal,
 )
 
 # Constants
@@ -675,7 +676,7 @@ class CoREStackClient:
 
         self.logger.info(
             f"Fetching spatial units of type '{unit_type}'"
-            f"{' for state: ' + state if state else ''}"
+            f"{' for state: ' + sanitize_for_terminal(state) if state else ''}"
         )
 
         try:

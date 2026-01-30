@@ -1,4 +1,3 @@
-
 import logging
 import unittest
 from unittest.mock import MagicMock
@@ -8,6 +7,7 @@ from ivi_water.security_utils import sanitize_for_terminal
 # Malicious ID with ANSI escape sequence (Red color)
 MALICIOUS_ID = "V001\x1b[31m"
 SANITIZED_ID = sanitize_for_terminal(MALICIOUS_ID)
+
 
 class TestDataProcessorSecurity(unittest.TestCase):
     def test_log_injection(self):
@@ -19,6 +19,7 @@ class TestDataProcessorSecurity(unittest.TestCase):
         logger.setLevel(logging.INFO)
 
         from io import StringIO
+
         capture = StringIO()
         handler = logging.StreamHandler(capture)
         logger.addHandler(handler)
@@ -28,6 +29,7 @@ class TestDataProcessorSecurity(unittest.TestCase):
 
             # Mock API client to raise exception for the malicious ID
             mock_client = MagicMock()
+
             def side_effect(loc, *args):
                 if loc == MALICIOUS_ID:
                     raise ValueError("Invalid ID")
@@ -65,6 +67,7 @@ class TestDataProcessorSecurity(unittest.TestCase):
         logger.setLevel(logging.DEBUG)  # Enable debug logs
 
         from io import StringIO
+
         capture = StringIO()
         handler = logging.StreamHandler(capture)
         logger.addHandler(handler)
@@ -81,18 +84,21 @@ class TestDataProcessorSecurity(unittest.TestCase):
             }
 
             # Use malicious ID that is technically valid for API client mock but unsafe for terminal
-            processor.load_water_data_from_api(
-                mock_client, [MALICIOUS_ID], 2020, 2021
-            )
+            processor.load_water_data_from_api(mock_client, [MALICIOUS_ID], 2020, 2021)
 
             log_output = capture.getvalue()
 
             # Check debug logs
-            self.assertNotIn("\x1b[", log_output, "ANSI escape sequence found in success logs!")
-            self.assertIn(SANITIZED_ID, log_output, "Sanitized ID not found in success logs")
+            self.assertNotIn(
+                "\x1b[", log_output, "ANSI escape sequence found in success logs!"
+            )
+            self.assertIn(
+                SANITIZED_ID, log_output, "Sanitized ID not found in success logs"
+            )
 
         finally:
             logger.removeHandler(handler)
+
 
 if __name__ == "__main__":
     unittest.main()

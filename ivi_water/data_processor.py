@@ -201,7 +201,7 @@ class DataProcessor:
 
                 except Exception as e:
                     self.logger.error(
-                        f"Failed to load water data for {safe_loc_id}: {e}",
+                        f"Failed to load water data for {safe_loc_id}: {sanitize_for_terminal(str(e))}",
                         exc_info=True,
                     )
                     continue
@@ -878,9 +878,12 @@ class DataProcessor:
                     invalid_values = df_clean.loc[
                         relevant_invalid_mask, "intervention_type"
                     ].unique()
+                    safe_invalid_values = [
+                        sanitize_for_terminal(str(val)) for val in invalid_values
+                    ]
                     self.logger.warning(
                         f"Found {relevant_invalid_mask.sum()} records with unrecognized intervention types: "
-                        f"{invalid_values}"
+                        f"{safe_invalid_values}"
                     )
                     # Keep them but log the issue
 
@@ -1191,7 +1194,7 @@ class DataProcessor:
             # Optimization: Use numpy values for calculation to avoid Series alignment overhead
             year_vals = df_proc["year"].values
             df_proc["xy"] = year_vals * df_proc["water_area_ha"].values
-            df_proc["xx"] = year_vals ** 2
+            df_proc["xx"] = year_vals**2
 
             # 2. Single GroupBy for all statistics
             # Optimization: groupby(sort=True) is faster than sort=False + explicit sort_index

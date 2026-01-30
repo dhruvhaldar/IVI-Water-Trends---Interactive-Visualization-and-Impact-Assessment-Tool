@@ -160,8 +160,12 @@ def cli(
             )
 
         # Log configuration
-        logger.info(f"Data directory: {ctx.obj['data_dir']}")
-        logger.info(f"Output directory: {ctx.obj['output_dir']}")
+        # Sanitize paths before logging to prevent terminal injection
+        safe_data_dir = sanitize_for_terminal(ctx.obj["data_dir"])
+        safe_output_dir = sanitize_for_terminal(ctx.obj["output_dir"])
+
+        logger.info(f"Data directory: {safe_data_dir}")
+        logger.info(f"Output directory: {safe_output_dir}")
         logger.info(f"Verbose mode: {'enabled' if verbose else 'disabled'}")
 
     except Exception as e:
@@ -197,8 +201,10 @@ def get_spatial_units(
         $ ivi-water-trends get-spatial-units --unit-type micro-watershed --output my_units.csv
     """
     try:
+        # Sanitize state before logging
+        safe_state = sanitize_for_terminal(state)
         logger.info(
-            f"Fetching spatial units with unit_type='{unit_type}', state='{state}'"
+            f"Fetching spatial units with unit_type='{unit_type}', state='{safe_state}'"
         )
 
         # Validate output filename
@@ -349,8 +355,10 @@ def fetch_water_data(
         $ ivi-water-trends fetch-water-data --locations V001 --start-year 2020 --end-year 2022 --seasons monsoon,winter
     """
     try:
+        # Sanitize locations before logging
+        safe_locations = sanitize_for_terminal(locations)
         logger.info(
-            f"Starting water data fetch: locations={locations}, years={start_year}-{end_year}"
+            f"Starting water data fetch: locations={safe_locations}, years={start_year}-{end_year}"
         )
 
         # Validate and parse locations

@@ -78,8 +78,8 @@ def test_key_value_equals_still_strict():
     text = "api_key=secret public_id=value"
     redacted = redact_text_content(text)
     assert "secret" not in redacted
-    assert "public_id" in redacted # Should not consume next key
-    assert "value" in redacted # public_id is not sensitive
+    assert "public_id" in redacted  # Should not consume next key
+    assert "value" in redacted  # public_id is not sensitive
 
 
 def test_json_like_string_unquoted():

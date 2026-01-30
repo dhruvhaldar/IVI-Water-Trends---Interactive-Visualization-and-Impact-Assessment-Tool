@@ -68,7 +68,9 @@ def test_batch_size_limits():
         client = CoREStackClient()
 
         # Should raise ValueError
-        with pytest.raises(ValueError, match=f"Batch size {len(large_batch)} exceeds maximum limit"):
+        with pytest.raises(
+            ValueError, match=f"Batch size {len(large_batch)} exceeds maximum limit"
+        ):
             client.get_water_trends_summary(large_batch, 2020, 2021)
 
         # Should NOT raise ValueError (mock request will fail later but validation passes)
@@ -79,10 +81,12 @@ def test_batch_size_limits():
     # Test DataProcessor
     processor = DataProcessor()
     mock_client = MagicMock()
-    mock_client.get_seasonal_water_data.return_value = {} # Mock return for valid call
+    mock_client.get_seasonal_water_data.return_value = {}  # Mock return for valid call
 
     # Should raise ValueError
-    with pytest.raises(ValueError, match=f"Batch size {len(large_batch)} exceeds maximum limit"):
+    with pytest.raises(
+        ValueError, match=f"Batch size {len(large_batch)} exceeds maximum limit"
+    ):
         processor.load_water_data_from_api(mock_client, large_batch, 2020, 2021)
 
     # Should NOT raise ValueError (will run but return empty/mocked data)

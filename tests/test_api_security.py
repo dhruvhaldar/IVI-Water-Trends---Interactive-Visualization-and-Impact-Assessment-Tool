@@ -57,7 +57,9 @@ class TestAPISecurity:
         mock_response.json.return_value = {"data": "success"}
         mock_response.encoding = "utf-8"
         # Use side_effect to return a fresh iterator for each call
-        mock_response.iter_content.side_effect = lambda chunk_size=None: iter([b'{"data": "success"}'])
+        mock_response.iter_content.side_effect = lambda chunk_size=None: iter(
+            [b'{"data": "success"}']
+        )
         client.session.request = MagicMock(return_value=mock_response)
 
         params = {"a": 1, "b": 2}

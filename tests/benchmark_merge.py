@@ -52,7 +52,9 @@ def benchmark_merge():
     print(f"Time taken: {duration_1:.4f} seconds")
 
     # Benchmark 2: Using the newly optimized _clean_nrm_data
-    print("\n--- Benchmark 2: Merging Categorical (Water) with Optimized _clean_nrm_data (NRM) ---")
+    print(
+        "\n--- Benchmark 2: Merging Categorical (Water) with Optimized _clean_nrm_data (NRM) ---"
+    )
     # This call should now convert to category automatically
     nrm_df_optimized = processor._clean_nrm_data(nrm_df_base.copy())
 

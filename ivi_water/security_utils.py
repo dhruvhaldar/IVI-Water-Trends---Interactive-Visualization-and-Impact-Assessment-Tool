@@ -114,7 +114,9 @@ class ScriptHasher(HTMLParser):
                 script_content = "".join(self.current_script)
                 if script_content:
                     # Calculate SHA-256 hash
-                    sha256_hash = hashlib.sha256(script_content.encode("utf-8")).digest()
+                    sha256_hash = hashlib.sha256(
+                        script_content.encode("utf-8")
+                    ).digest()
                     base64_hash = base64.b64encode(sha256_hash).decode("utf-8")
                     self.hashes.add(f"'sha256-{base64_hash}'")
 
@@ -296,8 +298,10 @@ def validate_safe_id(identifier: str) -> str:
         raise ValueError("Identifier cannot be empty")
 
     if not SAFE_ID_PATTERN.match(clean_id):
+        # Sanitize identifier in error message to prevent log injection
+        safe_id = sanitize_for_terminal(clean_id)
         raise ValueError(
-            f"Invalid identifier '{clean_id}'. "
+            f"Invalid identifier '{safe_id}'. "
             "Only alphanumeric characters, hyphens, and underscores are allowed."
         )
 
@@ -394,14 +398,18 @@ def redact_text_content(text: str) -> str:
     # 1. Double quotes: "value" - handles escaped double quotes \" and truncated strings
     # We use \\.? to handle escaped characters, including if the string is truncated right after backslash
     pattern_double = re.compile(
-        r'(?i)(["\']?)(' + keys_pattern + r')\1(\s*[:=]\s*)(")((?:[^"\\]|\\.?)*)(?:"|$)',
+        r'(?i)(["\']?)('
+        + keys_pattern
+        + r')\1(\s*[:=]\s*)(")((?:[^"\\]|\\.?)*)(?:"|$)',
         re.DOTALL,
     )
     text = pattern_double.sub(r'\1\2\1\3"***REDACTED***"', text)
 
     # 2. Single quotes: 'value' - handles escaped single quotes \' and truncated strings
     pattern_single = re.compile(
-        r'(?i)(["\']?)(' + keys_pattern + r")\1(\s*[:=]\s*)(\')((?:[^\'\\]|\\.?)*)(?:'|$)",
+        r'(?i)(["\']?)('
+        + keys_pattern
+        + r")\1(\s*[:=]\s*)(\')((?:[^\'\\]|\\.?)*)(?:'|$)",
         re.DOTALL,
     )
     # Note: Use plain string with ' for replacement to avoid double escaping issues
@@ -423,7 +431,7 @@ def redact_text_content(text: str) -> str:
     pattern_auth = re.compile(
         r'(?i)(["\']?)\b('
         + auth_keys_pattern
-        + r')\1(\s*[:=]\s*)((?:'
+        + r")\1(\s*[:=]\s*)((?:"
         + schemes_pattern
         + r")\s+)([^\"'\s,;}\]]+)",
         re.DOTALL,
@@ -454,7 +462,8 @@ def redact_text_content(text: str) -> str:
     # Uses lookahead (?=\S) to ensure value starts with non-whitespace, preventing
     # matches on just the space before a quoted value (e.g. "key": "value")
     pattern_unquoted_colon = re.compile(
-        r'(?i)(["\']?)(' + keys_pattern + r')\1(\s*:\s*)(?=\S)([^"\'\n\r,;}\]]+)', re.DOTALL
+        r'(?i)(["\']?)(' + keys_pattern + r')\1(\s*:\s*)(?=\S)([^"\'\n\r,;}\]]+)',
+        re.DOTALL,
     )
     text = pattern_unquoted_colon.sub(r"\1\2\1\3***REDACTED***", text)
 
@@ -516,9 +525,7 @@ def inject_csp_meta_tag(html_content: str) -> str:
         csp_content = CSP_META_CONTENT
 
     # Prepare CSP tag
-    csp_tag = (
-        f'<meta http-equiv="Content-Security-Policy" content="{csp_content}">'
-    )
+    csp_tag = f'<meta http-equiv="Content-Security-Policy" content="{csp_content}">'
 
     # Check if CSP is already present to avoid duplication
     if 'http-equiv="Content-Security-Policy"' in html_content:
@@ -557,10 +564,22 @@ def sanitize_for_terminal(text: str) -> str:
 
     # Remove ANSI escape sequences
     # Pattern covers 7-bit C1 ANSI sequences
-    ansi_escape = re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])')
-    text = ansi_escape.sub('', text)
+    ansi_escape = re.compile(r"\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])")
+    text = ansi_escape.sub("", text)
 
     # Remove other control characters (except newlines and tabs)
-    # We allow \n, \r, \t. We remove everything else < 32 (space) and DEL (127).
-    # This prevents bell characters (\a), backspaces (\b) used for hiding text, etc.
-    return "".join(ch for ch in text if ch in '\n\r\t' or ch >= ' ')
+    # We escape \n, \r, \t to prevent Log Injection/Forging and preserve layout
+    # We remove everything else < 32 (space) and DEL (127).
+    sanitized = []
+    for ch in text:
+        if ch == "\n":
+            sanitized.append("\\n")
+        elif ch == "\r":
+            sanitized.append("\\r")
+        elif ch == "\t":
+            sanitized.append("\\t")
+        elif ch >= " ":
+            sanitized.append(ch)
+        # Drop other control characters
+
+    return "".join(sanitized)
