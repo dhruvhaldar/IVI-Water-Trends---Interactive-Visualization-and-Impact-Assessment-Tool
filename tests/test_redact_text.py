@@ -62,7 +62,7 @@ def test_authorization_header_redaction():
     redacted = redact_text_content(header)
     assert "secret_token_12345" not in redacted
     assert "***REDACTED***" in redacted
-    assert "Bearer" not in redacted  # It's part of the value, so it should be redacted
+    assert "Bearer" in redacted  # The scheme should be preserved for debugging
 
 
 def test_key_value_with_spaces_colon():
@@ -88,3 +88,18 @@ def test_json_like_string_unquoted():
     redacted = redact_text_content(text)
     assert "secret value" not in redacted
     assert "other" in redacted
+
+
+def test_suffix_key_preservation():
+    # keys matching as suffix of other words should not trigger redaction
+    # 'key' is sensitive, but 'monkey' should be preserved
+    text = 'monkey="banana"'
+    redacted = redact_text_content(text)
+    assert 'monkey="banana"' in redacted
+    assert "***REDACTED***" not in redacted
+
+    # 'token' is sensitive, but 'public_token' (if not in sensitive list) should ideally be preserved
+    # 'public_token' ends with 'token'. '_' is a word char, so \b does not match.
+    text = 'public_token="safe"'
+    redacted = redact_text_content(text)
+    assert 'public_token="safe"' in redacted
