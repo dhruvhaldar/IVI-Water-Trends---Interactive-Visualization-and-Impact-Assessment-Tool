@@ -399,6 +399,9 @@ class ExportUtils:
         if not filename:
             filename = f"summary_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
 
+        # Sanitize filename
+        filename = sanitize_filename(filename)
+
         # Create PDF report
         if REPORTLAB_AVAILABLE:
             return self._create_pdf_report(df, output_path, filename)
@@ -562,6 +565,9 @@ class ExportUtils:
         if not filename:
             filename = f"short_summary_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
 
+        # Sanitize filename
+        filename = sanitize_filename(filename)
+
         filepath = output_path / f"{filename}.txt"
 
         # Extract key insights
@@ -697,6 +703,9 @@ class ExportUtils:
         if not filename:
             filename = f"detailed_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
 
+        # Sanitize filename
+        filename = sanitize_filename(filename)
+
         # Create multiple files for detailed report
         report_files = []
 
@@ -764,6 +773,8 @@ For questions or support, contact: IVI Water Trends Team"""
         Returns:
             List of exported file paths
         """
+        # Sanitize prefix
+        filename_prefix = sanitize_filename(filename_prefix)
         exported_files = []
 
         for i, fig in enumerate(figures):
