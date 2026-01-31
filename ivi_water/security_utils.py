@@ -363,6 +363,7 @@ def redact_text_content(text: str) -> str:
     # We handle quoted values specially
 
     # 1. Match quoted values: key="value with spaces"
+    # Note: pattern_quoted is legacy/unused in favor of pattern_double/single below
     pattern_quoted = re.compile(
         r"(?i)\b(" + keys_pattern + r')\b\s*[:=]\s*(["\'])(.*?)\2', re.DOTALL
     )
@@ -393,15 +394,21 @@ def redact_text_content(text: str) -> str:
 
     # 1. Double quotes: "value" - handles escaped double quotes \" and truncated strings
     # We use \\.? to handle escaped characters, including if the string is truncated right after backslash
+    # Added \b (word boundary) to prevent matching keys as suffixes (e.g. skey="val" matching key)
     pattern_double = re.compile(
-        r'(?i)(["\']?)(' + keys_pattern + r')\1(\s*[:=]\s*)(")((?:[^"\\]|\\.?)*)(?:"|$)',
+        r'(?i)(["\']?)\b('
+        + keys_pattern
+        + r')\1(\s*[:=]\s*)(")((?:[^"\\]|\\.?)*)(?:"|$)',
         re.DOTALL,
     )
     text = pattern_double.sub(r'\1\2\1\3"***REDACTED***"', text)
 
     # 2. Single quotes: 'value' - handles escaped single quotes \' and truncated strings
+    # Added \b (word boundary) to prevent matching keys as suffixes
     pattern_single = re.compile(
-        r'(?i)(["\']?)(' + keys_pattern + r")\1(\s*[:=]\s*)(\')((?:[^\'\\]|\\.?)*)(?:'|$)",
+        r'(?i)(["\']?)\b('
+        + keys_pattern
+        + r")\1(\s*[:=]\s*)(\')((?:[^\'\\]|\\.?)*)(?:'|$)",
         re.DOTALL,
     )
     # Note: Use plain string with ' for replacement to avoid double escaping issues
@@ -429,9 +436,12 @@ def redact_text_content(text: str) -> str:
         re.DOTALL,
     )
 
-    # Replace with: \1\2\1\3\4***REDACTED***
+    # Replace with: \1\2_IVIPROTECTED_\1\3\4***REDACTED***
+    # We append _IVIPROTECTED_ to the key to prevent subsequent generic patterns
+    # (which use \b word boundary) from matching 'Authorization_IVIPROTECTED_'
+    # and re-redacting the preserved scheme.
     # \1 (Quote), \2 (Key), \1 (Quote Match), \3 (Separator), \4 (Scheme+Space)
-    text = pattern_auth.sub(r"\1\2\1\3\4***REDACTED***", text)
+    text = pattern_auth.sub(r"\1\2_IVIPROTECTED_\1\3\4***REDACTED***", text)
 
     # 4. For unquoted: Replace group 4 (value) with ***REDACTED***
     # Group 1: Optional Quote
@@ -442,8 +452,12 @@ def redact_text_content(text: str) -> str:
     # 3. Unquoted values with '=' (strict whitespace termination)
     # Handles query params, shell-style (key=value next=val)
     # Stops at whitespace, comma, semicolon, braces/brackets
+    # Added \b (word boundary) to prevent matching keys as suffixes
     pattern_unquoted_equals = re.compile(
-        r'(?i)(["\']?)(' + keys_pattern + r')\1(\s*=\s*)([^"\'\s,;}\]]+)', re.DOTALL
+        r'(?i)(["\']?)\b('
+        + keys_pattern
+        + r')\1(\s*=\s*)([^"\'\s,;}\]]+)',
+        re.DOTALL,
     )
     text = pattern_unquoted_equals.sub(r"\1\2\1\3***REDACTED***", text)
 
@@ -453,10 +467,17 @@ def redact_text_content(text: str) -> str:
     # Explicitly excludes newlines (\n\r) to prevent multi-line consumption
     # Uses lookahead (?=\S) to ensure value starts with non-whitespace, preventing
     # matches on just the space before a quoted value (e.g. "key": "value")
+    # Added \b (word boundary) to prevent matching keys as suffixes
     pattern_unquoted_colon = re.compile(
-        r'(?i)(["\']?)(' + keys_pattern + r')\1(\s*:\s*)(?=\S)([^"\'\n\r,;}\]]+)', re.DOTALL
+        r'(?i)(["\']?)\b('
+        + keys_pattern
+        + r')\1(\s*:\s*)(?=\S)([^"\'\n\r,;}\]]+)',
+        re.DOTALL,
     )
     text = pattern_unquoted_colon.sub(r"\1\2\1\3***REDACTED***", text)
+
+    # Restore Authorization keys by removing the protection suffix
+    text = text.replace("_IVIPROTECTED_", "")
 
     return text
 
