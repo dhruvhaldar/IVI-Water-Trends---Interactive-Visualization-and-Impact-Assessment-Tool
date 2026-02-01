@@ -584,4 +584,7 @@ def sanitize_for_terminal(text: str) -> str:
     # Remove other control characters (except newlines and tabs)
     # We allow \n, \r, \t. We remove everything else < 32 (space) and DEL (127).
     # This prevents bell characters (\a), backspaces (\b) used for hiding text, etc.
-    return "".join(ch for ch in text if ch in '\n\r\t' or ch >= ' ')
+    filtered = "".join(ch for ch in text if ch in '\n\r\t' or ch >= ' ')
+
+    # Escape newlines and tabs to prevent Log Injection
+    return filtered.replace("\\", "\\\\").replace("\n", "\\n").replace("\r", "\\r").replace("\t", "\\t")

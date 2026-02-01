@@ -29,13 +29,17 @@ def test_sanitize_control_chars():
     assert sanitize_for_terminal("Null\0") == "Null"
 
 def test_sanitize_preserve_formatting():
-    """Test preservation of allowed control characters."""
+    """Test escaping of allowed control characters."""
     # Newline
-    assert sanitize_for_terminal("Line 1\nLine 2") == "Line 1\nLine 2"
+    assert sanitize_for_terminal("Line 1\nLine 2") == "Line 1\\nLine 2"
     # Tab
-    assert sanitize_for_terminal("Col 1\tCol 2") == "Col 1\tCol 2"
+    assert sanitize_for_terminal("Col 1\tCol 2") == "Col 1\\tCol 2"
     # Carriage return
-    assert sanitize_for_terminal("Line\rReturn") == "Line\rReturn"
+    assert sanitize_for_terminal("Line\rReturn") == "Line\\rReturn"
+
+def test_sanitize_backslashes():
+    """Test escaping of backslashes."""
+    assert sanitize_for_terminal("C:\\Windows") == "C:\\\\Windows"
 
 def test_sanitize_non_string():
     """Test handling of non-string inputs."""
