@@ -28,14 +28,20 @@ def test_sanitize_control_chars():
     # Null char
     assert sanitize_for_terminal("Null\0") == "Null"
 
-def test_sanitize_preserve_formatting():
-    """Test preservation of allowed control characters."""
+def test_sanitize_escapes_formatting():
+    """Test escaping of control characters."""
     # Newline
-    assert sanitize_for_terminal("Line 1\nLine 2") == "Line 1\nLine 2"
+    assert sanitize_for_terminal("Line 1\nLine 2") == "Line 1\\nLine 2"
     # Tab
-    assert sanitize_for_terminal("Col 1\tCol 2") == "Col 1\tCol 2"
+    assert sanitize_for_terminal("Col 1\tCol 2") == "Col 1\\tCol 2"
     # Carriage return
-    assert sanitize_for_terminal("Line\rReturn") == "Line\rReturn"
+    assert sanitize_for_terminal("Line\rReturn") == "Line\\rReturn"
+
+def test_log_injection_prevention():
+    """Test prevention of log injection/forging."""
+    malicious_input = "User logged in\n[INFO] Admin user created"
+    expected = "User logged in\\n[INFO] Admin user created"
+    assert sanitize_for_terminal(malicious_input) == expected
 
 def test_sanitize_non_string():
     """Test handling of non-string inputs."""
