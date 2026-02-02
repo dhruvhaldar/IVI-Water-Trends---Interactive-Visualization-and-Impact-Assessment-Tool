@@ -46,6 +46,21 @@ class TestSecurityValidation:
         with pytest.raises(ValueError, match="Identifier must be a string"):
             validate_safe_id(123)
 
+    def test_validate_safe_id_log_injection(self):
+        """Test that exception message sanitizes control characters."""
+        # Payload with newline that could cause log injection
+        payload = "valid\n[INFO] Fake Log"
+
+        # Verify that the newline is escaped in the error message
+        # We expect 'valid\\n[INFO] Fake Log' in the message, NOT a literal newline
+        with pytest.raises(ValueError) as excinfo:
+            validate_safe_id(payload)
+
+        error_msg = str(excinfo.value)
+        assert "\\n" in error_msg
+        # Ensure no real newlines exist (except maybe at end of string if python adds one, but ValueError shouldn't)
+        assert "\n" not in error_msg
+
     def test_hash_data(self):
         """Test SHA-256 hashing."""
         data = "test_data"
