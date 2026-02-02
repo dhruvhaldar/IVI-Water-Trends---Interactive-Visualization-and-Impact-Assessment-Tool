@@ -5,3 +5,7 @@
 ## 2025-03-01 - [Categorical Merge & Sort Optimization]
 **Learning:** Merging and sorting DataFrames on `category` columns is significantly faster (~20-25%) than on `object` (string) columns. Converting to `category` *before* sorting (e.g. in `sort_values`) improves the sort performance as well.
 **Action:** Ensure string columns used for joining or sorting are converted to `category` dtype upstream (e.g. in data cleaning/loading methods) to benefit downstream operations.
+
+## 2025-03-01 - [Merging Categorical Data]
+**Learning:** `pd.merge` operations may revert categorical merge keys to `object` (string) dtype, especially if categories are not perfectly aligned or if using Pandas < 3.0. This degrades performance of subsequent operations like `sort_values` or `groupby` on those keys.
+**Action:** Explicitly restore `category` dtype for merge keys after `pd.merge` and before subsequent operations to maintain performance benefits.

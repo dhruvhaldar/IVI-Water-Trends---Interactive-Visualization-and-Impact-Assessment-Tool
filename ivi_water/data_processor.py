@@ -1063,6 +1063,19 @@ class DataProcessor:
             # Remove the merge indicator column
             merged_df = merged_df.drop(columns=["_merge"])
 
+            # Optimization: Restore category dtype for merge keys if they reverted to object
+            # This speeds up sorting and downstream aggregations
+            for col in merge_on:
+                if col in merged_df.columns:
+                    # Check if column is object/string type (needs conversion)
+                    is_object = pd.api.types.is_object_dtype(
+                        merged_df[col]
+                    ) or pd.api.types.is_string_dtype(merged_df[col])
+                    if is_object:
+                        # Check if it was categorical in water_df (primary source)
+                        if isinstance(water_df[col].dtype, pd.CategoricalDtype):
+                            merged_df[col] = merged_df[col].astype("category")
+
             # Log merge statistics
             total_records = len(merged_df)
             matched_records = merged_df["nrm_data_available"].sum()
