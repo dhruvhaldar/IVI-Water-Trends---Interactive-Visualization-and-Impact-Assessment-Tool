@@ -581,7 +581,21 @@ def sanitize_for_terminal(text: str) -> str:
     ansi_escape = re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])')
     text = ansi_escape.sub('', text)
 
-    # Remove other control characters (except newlines and tabs)
-    # We allow \n, \r, \t. We remove everything else < 32 (space) and DEL (127).
-    # This prevents bell characters (\a), backspaces (\b) used for hiding text, etc.
-    return "".join(ch for ch in text if ch in '\n\r\t' or ch >= ' ')
+    # Escape control characters
+    # We escape \n, \r, \t to prevent Log Injection and Terminal Injection
+    # We remove other control characters (< 32 and DEL)
+    safe_text = []
+    for ch in text:
+        if ch == '\n':
+            safe_text.append('\\n')
+        elif ch == '\r':
+            safe_text.append('\\r')
+        elif ch == '\t':
+            safe_text.append('\\t')
+        elif ch < ' ' or ch == '\x7f':
+            # Skip other control characters
+            continue
+        else:
+            safe_text.append(ch)
+
+    return "".join(safe_text)

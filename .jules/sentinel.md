@@ -42,3 +42,8 @@
 **Vulnerability:** The CLI tool printed data received from the API directly to the terminal without sanitization. If the API response contained ANSI escape sequences (e.g., from a compromised server or malicious data), it could hide output, spoof information, or potentially execute commands in vulnerable terminals.
 **Learning:** Data from external sources (APIs, files) is untrusted even when displayed in a CLI. Terminal output is an injection vector just like HTML or SQL.
 **Prevention:** Implement a `sanitize_for_terminal` utility that strips ANSI escape codes and unsafe control characters before printing any dynamic content to stdout.
+
+## 2024-05-25 - Log Injection via Control Character Preservation
+**Vulnerability:** The `sanitize_for_terminal` utility preserved newline (`\n`), carriage return (`\r`), and tab (`\t`) characters, allowing attackers to forge log entries or manipulate terminal output (Log Injection).
+**Learning:** "Sanitizing" for terminal display often implies preserving formatting (like newlines), but for security logs, *any* control character can be used to spoof entries.
+**Prevention:** Escape control characters (e.g., replace `\n` with literal `\\n`) in sanitization functions intended for logging or untrusted output, ensuring the content is visible but structurally inert.
