@@ -1108,9 +1108,15 @@ class DataProcessor:
                     "Check if location_id and year values match between datasets."
                 )
 
-            # Sort for consistent ordering
-            # Optimization: Use inplace sort to avoid creating an extra copy of the DataFrame
-            merged_df.sort_values(merge_on + ["season"], inplace=True)
+            # Optimization: pd.merge(how='left') preserves left key order.
+            # Since water_df is already sorted by _clean_water_data, redundant sort is removed.
+            # This saves significant time (O(N log N)) on large datasets.
+
+            # Optimization: Restore category dtype for location_id if reverted to object/string during merge
+            # This is critical for downstream groupby performance in calculate_water_trends
+            if "location_id" in merged_df.columns and not isinstance(merged_df["location_id"].dtype, pd.CategoricalDtype):
+                merged_df["location_id"] = merged_df["location_id"].astype("category")
+
             merged_df.reset_index(drop=True, inplace=True)
 
             return merged_df
