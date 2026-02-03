@@ -67,6 +67,66 @@ MAX_ID_LENGTH = 128
 # Blocks everything else (default-src 'none') to prevent XSS/exfiltration
 CSP_META_CONTENT = "default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src 'self' data:;"
 
+# --- Pre-compiled Regex Patterns (Performance Optimization) ---
+
+# Construct regex components for sensitive keys
+_KEYS_PATTERN = "|".join(re.escape(k) for k in SENSITIVE_KEYS)
+
+# 1. Double quotes: "value" - handles escaped double quotes \" and truncated strings
+_PATTERN_DOUBLE = re.compile(
+    r'(?i)(["\']?)\b('
+    + _KEYS_PATTERN
+    + r')\1(\s*[:=]\s*)(")((?:[^"\\]|\\.?)*)(?:"|$)',
+    re.DOTALL,
+)
+
+# 2. Single quotes: 'value' - handles escaped single quotes \' and truncated strings
+_PATTERN_SINGLE = re.compile(
+    r'(?i)(["\']?)\b('
+    + _KEYS_PATTERN
+    + r")\1(\s*[:=]\s*)(\')((?:[^\'\\]|\\.?)*)(?:'|$)",
+    re.DOTALL,
+)
+
+# 3. Special handling for Authorization headers
+_SCHEMES_PATTERN = "|".join(re.escape(s) for s in AUTH_PREFIXES)
+_AUTH_KEYS_PATTERN = r"(?:Proxy-)?Authorization"
+
+_PATTERN_AUTH = re.compile(
+    r'(?i)(["\']?)\b('
+    + _AUTH_KEYS_PATTERN
+    + r')\1(\s*[:=]\s*)((?:'
+    + _SCHEMES_PATTERN
+    + r")\s+)([^\"'\s,;}\]]+)",
+    re.DOTALL,
+)
+
+# 4. Unquoted values with '='
+_PATTERN_UNQUOTED_EQUALS = re.compile(
+    r'(?i)(["\']?)\b('
+    + _KEYS_PATTERN
+    + r')\1(\s*=\s*)([^"\'\s,;}\]]+)',
+    re.DOTALL,
+)
+
+# 5. Unquoted values with ':'
+_PATTERN_UNQUOTED_COLON = re.compile(
+    r'(?i)(["\']?)\b('
+    + _KEYS_PATTERN
+    + r')\1(\s*:\s*)(?=\S)([^"\'\n\r,;}\]]+)',
+    re.DOTALL,
+)
+
+# --- Terminal Sanitization Patterns ---
+
+# Remove ANSI escape sequences (7-bit C1 ANSI sequences)
+_ANSI_ESCAPE_PATTERN = re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])')
+
+# Remove unsafe control characters (0-31 except 9,10,13; and 127)
+# \t(9), \n(10), \r(13) are safe to keep (or rather, escape)
+# Range \x00-\x08, \x0B, \x0C, \x0E-\x1F, \x7F
+_UNSAFE_CONTROL_PATTERN = re.compile(r'[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]')
+
 
 class ScriptHasher(HTMLParser):
     """
@@ -345,136 +405,12 @@ def redact_text_content(text: str) -> str:
     if not text or not isinstance(text, str):
         return text
 
-    # Pattern explanation:
-    # (?i)          : Case-insensitive
-    # \b            : Word boundary (start of key)
-    # (KEY1|KEY2...) : Match any sensitive key
-    # \b            : Word boundary (end of key)
-    # \s*[:=]\s*    : Separator (: or =) with optional whitespace
-    # (["']?)       : Capture group 2: Optional opening quote
-    # (.*?)         : Capture group 3: The value (non-greedy)
-    # \2            : Match the closing quote (same as group 2)
-    # (?=[\s,;}]|$) : Lookahead for separator (space, comma, semicolon, closing brace) or end of string
-
-    # We construct the regex dynamically based on SENSITIVE_KEYS
-    keys_pattern = "|".join(re.escape(k) for k in SENSITIVE_KEYS)
-
-    # Simple pattern for standard assignments (key=value, key: value) without internal spaces/commas in value
-    # We handle quoted values specially
-
-    # 1. Match quoted values: key="value with spaces"
-    # Note: pattern_quoted is legacy/unused in favor of pattern_double/single below
-    pattern_quoted = re.compile(
-        r"(?i)\b(" + keys_pattern + r')\b\s*[:=]\s*(["\'])(.*?)\2', re.DOTALL
-    )
-
-    # 2. Match unquoted values: key=value (stops at space/comma/semicolon/newline)
-    # The first definition of pattern_unquoted was redundant and confusing.
-
-    # Apply redaction
-    # For quoted: Replace group 3 with ***REDACTED***
-    # Use \g<0> approach to preserve separator?
-    # No, we can capture the separator group if we modify regex.
-    # Current regex: \b(KEY)\b\s*[:=]\s*(["'])(.*?)\2
-    # It consumes the separator.
-    # To fix test_json_like failure where separator changed from : to =,
-    # we need to capture the separator.
-
-    # Redefine patterns to capture separator and surrounding whitespace
-    # Group 1: Key (optionally quoted)
-    # Group 2: Separator with optional surrounding whitespace
-    # Group 3: Opening quote
-    # Group 4: Value
-
-    # We need to handle optional quotes around the key for JSON-like strings
-    # "key": "value" or 'key': 'value'
-
-    # We use two patterns: one for double quotes, one for single quotes,
-    # to correctly handle escaping within each type.
-
-    # 1. Double quotes: "value" - handles escaped double quotes \" and truncated strings
-    # We use \\.? to handle escaped characters, including if the string is truncated right after backslash
-    # Added \b (word boundary) to prevent matching keys as suffixes (e.g. skey="val" matching key)
-    pattern_double = re.compile(
-        r'(?i)(["\']?)\b('
-        + keys_pattern
-        + r')\1(\s*[:=]\s*)(")((?:[^"\\]|\\.?)*)(?:"|$)',
-        re.DOTALL,
-    )
-    text = pattern_double.sub(r'\1\2\1\3"***REDACTED***"', text)
-
-    # 2. Single quotes: 'value' - handles escaped single quotes \' and truncated strings
-    # Added \b (word boundary) to prevent matching keys as suffixes
-    pattern_single = re.compile(
-        r'(?i)(["\']?)\b('
-        + keys_pattern
-        + r")\1(\s*[:=]\s*)(\')((?:[^\'\\]|\\.?)*)(?:'|$)",
-        re.DOTALL,
-    )
-    # Note: Use plain string with ' for replacement to avoid double escaping issues
-    text = pattern_single.sub(r"\1\2\1\3'***REDACTED***'", text)
-
-    # 3. Special handling for Authorization headers with schemes (Bearer/Basic etc.)
-    # Matches: Authorization: Scheme <token>
-    # We construct a pattern for the schemes
-    schemes_pattern = "|".join(re.escape(s) for s in AUTH_PREFIXES)
-
-    # Matches:
-    # Group 1: Quote (optional)
-    # Group 2: Key (Authorization/Proxy-Authorization)
-    # Group 3: Separator
-    # Group 4: Scheme + Space
-    # Group 5: Token (non-separator)
-    auth_keys_pattern = r"(?:Proxy-)?Authorization"
-
-    pattern_auth = re.compile(
-        r'(?i)(["\']?)\b('
-        + auth_keys_pattern
-        + r')\1(\s*[:=]\s*)((?:'
-        + schemes_pattern
-        + r")\s+)([^\"'\s,;}\]]+)",
-        re.DOTALL,
-    )
-
-    # Replace with: \1\2_IVIPROTECTED_\1\3\4***REDACTED***
-    # We append _IVIPROTECTED_ to the key to prevent subsequent generic patterns
-    # (which use \b word boundary) from matching 'Authorization_IVIPROTECTED_'
-    # and re-redacting the preserved scheme.
-    # \1 (Quote), \2 (Key), \1 (Quote Match), \3 (Separator), \4 (Scheme+Space)
-    text = pattern_auth.sub(r"\1\2_IVIPROTECTED_\1\3\4***REDACTED***", text)
-
-    # 4. For unquoted: Replace group 4 (value) with ***REDACTED***
-    # Group 1: Optional Quote
-    # Group 2: Key
-    # Group 3: Separator with optional surrounding whitespace
-    # Group 4: Value (varies based on separator)
-
-    # 3. Unquoted values with '=' (strict whitespace termination)
-    # Handles query params, shell-style (key=value next=val)
-    # Stops at whitespace, comma, semicolon, braces/brackets
-    # Added \b (word boundary) to prevent matching keys as suffixes
-    pattern_unquoted_equals = re.compile(
-        r'(?i)(["\']?)\b('
-        + keys_pattern
-        + r')\1(\s*=\s*)([^"\'\s,;}\]]+)',
-        re.DOTALL,
-    )
-    text = pattern_unquoted_equals.sub(r"\1\2\1\3***REDACTED***", text)
-
-    # 4. Unquoted values with ':' (permissive space, strict delimiter termination)
-    # Handles HTTP headers (Authorization: Bearer token), YAML-style, JSON-like (key: value with spaces)
-    # Allows spaces but stops at newline, comma, semicolon, braces/brackets
-    # Explicitly excludes newlines (\n\r) to prevent multi-line consumption
-    # Uses lookahead (?=\S) to ensure value starts with non-whitespace, preventing
-    # matches on just the space before a quoted value (e.g. "key": "value")
-    # Added \b (word boundary) to prevent matching keys as suffixes
-    pattern_unquoted_colon = re.compile(
-        r'(?i)(["\']?)\b('
-        + keys_pattern
-        + r')\1(\s*:\s*)(?=\S)([^"\'\n\r,;}\]]+)',
-        re.DOTALL,
-    )
-    text = pattern_unquoted_colon.sub(r"\1\2\1\3***REDACTED***", text)
+    # Apply redaction using pre-compiled regexes
+    text = _PATTERN_DOUBLE.sub(r'\1\2\1\3"***REDACTED***"', text)
+    text = _PATTERN_SINGLE.sub(r"\1\2\1\3'***REDACTED***'", text)
+    text = _PATTERN_AUTH.sub(r"\1\2_IVIPROTECTED_\1\3\4***REDACTED***", text)
+    text = _PATTERN_UNQUOTED_EQUALS.sub(r"\1\2\1\3***REDACTED***", text)
+    text = _PATTERN_UNQUOTED_COLON.sub(r"\1\2\1\3***REDACTED***", text)
 
     # Restore Authorization keys by removing the protection suffix
     text = text.replace("_IVIPROTECTED_", "")
@@ -517,14 +453,7 @@ def inject_csp_meta_tag(html_content: str) -> str:
 
         script_policy = " ".join(script_srcs)
 
-        # If we have hashes or sources, use them. Otherwise fallback to unsafe-inline
-        # (though ideally we should fail closed, but empty script_srcs means no scripts found,
-        # so 'self' is fine).
-        # Wait, if there ARE scripts but parser failed to find them (unlikely with this parser),
-        # they would be blocked. This is good (Fail Closed).
-
         # Construct strict policy
-        # Note: style-src 'unsafe-inline' is still needed for Plotly's inline styles
         csp_content = (
             f"default-src 'none'; "
             f"script-src {script_policy}; "
@@ -567,6 +496,9 @@ def sanitize_for_terminal(text: str) -> str:
     terminal injection attacks (e.g. hiding output, spoofing, or executing commands
     in vulnerable terminals).
 
+    Safe control characters (newline, tab, carriage return) are escaped to their
+    literal representation (e.g. \\n) to preserve visibility while preventing execution.
+
     Args:
         text: Input text.
 
@@ -577,11 +509,12 @@ def sanitize_for_terminal(text: str) -> str:
         return str(text)
 
     # Remove ANSI escape sequences
-    # Pattern covers 7-bit C1 ANSI sequences
-    ansi_escape = re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])')
-    text = ansi_escape.sub('', text)
+    text = _ANSI_ESCAPE_PATTERN.sub('', text)
 
-    # Remove other control characters (except newlines and tabs)
-    # We allow \n, \r, \t. We remove everything else < 32 (space) and DEL (127).
-    # This prevents bell characters (\a), backspaces (\b) used for hiding text, etc.
-    return "".join(ch for ch in text if ch in '\n\r\t' or ch >= ' ')
+    # Remove unsafe control characters
+    text = _UNSAFE_CONTROL_PATTERN.sub('', text)
+
+    # Escape safe control characters to prevent injection/formatting issues
+    text = text.replace('\n', '\\n').replace('\r', '\\r').replace('\t', '\\t')
+
+    return text
