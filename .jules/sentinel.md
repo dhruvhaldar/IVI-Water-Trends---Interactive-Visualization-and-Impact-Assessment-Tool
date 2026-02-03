@@ -35,10 +35,15 @@
 
 ## 2024-05-25 - Information Leakage in Truncated Logs
 **Vulnerability:** The regex-based redaction utility (`redact_text_content`) required a closing quote to identify sensitive values (e.g., `key="value"`). If a log message was truncated (e.g., due to buffer limits), the closing quote would be missing, causing the regex to fail and the partial sensitive value to be leaked in plain text.
-**Learning:** Security controls based on pattern matching must account for data stream interruptions. Regexes that strictly expect complete syntax (like closing quotes) fail securely in "open" contexts but fail insecurely in truncated contexts.
+**Learning:** Security controls based on pattern matching must account for data stream interruptions. Regexes that strictly expect complete syntax (like closing quotes) fail insecurely in "open" contexts but fail insecurely in truncated contexts.
 **Prevention:** Design redaction patterns to be resilient to truncation. Modify regexes to accept either the expected terminator (closing quote) OR the end of the string (`$`) as a valid match termination condition, ensuring that even partial secrets are redacted.
 
 ## 2024-05-25 - Terminal Injection Prevention
 **Vulnerability:** The CLI tool printed data received from the API directly to the terminal without sanitization. If the API response contained ANSI escape sequences (e.g., from a compromised server or malicious data), it could hide output, spoof information, or potentially execute commands in vulnerable terminals.
 **Learning:** Data from external sources (APIs, files) is untrusted even when displayed in a CLI. Terminal output is an injection vector just like HTML or SQL.
 **Prevention:** Implement a `sanitize_for_terminal` utility that strips ANSI escape codes and unsafe control characters before printing any dynamic content to stdout.
+
+## 2024-05-25 - Log Forging via Carriage Returns
+**Vulnerability:** The `sanitize_for_terminal` utility preserved carriage returns (`\\r`), allowing attackers to overwrite previous log content and spoof log entries (Log Forging).
+**Learning:** "Sanitizing" for terminal output implies removing *all* control over the cursor, not just removing ANSI codes. `\\r` is a control character that allows overwriting the line, which is a security risk in logs.
+**Prevention:** Escape safe-but-formatting control characters (`\\n`, `\\r`, `\\t`) to their literal representations (e.g., `\\r` -> `\\\\r`) to ensure log integrity and visibility of the raw input.
