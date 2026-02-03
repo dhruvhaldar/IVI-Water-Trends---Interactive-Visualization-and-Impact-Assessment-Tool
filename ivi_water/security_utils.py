@@ -356,8 +356,11 @@ def validate_safe_id(identifier: str) -> str:
         raise ValueError("Identifier cannot be empty")
 
     if not SAFE_ID_PATTERN.match(clean_id):
+        # Use repr() to escape control characters (like newlines) in the error message
+        # to prevent log injection if the exception is logged.
+        safe_id_repr = repr(clean_id)
         raise ValueError(
-            f"Invalid identifier '{clean_id}'. "
+            f"Invalid identifier {safe_id_repr}. "
             "Only alphanumeric characters, hyphens, and underscores are allowed."
         )
 
