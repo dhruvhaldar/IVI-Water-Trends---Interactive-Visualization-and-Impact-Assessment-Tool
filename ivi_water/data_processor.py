@@ -879,9 +879,15 @@ class DataProcessor:
                     invalid_values = df_clean.loc[
                         relevant_invalid_mask, "intervention_type"
                     ].unique()
+
+                    # Sanitize values before logging to prevent terminal injection
+                    safe_invalid_values = [
+                        sanitize_for_terminal(str(v)) for v in invalid_values
+                    ]
+
                     self.logger.warning(
                         f"Found {relevant_invalid_mask.sum()} records with unrecognized intervention types: "
-                        f"{invalid_values}"
+                        f"{safe_invalid_values}"
                     )
                     # Keep them but log the issue
 
@@ -954,7 +960,12 @@ class DataProcessor:
                 intervention_stats = (
                     df_clean["intervention_type"].value_counts().to_dict()
                 )
-                self.logger.info(f"Intervention types: {intervention_stats}")
+                # Sanitize keys to prevent terminal injection
+                safe_stats = {
+                    sanitize_for_terminal(str(k)): v
+                    for k, v in intervention_stats.items()
+                }
+                self.logger.info(f"Intervention types: {safe_stats}")
 
             # Warn if too much data was removed
             if removal_rate > 50:
