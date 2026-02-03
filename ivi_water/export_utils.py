@@ -764,6 +764,13 @@ For questions or support, contact: IVI Water Trends Team"""
         Returns:
             List of exported file paths
         """
+        # Sanitize filename prefix to prevent path traversal
+        try:
+            filename_prefix = sanitize_filename(filename_prefix)
+        except ValueError as e:
+            self.logger.error(f"Invalid filename prefix: {e}")
+            raise
+
         exported_files = []
 
         for i, fig in enumerate(figures):
