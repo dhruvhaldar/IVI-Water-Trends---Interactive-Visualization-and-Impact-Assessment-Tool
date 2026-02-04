@@ -124,6 +124,13 @@ _PATTERN_UNQUOTED_COLON = re.compile(
     re.DOTALL,
 )
 
+# 6. Sensitive keys in dictionary keys (exact match or suffix after _ or -)
+# Matches: key, my_key, my-key
+_SENSITIVE_KEY_REGEX = re.compile(
+    r'(?:^|[_-])(?:' + _KEYS_PATTERN + r')$',
+    re.IGNORECASE
+)
+
 # --- Terminal Sanitization Patterns ---
 
 # Remove ANSI escape sequences (7-bit C1 ANSI sequences)
@@ -216,23 +223,8 @@ def redact_sensitive_data(
         redacted = {}
         for key, value in data.items():
             if isinstance(key, str):
-                # Check exact match or part of snake_case/kebab-case
-                is_sensitive = False
-                key_lower = key.lower()
-                if key_lower in SENSITIVE_KEYS:
-                    is_sensitive = True
-                else:
-                    for sensitive in SENSITIVE_KEYS:
-                        # Check for _sensitive and -sensitive suffixes
-                        if (
-                            key_lower == sensitive
-                            or key_lower.endswith(f"_{sensitive}")
-                            or key_lower.endswith(f"-{sensitive}")
-                        ):
-                            is_sensitive = True
-                            break
-
-                if is_sensitive:
+                # Optimization: Use pre-compiled regex for O(1) matching instead of O(N) loop
+                if _SENSITIVE_KEY_REGEX.search(key):
                     redacted[key] = "***REDACTED***"
                 else:
                     redacted[key] = redact_sensitive_data(
