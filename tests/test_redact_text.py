@@ -103,3 +103,30 @@ def test_suffix_key_preservation():
     text = 'public_token="safe"'
     redacted = redact_text_content(text)
     assert 'public_token="safe"' in redacted
+
+
+def test_redact_cookies_and_tokens():
+    """Test redaction of cookies, sessions, and AWS tokens."""
+    # Cookie header
+    text = "Cookie: session_id=secret123; other=value"
+    # Matches "Cookie: ..." up to semicolon
+    expected = "Cookie: ***REDACTED***; other=value"
+    assert redact_text_content(text) == expected
+
+    # Set-Cookie header
+    text = "Set-Cookie: session_id=new_secret; Path=/"
+    # Matches "Set-Cookie: ..." up to semicolon
+    expected = "Set-Cookie: ***REDACTED***; Path=/"
+    assert redact_text_content(text) == expected
+
+    # AWS tokens
+    text = "aws_session_token=ASIA123SECRET aws_secret_access_key=XYZ123"
+    redacted = redact_text_content(text)
+    assert "ASIA123SECRET" not in redacted
+    assert "XYZ123" not in redacted
+    assert "***REDACTED***" in redacted
+
+    # CSRF tokens
+    text = 'csrf_token: "my-token"'
+    expected = 'csrf_token: "***REDACTED***"'
+    assert redact_text_content(text) == expected
