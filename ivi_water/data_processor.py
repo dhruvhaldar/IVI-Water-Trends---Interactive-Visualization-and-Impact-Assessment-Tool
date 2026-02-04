@@ -1224,7 +1224,8 @@ class DataProcessor:
             # 2. Single GroupBy for all statistics
             # Optimization: groupby(sort=True) is faster than sort=False + explicit sort_index
             # for this high-cardinality grouping (~25% speedup observed).
-            grouped = df_proc.groupby(group_by, sort=True)
+            # Optimization: observed=True prevents expanding categorical data to full cartesian product
+            grouped = df_proc.groupby(group_by, sort=True, observed=True)
 
             agg_funcs = {
                 # Optimization: removed 'mean' to avoid redundant calculation
@@ -1571,7 +1572,8 @@ class DataProcessor:
                 agg_dict["water_body_count"] = ["mean", "std", "min", "max", "sum"]
 
             # Perform aggregation
-            agg_stats = df_clean.groupby(intervention_col).agg(agg_dict)
+            # Optimization: observed=True prevents expanding categorical data to full cartesian product
+            agg_stats = df_clean.groupby(intervention_col, observed=True).agg(agg_dict)
 
             # Flatten column names and handle custom functions
             new_columns = []
@@ -1746,8 +1748,9 @@ class DataProcessor:
 
             # Perform aggregation
             # Optimization: groupby(sort=True) is faster for high-cardinality groups than sort=False + sort_index
+            # Optimization: observed=True prevents expanding categorical data to full cartesian product
             seasonal_summary = df_clean.groupby(
-                [location_level, "season"], sort=True
+                [location_level, "season"], sort=True, observed=True
             ).agg(agg_dict)
 
             # Flatten column names
