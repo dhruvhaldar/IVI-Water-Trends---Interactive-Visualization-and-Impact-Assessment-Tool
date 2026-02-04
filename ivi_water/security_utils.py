@@ -9,6 +9,8 @@ import re
 import hmac
 import hashlib
 import base64
+import os
+import logging
 from html.parser import HTMLParser
 from typing import Dict, Any, Union, List, Optional
 from urllib.parse import urlparse, urlunparse, parse_qsl, urlencode
@@ -66,6 +68,11 @@ MAX_ID_LENGTH = 128
 # - Images: 'self' and data: URIs (For embedded plots)
 # Blocks everything else (default-src 'none') to prevent XSS/exfiltration
 CSP_META_CONTENT = "default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src 'self' data:;"
+
+# Allowed domains for scripts in CSP
+DEFAULT_ALLOWED_SCRIPT_DOMAINS = {
+    "cdn.plot.ly",
+}
 
 # --- Pre-compiled Regex Patterns (Performance Optimization) ---
 
@@ -429,6 +436,7 @@ def inject_csp_meta_tag(html_content: str) -> str:
     strict security controls, preventing XSS and data exfiltration.
 
     It calculates SHA-256 hashes for inline scripts to avoid 'unsafe-inline'.
+    It restricts external script sources to a safe whitelist.
 
     Args:
         html_content: The original HTML string.
@@ -452,7 +460,36 @@ def inject_csp_meta_tag(html_content: str) -> str:
 
         # Add allowed sources (CDNs)
         if parser.sources:
-            script_srcs.extend(sorted(list(parser.sources)))
+            # Enforce whitelist for external script sources
+            allowed_domains = DEFAULT_ALLOWED_SCRIPT_DOMAINS.copy()
+
+            # Allow user to extend whitelist via environment variable
+            env_allowed = os.getenv("IVI_CSP_ALLOWED_DOMAINS")
+            if env_allowed:
+                allowed_domains.update(
+                    [d.strip() for d in env_allowed.split(",") if d.strip()]
+                )
+
+            logger = logging.getLogger(__name__)
+
+            for source in parser.sources:
+                # Extract hostname from source URL
+                try:
+                    # urlparse returns netloc (e.g., example.com:8080)
+                    # We use hostname to ignore port (e.g., example.com)
+                    # Use lower() for case-insensitive comparison
+                    parsed_source = urlparse(source)
+                    source_hostname = (parsed_source.hostname or "").lower()
+
+                    if source_hostname in allowed_domains:
+                        script_srcs.append(source)
+                    else:
+                        logger.warning(
+                            f"Blocked unauthorized script source in CSP: {source_hostname} ({source}). "
+                            "To allow, set IVI_CSP_ALLOWED_DOMAINS environment variable."
+                        )
+                except Exception as e:
+                    logger.warning(f"Failed to parse script source {source}: {e}")
 
         script_policy = " ".join(script_srcs)
 
