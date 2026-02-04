@@ -49,6 +49,13 @@ DEFAULT_FIGURE_SIZE = (12, 8)
 SUPPORTED_EXPORT_FORMATS = ["csv", "excel", "parquet", "json"]
 SUPPORTED_IMAGE_FORMATS = ["png", "jpg", "jpeg", "pdf", "svg"]
 
+# Windows reserved filenames (case-insensitive)
+RESERVED_WINDOWS_FILENAMES = {
+    "CON", "PRN", "AUX", "NUL",
+    "COM1", "COM2", "COM3", "COM4", "COM5", "COM6", "COM7", "COM8", "COM9",
+    "LPT1", "LPT2", "LPT3", "LPT4", "LPT5", "LPT6", "LPT7", "LPT8", "LPT9"
+}
+
 # Logger setup
 logger = logging.getLogger(__name__)
 
@@ -114,6 +121,15 @@ def sanitize_filename(filename: str) -> str:
 
     if not clean_filename:
         raise ValueError("Filename contains no valid characters after sanitization")
+
+    # Check for Windows reserved filenames
+    # Split by dot to get the base name (first part)
+    # e.g., "CON.txt" -> "CON", "aux" -> "aux"
+    base_name = clean_filename.split('.')[0].upper()
+
+    if base_name in RESERVED_WINDOWS_FILENAMES:
+        # Prepend underscore to make it safe
+        clean_filename = f"_{clean_filename}"
 
     return clean_filename
 
