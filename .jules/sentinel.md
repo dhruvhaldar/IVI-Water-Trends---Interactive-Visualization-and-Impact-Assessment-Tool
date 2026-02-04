@@ -47,3 +47,8 @@
 **Vulnerability:** The `sanitize_for_terminal` utility preserved carriage returns (`\\r`), allowing attackers to overwrite previous log content and spoof log entries (Log Forging).
 **Learning:** "Sanitizing" for terminal output implies removing *all* control over the cursor, not just removing ANSI codes. `\\r` is a control character that allows overwriting the line, which is a security risk in logs.
 **Prevention:** Escape safe-but-formatting control characters (`\\n`, `\\r`, `\\t`) to their literal representations (e.g., `\\r` -> `\\\\r`) to ensure log integrity and visibility of the raw input.
+
+## 2024-05-25 - Windows Reserved Filename Protection
+**Vulnerability:** The application allowed generating files with names reserved by Windows (e.g., `CON`, `PRN`, `AUX`, `NUL`, `COM1`), which can cause filesystem errors, unexpected behavior, or denial of service on Windows systems, even if the application runs on Linux but artifacts are downloaded by Windows users.
+**Learning:** Filename sanitization must go beyond removing invalid characters. OS-specific reserved keywords are often overlooked but critical for cross-platform compatibility and security.
+**Prevention:** In `sanitize_filename`, explicitly check the base filename (before the first dot) against the list of Windows reserved names and sanitize them (e.g., prepend an underscore: `CON` -> `_CON`) regardless of the host OS.
