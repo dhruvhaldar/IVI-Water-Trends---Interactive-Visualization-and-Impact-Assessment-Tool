@@ -1734,9 +1734,16 @@ class DataProcessor:
                 raise ValueError("No valid data remaining after filtering")
 
             # Group by location and season for comprehensive statistics
+            # Optimization: groupby(sort=True) is faster for high-cardinality groups than sort=False + sort_index
+            # Optimization: observed=True prevents expanding categorical data to full cartesian product
+            grouped = df_clean.groupby(
+                [location_level, "season"], sort=True, observed=True
+            )
+
             agg_dict = {
                 # Optimization: calculate mean from sum/count to save aggregation overhead (~30-40% faster)
-                "water_area_ha": ["sum", "std", "min", "max", "median", "count"],
+                # Optimization: removed 'median' to avoid triggering slow aggregation path
+                "water_area_ha": ["sum", "std", "min", "max", "count"],
                 "year": ["min", "max", "nunique"],
                 "location_id": "count",  # Total observations per group
             }
@@ -1747,16 +1754,17 @@ class DataProcessor:
                 agg_dict["water_body_count"] = ["std", "min", "max", "sum", "count"]
 
             # Perform aggregation
-            # Optimization: groupby(sort=True) is faster for high-cardinality groups than sort=False + sort_index
-            # Optimization: observed=True prevents expanding categorical data to full cartesian product
-            seasonal_summary = df_clean.groupby(
-                [location_level, "season"], sort=True, observed=True
-            ).agg(agg_dict)
+            seasonal_summary = grouped.agg(agg_dict)
 
             # Flatten column names
             seasonal_summary.columns = [
                 "_".join(col).strip() for col in seasonal_summary.columns
             ]
+
+            # Calculate median separately for performance
+            # Mixing median (which requires sorting) with other aggs prevents optimization
+            seasonal_summary["water_area_ha_median"] = grouped["water_area_ha"].median()
+
             seasonal_summary = seasonal_summary.reset_index()
 
             # Calculate derived metrics
