@@ -309,8 +309,10 @@ def redact_url(url: str) -> str:
                     is_sensitive = True
                 else:
                     for sensitive in SENSITIVE_KEYS:
-                        if key_lower == sensitive or key_lower.endswith(
-                            f"_{sensitive}"
+                        if (
+                            key_lower == sensitive
+                            or key_lower.endswith(f"_{sensitive}")
+                            or key_lower.endswith(f"-{sensitive}")
                         ):
                             is_sensitive = True
                             break
