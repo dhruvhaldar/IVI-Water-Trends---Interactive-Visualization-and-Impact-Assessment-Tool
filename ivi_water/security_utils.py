@@ -513,21 +513,26 @@ def inject_csp_meta_tag(html_content: str) -> str:
     )
 
     # Check if CSP is already present to avoid duplication
-    if 'http-equiv="Content-Security-Policy"' in html_content:
+    # Use regex for case-insensitive check to avoid bypasses
+    if re.search(r'http-equiv=["\']?Content-Security-Policy["\']?', html_content, re.IGNORECASE):
         return html_content
 
-    # Insert into <head>
-    if "<head>" in html_content:
-        # Insert after <head> tag
-        return html_content.replace("<head>", f"<head>\n    {csp_tag}", 1)
-    elif "<html>" in html_content:
-        # No head, insert after html
-        return html_content.replace(
-            "<html>", f"<html>\n<head>\n    {csp_tag}\n</head>", 1
-        )
-    else:
-        # No structure, prepend it
-        return f"{csp_tag}\n{html_content}"
+    # Insert into <head> using regex for robustness against attributes and case
+    # Match <head> or <HEAD>, optionally with attributes
+    head_pattern = re.compile(r'(<head\b[^>]*>)', re.IGNORECASE)
+    if head_pattern.search(html_content):
+        # Insert after matching head tag
+        # Use lambda for replacement to avoid backreference issues with captured group
+        return head_pattern.sub(lambda m: m.group(1) + f"\n    {csp_tag}", html_content, count=1)
+
+    # If no <head>, try to insert after <html>
+    html_pattern = re.compile(r'(<html\b[^>]*>)', re.IGNORECASE)
+    if html_pattern.search(html_content):
+        # Create <head> block inside <html>
+        return html_pattern.sub(lambda m: m.group(1) + f"\n<head>\n    {csp_tag}\n</head>", html_content, count=1)
+
+    # Fallback: No structure found, prepend it
+    return f"{csp_tag}\n{html_content}"
 
 
 def sanitize_for_terminal(text: str) -> str:
