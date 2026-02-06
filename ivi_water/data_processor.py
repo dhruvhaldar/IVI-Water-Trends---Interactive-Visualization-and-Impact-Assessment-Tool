@@ -1209,17 +1209,14 @@ class DataProcessor:
             # Optimization: Remove redundant .copy() as loc with boolean mask already returns a copy
             df_proc = df.loc[valid_mask, cols_needed]
 
-            # Convert year to float for calculations
-            # Optimization: Check if already numeric/float to avoid overhead
-            if not pd.api.types.is_float_dtype(df_proc["year"]):
-                df_proc["year"] = df_proc["year"].astype(float)
-
             # Pre-calculate xy and xx for slope
             # Since inputs have NaNs for invalid rows, outputs will also be NaN correctly
             # Optimization: Use numpy values for calculation to avoid Series alignment overhead
-            year_vals = df_proc["year"].values
+            # Optimization: Cast to float in numpy to avoid DataFrame copy overhead, ensuring float arithmetic
+            year_vals = df_proc["year"].values.astype(float)
             df_proc["xy"] = year_vals * df_proc["water_area_ha"].values
-            df_proc["xx"] = year_vals ** 2
+            # Optimization: Multiplication is faster than exponentiation
+            df_proc["xx"] = year_vals * year_vals
 
             # 2. Single GroupBy for all statistics
             # Optimization: groupby(sort=True) is faster than sort=False + explicit sort_index
