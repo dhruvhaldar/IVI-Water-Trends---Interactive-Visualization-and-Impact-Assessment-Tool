@@ -52,3 +52,8 @@
 **Vulnerability:** The application allowed generating files with names reserved by Windows (e.g., `CON`, `PRN`, `AUX`, `NUL`, `COM1`), which can cause filesystem errors, unexpected behavior, or denial of service on Windows systems, even if the application runs on Linux but artifacts are downloaded by Windows users.
 **Learning:** Filename sanitization must go beyond removing invalid characters. OS-specific reserved keywords are often overlooked but critical for cross-platform compatibility and security.
 **Prevention:** In `sanitize_filename`, explicitly check the base filename (before the first dot) against the list of Windows reserved names and sanitize them (e.g., prepend an underscore: `CON` -> `_CON`) regardless of the host OS.
+
+## 2024-05-25 - Log Injection in API Client
+**Vulnerability:** The API client logged request parameters and URLs without sanitizing ANSI escape codes. An attacker could inject malicious ANSI codes via API parameters (like endpoint paths or query params) which would be executed in the terminal of anyone viewing the logs (Log Injection/Terminal Injection).
+**Learning:** Logging dynamic data that includes user input or external content (like URLs or error messages from servers) is a vector for log injection. Standard logging libraries do not sanitize control characters by default.
+**Prevention:** Wrap all dynamic log inputs (URLs, parameters, error messages) with `sanitize_for_terminal` before passing them to the logger. This strips ANSI codes and escapes control characters like newlines.
