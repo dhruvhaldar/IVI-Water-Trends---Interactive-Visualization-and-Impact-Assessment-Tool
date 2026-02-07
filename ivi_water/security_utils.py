@@ -91,7 +91,7 @@ _KEYS_PATTERN = "|".join(re.escape(k) for k in SENSITIVE_KEYS)
 
 # 1. Double quotes: "value" - handles escaped double quotes \" and truncated strings
 _PATTERN_DOUBLE = re.compile(
-    r'(?i)(["\']?)\b('
+    r'(?i)(["\']?)(?<![a-zA-Z0-9])('
     + _KEYS_PATTERN
     + r')\1(\s*[:=]\s*)(")((?:[^"\\]|\\.?)*)(?:"|$)',
     re.DOTALL,
@@ -99,7 +99,7 @@ _PATTERN_DOUBLE = re.compile(
 
 # 2. Single quotes: 'value' - handles escaped single quotes \' and truncated strings
 _PATTERN_SINGLE = re.compile(
-    r'(?i)(["\']?)\b('
+    r'(?i)(["\']?)(?<![a-zA-Z0-9])('
     + _KEYS_PATTERN
     + r")\1(\s*[:=]\s*)(\')((?:[^\'\\]|\\.?)*)(?:'|$)",
     re.DOTALL,
@@ -110,7 +110,7 @@ _SCHEMES_PATTERN = "|".join(re.escape(s) for s in AUTH_PREFIXES)
 _AUTH_KEYS_PATTERN = r"(?:Proxy-)?Authorization"
 
 _PATTERN_AUTH = re.compile(
-    r'(?i)(["\']?)\b('
+    r'(?i)(["\']?)(?<![a-zA-Z0-9])('
     + _AUTH_KEYS_PATTERN
     + r')\1(\s*[:=]\s*)((?:'
     + _SCHEMES_PATTERN
@@ -120,7 +120,7 @@ _PATTERN_AUTH = re.compile(
 
 # 4. Unquoted values with '='
 _PATTERN_UNQUOTED_EQUALS = re.compile(
-    r'(?i)(["\']?)\b('
+    r'(?i)(["\']?)(?<![a-zA-Z0-9])('
     + _KEYS_PATTERN
     + r')\1(\s*=\s*)([^"\'\s,;}\]]+)',
     re.DOTALL,
@@ -128,7 +128,7 @@ _PATTERN_UNQUOTED_EQUALS = re.compile(
 
 # 5. Unquoted values with ':'
 _PATTERN_UNQUOTED_COLON = re.compile(
-    r'(?i)(["\']?)\b('
+    r'(?i)(["\']?)(?<![a-zA-Z0-9])('
     + _KEYS_PATTERN
     + r')\1(\s*:\s*)(?=\S)([^"\'\n\r,;}\]]+)',
     re.DOTALL,
