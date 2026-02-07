@@ -98,11 +98,11 @@ def test_suffix_key_preservation():
     assert 'monkey="banana"' in redacted
     assert "***REDACTED***" not in redacted
 
-    # 'token' is sensitive, but 'public_token' (if not in sensitive list) should ideally be preserved
-    # 'public_token' ends with 'token'. '_' is a word char, so \b does not match.
+    # 'token' is sensitive. 'public_token' has '_' separator, so it SHOULD be redacted
+    # to be consistent with redact_sensitive_data and catch compound keys.
     text = 'public_token="safe"'
     redacted = redact_text_content(text)
-    assert 'public_token="safe"' in redacted
+    assert 'public_token="***REDACTED***"' in redacted
 
 
 def test_redact_cookies_and_tokens():
