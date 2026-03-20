@@ -164,6 +164,15 @@ ivi-water visualize --data merged.csv --chart-type seasonal --theme plotly_dark
 ivi-water generate-report --data merged.csv --report-type detailed --format pdf
 ```
 
+### Web Application (Streamlit)
+
+A full interactive dashboard allows you to explore trends visually in your browser.
+
+```bash
+# Run the Streamlit web app locally
+streamlit run app.py
+```
+
 ## 📈 Visualizations & Analysis
 
 ### Enhanced Chart Types
@@ -347,6 +356,15 @@ docs/                       # Documentation
 ├── user_guide/            # User guides
 └── developer_guide/       # Developer documentation
 ```
+
+## 🌐 Deployment (Render)
+
+This repository includes a `render.yaml` configuration to seamlessly deploy the Streamlit dashboard to Render.
+
+1. Connect your GitHub repository to [Render](https://render.com/).
+2. Render will automatically detect the **Web Service** defined in `render.yaml`.
+3. Under **Environment**, securely add your `CORE_API_KEY`.
+4. Deploy the application to get a public, interactive dashboard URL.
 
 ## 🤝 Contributing (Enhanced)
 

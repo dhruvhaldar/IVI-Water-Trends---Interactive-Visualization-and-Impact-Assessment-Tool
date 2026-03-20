@@ -9,6 +9,7 @@ plotly>=5.15.0           # Interactive visualizations
 kaleido>=0.2.1           # Static image export for Plotly
 jupyter>=1.0.0            # Notebook support
 python-dotenv>=1.0.0     # Environment variable management
+streamlit>=1.30.0        # Web frontend framework
 
 # CLI and utilities
 click>=8.1.0             # Command-line interface framework
