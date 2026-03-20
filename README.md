@@ -174,16 +174,7 @@ A full interactive dashboard allows you to explore trends visually in your brows
 
 ```bash
 # Run the Streamlit web app locally
-streamlit run app.py
-```
-
-### Web Application (Streamlit)
-
-A full interactive dashboard allows you to explore trends visually in your browser.
-
-```bash
-# Run the Streamlit web app locally
-streamlit run app.py
+uv run streamlit run app.py
 ```
 
 ## 📈 Visualizations & Analysis
@@ -369,15 +360,6 @@ docs/                       # Documentation
 ├── user_guide/            # User guides
 └── developer_guide/       # Developer documentation
 ```
-
-## 🌐 Deployment (Render)
-
-This repository includes a `render.yaml` configuration to seamlessly deploy the Streamlit dashboard to Render.
-
-1. Connect your GitHub repository to [Render](https://render.com/).
-2. Render will automatically detect the **Web Service** defined in `render.yaml`.
-3. Under **Environment**, securely add your `CORE_API_KEY`.
-4. Deploy the application to get a public, interactive dashboard URL.
 
 ## 🌐 Deployment (Render)
 
