@@ -47,46 +47,58 @@ with st.sidebar:
     theme = st.selectbox("Chart Theme", ["plotly_white", "plotly_dark", "seaborn", "ggplot2", "none"])
     
     analyze_btn = st.button("Fetch & Analyze Data", type="primary", use_container_width=True)
+    
+    st.divider()
+    st.markdown("### Demo")
+    demo_btn = st.button("Run Demo with Sample Data", use_container_width=True)
 
 # --- Main App Logic ---
-if analyze_btn:
-    if not api_key_exists and 'api_key_input' not in locals():
-        st.error("Please provide a valid CoRE Stack API Key in the sidebar or via the .env file.")
-        st.stop()
-        
-    # Process inputs
-    locations = [loc.strip() for loc in locations_input.split(",") if loc.strip()]
-    if not locations:
-        st.error("Please provide at least one valid location.")
-        st.stop()
-        
-    if start_year > end_year:
-        st.error("Start Year cannot be greater than End Year.")
+if analyze_btn or demo_btn:
+    # Initialize components
+    try:
+        processor = DataProcessor('./data')
+        viz = WaterTrendsVisualizer(theme=theme, height=600)
+        # Create directories
+        os.makedirs('./data', exist_ok=True)
+        os.makedirs('./outputs/reports', exist_ok=True)
+    except Exception as e:
+        st.error(f"Failed to initialize components: {str(e)}")
         st.stop()
 
-    with st.spinner("Initializing components..."):
-        try:
-            client = CoREStackClient()
-            processor = DataProcessor('./data')
-            viz = WaterTrendsVisualizer(theme=theme, height=600)
-            exporter = ExportUtils('./outputs/reports') # Ensure directory exists or let ExportUtils handle it
+    if demo_btn:
+        st.info("🎨 Running in Demo Mode with sample data.")
+        with st.spinner("Loading sample data..."):
+            from ivi_water.data_processor import load_sample_data
+            water_data, nrm_data = load_sample_data()
+            # In demo mode, we also show the merged analysis
+            merged_data = processor.merge_datasets(water_data, nrm_data)
+            is_demo = True
+    else:
+        if not api_key_exists:
+            st.error("Please provide a valid CoRE Stack API Key in the sidebar or via the .env file to fetch live data. Alternatively, click 'Run Demo with Sample Data'.")
+            st.stop()
             
-            # Create directories if they don't exist
-            os.makedirs('./data', exist_ok=True)
-            os.makedirs('./outputs/reports', exist_ok=True)
-        except Exception as e:
-            st.error(f"Failed to initialize components: {str(e)}")
+        # Process inputs
+        locations = [loc.strip() for loc in locations_input.split(",") if loc.strip()]
+        if not locations:
+            st.error("Please provide at least one valid location.")
+            st.stop()
+            
+        if start_year > end_year:
+            st.error("Start Year cannot be greater than End Year.")
             st.stop()
 
-    with st.spinner(f"Fetching data for {len(locations)} locations..."):
-        try:
-            water_data = processor.load_water_data_from_api(
-                client, locations, start_year, end_year
-            )
-            st.success("Data fetched successfully!")
-        except Exception as e:
-            st.error(f"Error fetching data: {str(e)}")
-            st.stop()
+        with st.spinner(f"Fetching data for {len(locations)} locations from CoRE Stack..."):
+            try:
+                client = CoREStackClient()
+                water_data = processor.load_water_data_from_api(
+                    client, locations, start_year, end_year
+                )
+                is_demo = False
+                st.success("Data fetched successfully!")
+            except Exception as e:
+                st.error(f"Error fetching data: {str(e)}")
+                st.stop()
 
     st.subheader("Seasonal Stacked Area Chart")
     with st.spinner("Generating visualization..."):
@@ -95,6 +107,27 @@ if analyze_btn:
              st.plotly_chart(fig, use_container_width=True)
         except Exception as e:
              st.error(f"Error generating chart: {str(e)}")
+
+    if demo_btn:
+        st.divider()
+        st.subheader("Intervention Impact Assessment (Demo Only)")
+        with st.spinner("Creating impact visualization..."):
+            try:
+                # Use the comparison line plot for intervention impact
+                comp_fig = viz.create_comparison_line_plot(merged_data)
+                st.plotly_chart(comp_fig, use_container_width=True)
+                
+                col_a, col_b = st.columns(2)
+                with col_a:
+                    st.write("**Water Trends Analysis**")
+                    trends_df = processor.calculate_water_trends(water_data)
+                    st.dataframe(trends_df.head(10))
+                with col_b:
+                    st.write("**Intervention Impact Summary**")
+                    intervention_agg = processor.aggregate_by_intervention(merged_data)
+                    st.dataframe(intervention_agg)
+            except Exception as e:
+                st.error(f"Error generating impact assessment: {str(e)}")
 
     st.divider()
     st.subheader("Data Export")
