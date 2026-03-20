@@ -64,20 +64,24 @@ A comprehensive Python-based system for analyzing seasonal surface water trends 
 
 ### 1. Installation
 
+I use **`uv`** for lightning-fast dependency installation. If you don't have it installed:
+- **macOS/Linux:** `curl -LsSf https://astral.sh/uv/install.sh | sh`
+- **Windows:** `irm https://astral.sh/uv/install.ps1 | iex`
+
 ```bash
 # Clone the repository
 git clone https://github.com/ivi-water/ivi-water-trends.git
 cd ivi-water-trends
 
-# Create virtual environment
-python -m venv venv
-source venv/bin/activate  # On Windows: .\venv\Scripts\Activate.ps1
+# Create virtual environment using uv
+uv venv
+source .venv/bin/activate  # On Windows: .venv\Scripts\activate
 
-# Install dependencies (includes testing and development tools)
-pip install -r requirements.txt
+# Install dependencies instantly (includes testing and development tools)
+uv pip install -r requirements.txt
 
 # Install the package in development mode
-pip install -e .
+uv pip install -e .
 ```
 
 ### 2. Configuration
@@ -162,6 +166,15 @@ ivi-water visualize --data merged.csv --chart-type seasonal --theme plotly_dark
 
 # Generate comprehensive reports
 ivi-water generate-report --data merged.csv --report-type detailed --format pdf
+```
+
+### Web Application (Streamlit)
+
+A full interactive dashboard allows you to explore trends visually in your browser.
+
+```bash
+# Run the Streamlit web app locally
+streamlit run app.py
 ```
 
 ### Web Application (Streamlit)
@@ -366,6 +379,15 @@ This repository includes a `render.yaml` configuration to seamlessly deploy the 
 3. Under **Environment**, securely add your `CORE_API_KEY`.
 4. Deploy the application to get a public, interactive dashboard URL.
 
+## 🌐 Deployment (Render)
+
+This repository includes a `render.yaml` configuration to seamlessly deploy the Streamlit dashboard to Render.
+
+1. Connect your GitHub repository to [Render](https://render.com/).
+2. Render will automatically detect the **Web Service** defined in `render.yaml`.
+3. Under **Environment**, securely add your `CORE_API_KEY`.
+4. Deploy the application to get a public, interactive dashboard URL.
+
 ## 🤝 Contributing (Enhanced)
 
 ### Development Workflow
@@ -376,10 +398,10 @@ git clone https://github.com/your-username/ivi-water-trends.git
 cd ivi-water-trends
 
 # 2. Set up development environment
-python -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
-pip install -e .
+uv venv
+source .venv/bin/activate
+uv pip install -r requirements.txt
+uv pip install -e .
 
 # 3. Install pre-commit hooks
 pre-commit install
