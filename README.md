@@ -75,12 +75,11 @@ cd ivi-water-trends
 
 # Create virtual environment using uv
 uv venv
-source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+.\.venv\Scripts\Activate.ps1  # For Windows
+source .venv/bin/activate    # For macOS/Linux
 
-# Install dependencies instantly (includes testing and development tools)
+# Install dependencies and project in editable mode
 uv pip install -r requirements.txt
-
-# Install the package in development mode
 uv pip install -e .
 ```
 
@@ -173,7 +172,7 @@ ivi-water generate-report --data merged.csv --report-type detailed --format pdf
 A full interactive dashboard allows you to explore trends visually in your browser.
 
 ```bash
-# Run the Streamlit web app locally
+# Run the Streamlit web app locally using uv run
 uv run streamlit run app.py
 ```
 
@@ -381,7 +380,8 @@ cd ivi-water-trends
 
 # 2. Set up development environment
 uv venv
-source .venv/bin/activate
+source .venv/bin/activate # For Linux/Mac
+.\.venv\Scripts\activate.ps1 # For Windows
 uv pip install -r requirements.txt
 uv pip install -e .
 
