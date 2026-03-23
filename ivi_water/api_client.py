@@ -67,7 +67,9 @@ class CoREStackClient:
         >>> water_data = client.get_seasonal_water_data("V001", 2020, 2022)
     """
 
-    def __init__(self, api_key: Optional[str] = None, base_url: Optional[str] = None) -> None:
+    def __init__(
+        self, api_key: Optional[str] = None, base_url: Optional[str] = None
+    ) -> None:
         """
         Initialize the CoRE Stack API client.
 
@@ -97,7 +99,10 @@ class CoREStackClient:
 
         # Validate API key
         if not self.api_key:
-            raise ValueError("API key is required. Set CORE_API_KEY environment variable " "or pass api_key parameter.")
+            raise ValueError(
+                "API key is required. Set CORE_API_KEY environment variable "
+                "or pass api_key parameter."
+            )
 
         if not isinstance(self.api_key, str) or len(self.api_key.strip()) == 0:
             raise ValueError("API key must be a non-empty string")
@@ -155,7 +160,9 @@ class CoREStackClient:
             f"cache TTL: {self.cache_ttl}s"
         )
 
-    def _check_redirect_security(self, response: requests.Response, *args, **kwargs) -> None:
+    def _check_redirect_security(
+        self, response: requests.Response, *args, **kwargs
+    ) -> None:
         """
         Response hook to validate redirect targets against SSRF.
 
@@ -180,8 +187,12 @@ class CoREStackClient:
                     self._validate_base_url(full_url)
                 except ValueError as e:
                     safe_log_url = sanitize_for_terminal(redact_url(full_url))
-                    self.logger.critical(f"Security check failed for redirect to {safe_log_url}: {e}")
-                    raise requests.exceptions.ConnectionError(f"Security check failed for redirect: {e}")
+                    self.logger.critical(
+                        f"Security check failed for redirect to {safe_log_url}: {e}"
+                    )
+                    raise requests.exceptions.ConnectionError(
+                        f"Security check failed for redirect: {e}"
+                    )
 
     def _validate_base_url(self, url: str) -> None:
         """
@@ -239,7 +250,12 @@ class CoREStackClient:
                     ip_obj = ipaddress.ip_address(ip)
 
                     # Check if IP is private, loopback, or reserved
-                    if ip_obj.is_private or ip_obj.is_loopback or ip_obj.is_reserved or ip_obj.is_link_local:
+                    if (
+                        ip_obj.is_private
+                        or ip_obj.is_loopback
+                        or ip_obj.is_reserved
+                        or ip_obj.is_link_local
+                    ):
                         raise ValueError(
                             f"Internal or private IP address detected for host '{hostname}' ({ip}). "
                             "Access denied for security. Set CORE_ALLOW_INTERNAL_IPS=1 to override."
@@ -249,7 +265,9 @@ class CoREStackClient:
                 # If we cannot verify the IP is safe, we must assume it is unsafe.
                 # This prevents attackers from using DNS flakiness or tricks to bypass the check.
                 if not allow_internal:
-                    raise ValueError(f"Could not resolve hostname '{hostname}' to verify safety.")
+                    raise ValueError(
+                        f"Could not resolve hostname '{hostname}' to verify safety."
+                    )
             except ValueError as e:
                 # Re-raise security violation
                 raise e
@@ -298,7 +316,9 @@ class CoREStackClient:
             with self._lock:
                 if self._is_cache_valid(cache_key):
                     self.logger.debug(f"Cache hit for {hash(cache_key)}")
-                    return self._cache[cache_key].copy()  # Return a copy to prevent mutation
+                    return self._cache[
+                        cache_key
+                    ].copy()  # Return a copy to prevent mutation
                 else:
                     # Clean up expired entry
                     self._cleanup_cache_entry(cache_key)
@@ -465,7 +485,9 @@ class CoREStackClient:
 
             cache_key = f"{method}_{url_hash}_{params_hash}"
         except (TypeError, ValueError) as e:
-            self.logger.warning(f"Cannot create cache key due to non-serializable params: {e}")
+            self.logger.warning(
+                f"Cannot create cache key due to non-serializable params: {e}"
+            )
             # Fallback to hashing the string representation
             params_str = str(params)
             params_hash = hash_data(params_str, key=self._cache_salt)
@@ -485,7 +507,9 @@ class CoREStackClient:
             safe_log_url = sanitize_for_terminal(safe_url)
             safe_params = sanitize_for_terminal(str(redact_sensitive_data(params)))
 
-            self.logger.debug(f"Making {method} request to {safe_log_url} with params: {safe_params}")
+            self.logger.debug(
+                f"Making {method} request to {safe_log_url} with params: {safe_params}"
+            )
 
             # Security: Re-validate base URL to prevent DNS Rebinding (TOCTOU mitigation)
             # This ensures that even if the DNS record changed since initialization (e.g., to a private IP),
@@ -516,7 +540,9 @@ class CoREStackClient:
                 raise RequestException(f"Endpoint not found: {endpoint}")
             elif response.status_code == 429:
                 retry_after = response.headers.get("Retry-After", "unknown")
-                raise RequestException(f"Rate limit exceeded. Retry after {retry_after} seconds.")
+                raise RequestException(
+                    f"Rate limit exceeded. Retry after {retry_after} seconds."
+                )
             elif response.status_code >= 500:
                 raise RequestException(f"Server error: {response.status_code}")
 
@@ -553,11 +579,15 @@ class CoREStackClient:
 
                 safe_text = sanitize_for_terminal(redact_text_content(text_preview))
                 self.logger.debug(f"Response content: {safe_text}")
-                raise json.JSONDecodeError(f"Invalid JSON response from API: {e}", e.doc, e.pos)
+                raise json.JSONDecodeError(
+                    f"Invalid JSON response from API: {e}", e.doc, e.pos
+                )
 
             # Validate response structure
             if not isinstance(data, dict):
-                self.logger.warning(f"Unexpected response format from {safe_url}: expected dict, got {type(data)}")
+                self.logger.warning(
+                    f"Unexpected response format from {safe_url}: expected dict, got {type(data)}"
+                )
                 # Still return the data but log the issue
 
             # Cache successful response
@@ -570,14 +600,18 @@ class CoREStackClient:
 
         except Timeout:
             safe_log_url = sanitize_for_terminal(safe_url)
-            self.logger.error(f"Request timeout for {safe_log_url} after {REQUEST_TIMEOUT}s")
+            self.logger.error(
+                f"Request timeout for {safe_log_url} after {REQUEST_TIMEOUT}s"
+            )
             raise Timeout(f"Request timeout for {safe_log_url}")
         except ConnectionError as e:
             # Redact sensitive info from exception message and sanitize for terminal
             safe_error_msg = sanitize_for_terminal(redact_text_content(str(e)))
             safe_log_url = sanitize_for_terminal(safe_url)
             self.logger.error(f"Connection error for {safe_log_url}: {safe_error_msg}")
-            raise ConnectionError(f"Failed to connect to {safe_log_url}: {safe_error_msg}")
+            raise ConnectionError(
+                f"Failed to connect to {safe_log_url}: {safe_error_msg}"
+            )
         except RequestException:
             # Re-raise RequestException as-is (already logged)
             raise
@@ -589,9 +623,13 @@ class CoREStackClient:
                 f"Unexpected error during request to {safe_log_url}: {safe_error_msg}",
                 exc_info=True,
             )
-            raise RequestException(f"Unexpected error during API request: {safe_error_msg}")
+            raise RequestException(
+                f"Unexpected error during API request: {safe_error_msg}"
+            )
 
-    def get_spatial_units(self, unit_type: str = "village", state: Optional[str] = None) -> List[Dict[str, Any]]:
+    def get_spatial_units(
+        self, unit_type: str = "village", state: Optional[str] = None
+    ) -> List[Dict[str, Any]]:
         """
         Get available spatial units from CoRE Stack.
 
@@ -635,7 +673,9 @@ class CoREStackClient:
         unit_type = unit_type.strip().lower()
 
         if unit_type not in valid_unit_types:
-            raise ValueError(f"Invalid unit_type '{unit_type}'. Valid options: {valid_unit_types}")
+            raise ValueError(
+                f"Invalid unit_type '{unit_type}'. Valid options: {valid_unit_types}"
+            )
 
         # Build request parameters
         params: Dict[str, str] = {"type": unit_type}
@@ -646,7 +686,10 @@ class CoREStackClient:
 
             params["state"] = state.strip()
 
-        self.logger.info(f"Fetching spatial units of type '{unit_type}'" f"{' for state: ' + state if state else ''}")
+        self.logger.info(
+            f"Fetching spatial units of type '{unit_type}'"
+            f"{' for state: ' + state if state else ''}"
+        )
 
         try:
             response = self._make_request("spatial-units", params)
@@ -655,7 +698,9 @@ class CoREStackClient:
             data = response.get("data", [])
 
             if not isinstance(data, list):
-                self.logger.warning(f"Expected list from spatial-units endpoint, got {type(data)}")
+                self.logger.warning(
+                    f"Expected list from spatial-units endpoint, got {type(data)}"
+                )
                 return []
 
             # Validate each unit entry
@@ -736,7 +781,10 @@ class CoREStackClient:
             invalid_seasons = [s for s in seasons if s not in valid_seasons]
 
             if invalid_seasons:
-                raise ValueError(f"Invalid seasons: {invalid_seasons}. " f"Valid options: {valid_seasons}")
+                raise ValueError(
+                    f"Invalid seasons: {invalid_seasons}. "
+                    f"Valid options: {valid_seasons}"
+                )
 
         # Build request parameters
         params: Dict[str, Union[str, int]] = {
@@ -761,14 +809,18 @@ class CoREStackClient:
             data = response.get("data", {})
 
             if not isinstance(data, dict):
-                self.logger.warning(f"Expected dict from water-trends/seasonal endpoint, got {type(data)}")
+                self.logger.warning(
+                    f"Expected dict from water-trends/seasonal endpoint, got {type(data)}"
+                )
                 return {}
 
             # Validate timeseries data if present
             if "timeseries" in data:
                 timeseries = data["timeseries"]
                 if not isinstance(timeseries, list):
-                    self.logger.warning(f"Expected list for timeseries, got {type(timeseries)}")
+                    self.logger.warning(
+                        f"Expected list for timeseries, got {type(timeseries)}"
+                    )
                     data["timeseries"] = []
                 else:
                     # Validate each timeseries entry
@@ -781,15 +833,21 @@ class CoREStackClient:
 
                     data["timeseries"] = valid_entries
 
-                    self.logger.info(f"Retrieved water data with {len(valid_entries)} yearly entries")
+                    self.logger.info(
+                        f"Retrieved water data with {len(valid_entries)} yearly entries"
+                    )
 
             return data
 
         except Exception as e:
-            self.logger.error(f"Failed to fetch seasonal water data: {e}", exc_info=True)
+            self.logger.error(
+                f"Failed to fetch seasonal water data: {e}", exc_info=True
+            )
             raise
 
-    def get_water_trends_summary(self, location_ids: List[str], start_year: int, end_year: int) -> Dict[str, Any]:
+    def get_water_trends_summary(
+        self, location_ids: List[str], start_year: int, end_year: int
+    ) -> Dict[str, Any]:
         """
         Get summary statistics for multiple locations.
 
@@ -863,7 +921,8 @@ class CoREStackClient:
         }
 
         self.logger.info(
-            f"Fetching water trends summary for {len(valid_location_ids)} locations " f"from {start_year} to {end_year}"
+            f"Fetching water trends summary for {len(valid_location_ids)} locations "
+            f"from {start_year} to {end_year}"
         )
 
         try:
@@ -873,14 +932,20 @@ class CoREStackClient:
             data = response.get("data", {})
 
             if not isinstance(data, dict):
-                self.logger.warning(f"Expected dict from water-trends/summary endpoint, got {type(data)}")
+                self.logger.warning(
+                    f"Expected dict from water-trends/summary endpoint, got {type(data)}"
+                )
                 return {}
 
-            self.logger.info(f"Retrieved summary statistics for {len(valid_location_ids)} locations")
+            self.logger.info(
+                f"Retrieved summary statistics for {len(valid_location_ids)} locations"
+            )
             return data
 
         except Exception as e:
-            self.logger.error(f"Failed to fetch water trends summary: {e}", exc_info=True)
+            self.logger.error(
+                f"Failed to fetch water trends summary: {e}", exc_info=True
+            )
             raise
 
     def get_elevation_data(self, location_id: str) -> Dict[str, Any]:
@@ -923,14 +988,18 @@ class CoREStackClient:
             data = response.get("data", {})
 
             if not isinstance(data, dict):
-                self.logger.warning(f"Expected dict from elevation endpoint, got {type(data)}")
+                self.logger.warning(
+                    f"Expected dict from elevation endpoint, got {type(data)}"
+                )
                 return {}
 
             # Validate elevation data structure
             if "elevation_grid" in data:
                 grid_data = data["elevation_grid"]
                 if not isinstance(grid_data, (dict, list)):
-                    self.logger.warning(f"Invalid elevation_grid format: {type(grid_data)}")
+                    self.logger.warning(
+                        f"Invalid elevation_grid format: {type(grid_data)}"
+                    )
                     data["elevation_grid"] = {}
 
             self.logger.info(f"Retrieved elevation data for location '{location_id}'")
@@ -971,7 +1040,9 @@ class CoREStackClient:
         import sys
 
         cache_memory = sum(sys.getsizeof(v) for v in self._cache.values())
-        timestamps_memory = sum(sys.getsizeof(v) for v in self._cache_timestamps.values())
+        timestamps_memory = sum(
+            sys.getsizeof(v) for v in self._cache_timestamps.values()
+        )
         total_memory = cache_memory + timestamps_memory
 
         return {
@@ -984,7 +1055,9 @@ class CoREStackClient:
 
 
 # Utility functions for backward compatibility
-def get_spatial_units(unit_type: str = "village", state: Optional[str] = None) -> List[Dict]:
+def get_spatial_units(
+    unit_type: str = "village", state: Optional[str] = None
+) -> List[Dict]:
     """Get spatial units using default client."""
     client = CoREStackClient()
     return client.get_spatial_units(unit_type, state)

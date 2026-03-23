@@ -709,6 +709,9 @@ class WaterTrendsVisualizer:
             # Generate HTML content
             html_content = fig.to_html()
 
+            # Add lang="en" for accessibility
+            html_content = html_content.replace("<html>", '<html lang="en">')
+
             # Inject CSP meta tag for security
             from .security_utils import inject_csp_meta_tag
 
@@ -805,6 +808,9 @@ class WaterTrendsVisualizer:
         if format == "html":
             # Generate HTML string
             html_content = fig.to_html(**kwargs)
+
+            # Add lang="en" for accessibility
+            html_content = html_content.replace("<html>", '<html lang="en">')
 
             # Inject CSP meta tag for security
             from .security_utils import inject_csp_meta_tag

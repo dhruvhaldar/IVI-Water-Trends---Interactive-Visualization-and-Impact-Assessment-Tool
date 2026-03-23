@@ -51,9 +51,28 @@ SUPPORTED_IMAGE_FORMATS = ["png", "jpg", "jpeg", "pdf", "svg"]
 
 # Windows reserved filenames (case-insensitive)
 RESERVED_WINDOWS_FILENAMES = {
-    "CON", "PRN", "AUX", "NUL",
-    "COM1", "COM2", "COM3", "COM4", "COM5", "COM6", "COM7", "COM8", "COM9",
-    "LPT1", "LPT2", "LPT3", "LPT4", "LPT5", "LPT6", "LPT7", "LPT8", "LPT9"
+    "CON",
+    "PRN",
+    "AUX",
+    "NUL",
+    "COM1",
+    "COM2",
+    "COM3",
+    "COM4",
+    "COM5",
+    "COM6",
+    "COM7",
+    "COM8",
+    "COM9",
+    "LPT1",
+    "LPT2",
+    "LPT3",
+    "LPT4",
+    "LPT5",
+    "LPT6",
+    "LPT7",
+    "LPT8",
+    "LPT9",
 }
 
 # Logger setup
@@ -125,7 +144,7 @@ def sanitize_filename(filename: str) -> str:
     # Check for Windows reserved filenames
     # Split by dot to get the base name (first part)
     # e.g., "CON.txt" -> "CON", "aux" -> "aux"
-    base_name = clean_filename.split('.')[0].upper()
+    base_name = clean_filename.split(".")[0].upper()
 
     if base_name in RESERVED_WINDOWS_FILENAMES:
         # Prepend underscore to make it safe
@@ -515,7 +534,7 @@ class ExportUtils:
         # HTML content
         html_content = f"""
         <!DOCTYPE html>
-        <html>
+        <html lang="en">
         <head>
             <title>Water Trends Summary Report</title>
             <style>
@@ -799,6 +818,12 @@ For questions or support, contact: IVI Water Trends Team"""
 
                         # Use to_html and inject CSP
                         html_content = fig.to_html()
+
+                        # Add lang="en" for accessibility
+                        html_content = html_content.replace(
+                            "<html>", '<html lang="en">'
+                        )
+
                         from .security_utils import inject_csp_meta_tag
 
                         html_content = inject_csp_meta_tag(html_content)
