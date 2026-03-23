@@ -112,7 +112,7 @@ _AUTH_KEYS_PATTERN = r"(?:Proxy-)?Authorization"
 _PATTERN_AUTH = re.compile(
     r'(?i)(["\']?)(?<![a-zA-Z0-9])('
     + _AUTH_KEYS_PATTERN
-    + r')\1(\s*[:=]\s*)((?:'
+    + r")\1(\s*[:=]\s*)((?:"
     + _SCHEMES_PATTERN
     + r")\s+)([^\"'\s,;}\]]+)",
     re.DOTALL,
@@ -120,9 +120,7 @@ _PATTERN_AUTH = re.compile(
 
 # 4. Unquoted values with '='
 _PATTERN_UNQUOTED_EQUALS = re.compile(
-    r'(?i)(["\']?)(?<![a-zA-Z0-9])('
-    + _KEYS_PATTERN
-    + r')\1(\s*=\s*)([^"\'\s,;}\]]+)',
+    r'(?i)(["\']?)(?<![a-zA-Z0-9])(' + _KEYS_PATTERN + r')\1(\s*=\s*)([^"\'\s,;}\]]+)',
     re.DOTALL,
 )
 
@@ -137,19 +135,18 @@ _PATTERN_UNQUOTED_COLON = re.compile(
 # 6. Sensitive keys in dictionary keys (exact match or suffix after _ or -)
 # Matches: key, my_key, my-key
 _SENSITIVE_KEY_REGEX = re.compile(
-    r'(?:^|[_-])(?:' + _KEYS_PATTERN + r')$',
-    re.IGNORECASE
+    r"(?:^|[_-])(?:" + _KEYS_PATTERN + r")$", re.IGNORECASE
 )
 
 # --- Terminal Sanitization Patterns ---
 
 # Remove ANSI escape sequences (7-bit C1 ANSI sequences)
-_ANSI_ESCAPE_PATTERN = re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])')
+_ANSI_ESCAPE_PATTERN = re.compile(r"\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])")
 
 # Remove unsafe control characters (0-31 except 9,10,13; and 127)
 # \t(9), \n(10), \r(13) are safe to keep (or rather, escape)
 # Range \x00-\x08, \x0B, \x0C, \x0E-\x1F, \x7F
-_UNSAFE_CONTROL_PATTERN = re.compile(r'[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]')
+_UNSAFE_CONTROL_PATTERN = re.compile(r"[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]")
 
 
 class ScriptHasher(HTMLParser):
@@ -198,7 +195,9 @@ class ScriptHasher(HTMLParser):
                 script_content = "".join(self.current_script)
                 if script_content:
                     # Calculate SHA-256 hash
-                    sha256_hash = hashlib.sha256(script_content.encode("utf-8")).digest()
+                    sha256_hash = hashlib.sha256(
+                        script_content.encode("utf-8")
+                    ).digest()
                     base64_hash = base64.b64encode(sha256_hash).decode("utf-8")
                     self.hashes.add(f"'sha256-{base64_hash}'")
 
@@ -510,28 +509,34 @@ def inject_csp_meta_tag(html_content: str) -> str:
         csp_content = CSP_META_CONTENT
 
     # Prepare CSP tag
-    csp_tag = (
-        f'<meta http-equiv="Content-Security-Policy" content="{csp_content}">'
-    )
+    csp_tag = f'<meta http-equiv="Content-Security-Policy" content="{csp_content}">'
 
     # Check if CSP is already present to avoid duplication
     # Use regex for case-insensitive check to avoid bypasses
-    if re.search(r'http-equiv=["\']?Content-Security-Policy["\']?', html_content, re.IGNORECASE):
+    if re.search(
+        r'http-equiv=["\']?Content-Security-Policy["\']?', html_content, re.IGNORECASE
+    ):
         return html_content
 
     # Insert into <head> using regex for robustness against attributes and case
     # Match <head> or <HEAD>, optionally with attributes
-    head_pattern = re.compile(r'(<head\b[^>]*>)', re.IGNORECASE)
+    head_pattern = re.compile(r"(<head\b[^>]*>)", re.IGNORECASE)
     if head_pattern.search(html_content):
         # Insert after matching head tag
         # Use lambda for replacement to avoid backreference issues with captured group
-        return head_pattern.sub(lambda m: m.group(1) + f"\n    {csp_tag}", html_content, count=1)
+        return head_pattern.sub(
+            lambda m: m.group(1) + f"\n    {csp_tag}", html_content, count=1
+        )
 
     # If no <head>, try to insert after <html>
-    html_pattern = re.compile(r'(<html\b[^>]*>)', re.IGNORECASE)
+    html_pattern = re.compile(r"(<html\b[^>]*>)", re.IGNORECASE)
     if html_pattern.search(html_content):
         # Create <head> block inside <html>
-        return html_pattern.sub(lambda m: m.group(1) + f"\n<head>\n    {csp_tag}\n</head>", html_content, count=1)
+        return html_pattern.sub(
+            lambda m: m.group(1) + f"\n<head>\n    {csp_tag}\n</head>",
+            html_content,
+            count=1,
+        )
 
     # Fallback: No structure found, prepend it
     return f"{csp_tag}\n{html_content}"
@@ -558,12 +563,12 @@ def sanitize_for_terminal(text: str) -> str:
         return str(text)
 
     # Remove ANSI escape sequences
-    text = _ANSI_ESCAPE_PATTERN.sub('', text)
+    text = _ANSI_ESCAPE_PATTERN.sub("", text)
 
     # Remove unsafe control characters
-    text = _UNSAFE_CONTROL_PATTERN.sub('', text)
+    text = _UNSAFE_CONTROL_PATTERN.sub("", text)
 
     # Escape safe control characters to prevent injection/formatting issues
-    text = text.replace('\n', '\\n').replace('\r', '\\r').replace('\t', '\\t')
+    text = text.replace("\n", "\\n").replace("\r", "\\r").replace("\t", "\\t")
 
     return text

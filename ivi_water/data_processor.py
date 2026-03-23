@@ -1114,7 +1114,9 @@ class DataProcessor:
 
             # Optimization: Restore category dtype for location_id if reverted to object/string during merge
             # This is critical for downstream groupby performance in calculate_water_trends
-            if "location_id" in merged_df.columns and not isinstance(merged_df["location_id"].dtype, pd.CategoricalDtype):
+            if "location_id" in merged_df.columns and not isinstance(
+                merged_df["location_id"].dtype, pd.CategoricalDtype
+            ):
                 merged_df["location_id"] = merged_df["location_id"].astype("category")
 
             merged_df.reset_index(drop=True, inplace=True)
