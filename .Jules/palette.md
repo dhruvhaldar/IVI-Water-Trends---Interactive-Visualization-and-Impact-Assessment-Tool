@@ -1,3 +1,3 @@
-## 2026-03-23 - HTML Lang Attribute Missing in Generated Reports
-**Learning:** Python-generated HTML exports (like those created by Plotly or custom f-strings in data reporting tools) often omit the `lang` attribute on the root `<html>` tag by default. This causes screen readers to fall back to the system's default language or guess the language incorrectly, creating a frustrating experience for users relying on assistive technologies to consume data reports.
-**Action:** When working with dynamically generated HTML (especially data visualizations and dashboards), explicitly inject or replace `<html>` with `<html lang="en">` (or the appropriate dynamic language) before saving the file.
+## 2023-10-25 - HTML Report Accessibility
+**Learning:** Generated HTML reports lacked viewport meta tags and semantic structure, making them poorly responsive on mobile and harder for screen readers to navigate.
+**Action:** Added `<meta name="viewport">` for mobile responsiveness and semantic HTML tags (`<main>`, `<header>`, `<section>`) with `aria-labelledby` to improve screen reader navigation.

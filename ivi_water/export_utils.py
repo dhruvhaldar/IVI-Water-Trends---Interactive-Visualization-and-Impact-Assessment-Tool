@@ -536,6 +536,8 @@ class ExportUtils:
         <!DOCTYPE html>
         <html lang="en">
         <head>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
             <title>Water Trends Summary Report</title>
             <style>
                 body {{ font-family: Arial, sans-serif; margin: 40px; }}
@@ -548,15 +550,23 @@ class ExportUtils:
             </style>
         </head>
         <body>
-            <h1>Water Trends Summary Report</h1>
-            <p class="summary">Generated on: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</p>
-            
-            <h2>Summary Statistics</h2>
-            {summary_df.to_html(index=False, classes='summary-table')}
-            
-            <h2>Data Overview</h2>
-            <p>Total records: {len(df)}</p>
-            <p>Columns: {', '.join(safe_columns)}</p>
+            <main>
+                <header>
+                    <h1>Water Trends Summary Report</h1>
+                    <p class="summary">Generated on: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</p>
+                </header>
+
+                <section aria-labelledby="summary-stats-title">
+                    <h2 id="summary-stats-title">Summary Statistics</h2>
+                    {summary_df.to_html(index=False, classes='summary-table')}
+                </section>
+
+                <section aria-labelledby="data-overview-title">
+                    <h2 id="data-overview-title">Data Overview</h2>
+                    <p>Total records: {len(df)}</p>
+                    <p>Columns: {', '.join(safe_columns)}</p>
+                </section>
+            </main>
         </body>
         </html>
         """
