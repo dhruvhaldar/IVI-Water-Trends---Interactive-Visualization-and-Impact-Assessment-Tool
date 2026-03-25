@@ -834,6 +834,12 @@ For questions or support, contact: IVI Water Trends Team"""
                             "<html>", '<html lang="en">'
                         )
 
+                        # Add title for accessibility
+                        html_content = html_content.replace(
+                            "<head>",
+                            "<head>\n    <title>Water Trends Visualization</title>",
+                        )
+
                         from .security_utils import inject_csp_meta_tag
 
                         html_content = inject_csp_meta_tag(html_content)
