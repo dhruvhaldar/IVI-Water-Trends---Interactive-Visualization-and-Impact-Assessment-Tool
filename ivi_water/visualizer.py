@@ -712,9 +712,10 @@ class WaterTrendsVisualizer:
             # Add lang="en" for accessibility
             html_content = html_content.replace("<html>", '<html lang="en">')
 
-            # Add title for accessibility
+            # Add title for accessibility and viewport meta tag for mobile responsiveness
             html_content = html_content.replace(
-                "<head>", "<head>\n    <title>Water Trends Dashboard</title>"
+                "<head>",
+                '<head>\n    <meta name="viewport" content="width=device-width, initial-scale=1.0">\n    <title>Water Trends Dashboard</title>',
             )
 
             # Inject CSP meta tag for security
@@ -817,9 +818,10 @@ class WaterTrendsVisualizer:
             # Add lang="en" for accessibility
             html_content = html_content.replace("<html>", '<html lang="en">')
 
-            # Add title for accessibility
+            # Add title for accessibility and viewport meta tag for mobile responsiveness
             html_content = html_content.replace(
-                "<head>", "<head>\n    <title>Water Trends Visualization</title>"
+                "<head>",
+                '<head>\n    <meta name="viewport" content="width=device-width, initial-scale=1.0">\n    <title>Water Trends Visualization</title>',
             )
 
             # Inject CSP meta tag for security

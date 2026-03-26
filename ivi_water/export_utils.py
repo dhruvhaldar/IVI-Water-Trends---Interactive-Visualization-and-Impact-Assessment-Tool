@@ -834,10 +834,10 @@ For questions or support, contact: IVI Water Trends Team"""
                             "<html>", '<html lang="en">'
                         )
 
-                        # Add title for accessibility
+                        # Add title for accessibility and viewport meta tag for mobile responsiveness
                         html_content = html_content.replace(
                             "<head>",
-                            "<head>\n    <title>Water Trends Visualization</title>",
+                            '<head>\n    <meta name="viewport" content="width=device-width, initial-scale=1.0">\n    <title>Water Trends Visualization</title>',
                         )
 
                         from .security_utils import inject_csp_meta_tag
