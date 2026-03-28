@@ -13,3 +13,7 @@
 ## 2025-03-01 - [Categorical GroupBy on dynamic columns]
 **Learning:** Functions that aggregate over dynamic or variable user-provided columns (e.g. `location_level` in `create_seasonal_summary`) should still explicitly convert those grouping columns to `category` dtype right before the `groupby()` call. This ensures the ~35-45% speedup is realized even if upstream processes haven't converted them (or converted a different column).
 **Action:** Always verify the dtype of dynamically selected grouping columns and safely convert them to `category` prior to performing grouped aggregations on large datasets.
+
+## 2024-03-28 - Plotly HTML Export Size Optimization
+**Learning:** By default, `fig.to_html()` in Plotly embeds the entire Plotly.js library (~3MB) directly into the generated HTML file. When generating multiple exports or dashboards, this balloons the file size tremendously, increases memory footprint, and slows down generation time significantly.
+**Action:** Always use `fig.to_html(include_plotlyjs="cdn")` unless offline viewing is explicitly strictly required. For wrapper functions accepting `**kwargs`, use `kwargs.setdefault("include_plotlyjs", "cdn")` to allow users to override it if needed.
