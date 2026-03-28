@@ -547,9 +547,22 @@ class ExportUtils:
                 th, td {{ border: 1px solid #ddd; padding: 8px; text-align: left; }}
                 th {{ background-color: #f2f2f2; font-weight: bold; }}
                 .summary {{ background-color: #f8f9fa; padding: 15px; border-radius: 5px; }}
+                .skip-link {{
+                    position: absolute;
+                    top: -40px;
+                    left: 0;
+                    background: #3498db;
+                    color: white;
+                    padding: 8px;
+                    z-index: 100;
+                    transition: top 0.2s;
+                    text-decoration: none;
+                }}
+                .skip-link:focus {{ top: 0; }}
             </style>
         </head>
         <body>
+            <a href="#summary-stats-title" class="skip-link">Skip to main content</a>
             <main>
                 <header>
                     <h1>Water Trends Summary Report</h1>
