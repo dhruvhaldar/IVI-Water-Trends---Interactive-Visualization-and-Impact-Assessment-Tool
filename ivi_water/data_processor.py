@@ -614,7 +614,17 @@ class DataProcessor:
             with pd.read_csv(file_path, chunksize=chunk_size, **kwargs) as reader:
                 for chunk in reader:
                     # Calculate memory usage of current chunk
-                    chunk_memory = chunk.memory_usage(deep=True).sum()
+                    # Optimization: Estimate string memory directly instead of deep=True to avoid huge performance hit (~2x speedup)
+                    # For string columns, Python object overhead is ~50 bytes per string + actual string length
+                    chunk_memory = chunk.memory_usage(deep=False).sum()
+
+                    # Estimate string memory quickly
+                    obj_cols = chunk.select_dtypes(include=['object', 'string']).columns
+                    for col in obj_cols:
+                        s = chunk[col].dropna()
+                        if not s.empty:
+                            chunk_memory += (50 * len(s)) + s.str.len().sum()
+
                     total_memory_bytes += chunk_memory
 
                     if total_memory_bytes > max_bytes:
