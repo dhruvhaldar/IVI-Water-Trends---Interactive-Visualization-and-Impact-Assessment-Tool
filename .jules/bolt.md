@@ -17,3 +17,7 @@
 ## 2024-03-28 - Plotly HTML Export Size Optimization
 **Learning:** By default, `fig.to_html()` in Plotly embeds the entire Plotly.js library (~3MB) directly into the generated HTML file. When generating multiple exports or dashboards, this balloons the file size tremendously, increases memory footprint, and slows down generation time significantly.
 **Action:** Always use `fig.to_html(include_plotlyjs="cdn")` unless offline viewing is explicitly strictly required. For wrapper functions accepting `**kwargs`, use `kwargs.setdefault("include_plotlyjs", "cdn")` to allow users to override it if needed.
+
+## 2025-03-01 - [Optimized DataFrame Memory Estimation]
+**Learning:** Using `chunk.memory_usage(deep=True)` in a pandas chunk processing loop (e.g. `pd.read_csv(chunksize=...)`) is a massive performance bottleneck because it falls back to inspecting the size of every single object using `sys.getsizeof`. This takes seconds to process even moderately sized files.
+**Action:** For performance-critical memory estimation inside loops, use `chunk.memory_usage(deep=False).sum()` to get the raw pointer array size, and then add a vectorized estimate for string lengths (`chunk[col].str.len().sum()`) and a constant overhead per string (e.g., ~50 bytes). This provides order-of-magnitude accuracy for DoS protection while running an order of magnitude faster.
