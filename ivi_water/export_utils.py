@@ -542,7 +542,7 @@ class ExportUtils:
             <style>
                 body {{ font-family: Arial, sans-serif; margin: 40px; }}
                 h1 {{ color: #2c3e50; text-align: center; }}
-                h2 {{ color: #34495e; border-bottom: 2px solid #3498db; }}
+                h2 {{ color: #34495e; border-bottom: 2px solid #226699; }}
                 table {{ border-collapse: collapse; width: 100%; margin: 20px 0; }}
                 th, td {{ border: 1px solid #ddd; padding: 8px; text-align: left; }}
                 th {{ background-color: #f2f2f2; font-weight: bold; }}
@@ -551,7 +551,7 @@ class ExportUtils:
                     position: absolute;
                     top: -40px;
                     left: 0;
-                    background: #3498db;
+                    background: #226699;
                     color: white;
                     padding: 8px;
                     z-index: 100;
