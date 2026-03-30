@@ -394,6 +394,10 @@ class WaterTrendsVisualizer:
             x="year",
             y="water_area_ha",
             color=intervention_col,
+            color_discrete_map={
+                "Without Intervention": "#d62728",
+                "With Intervention": "#1f77b4",
+            },
             title=safe_title,
             labels={
                 "water_area_ha": "Average Water Area (hectares)",
@@ -404,10 +408,6 @@ class WaterTrendsVisualizer:
         )
 
         fig.update_layout(height=self.height, width=self.width, hovermode="x unified")
-
-        # Customize colors
-        fig.data[0].line.color = "#ff6b6b"  # Red for without intervention
-        fig.data[1].line.color = "#51cf66"  # Green for with intervention
 
         return fig
 
@@ -574,6 +574,10 @@ class WaterTrendsVisualizer:
             x="water_area_ha",
             y=impact_col,
             color="intervention_status",
+            color_discrete_map={
+                "Without Intervention": "#d62728",
+                "With Intervention": "#1f77b4",
+            },
             title=safe_title,
             labels={
                 "water_area_ha": "Water Area (hectares)",
