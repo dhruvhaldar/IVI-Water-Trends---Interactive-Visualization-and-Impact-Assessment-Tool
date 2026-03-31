@@ -559,6 +559,10 @@ class ExportUtils:
                     text-decoration: none;
                 }}
                 .skip-link:focus {{ top: 0; }}
+                .skip-link:focus-visible {{ outline: 3px solid #ff7f0e; outline-offset: 2px; }}
+                .table-responsive {{ overflow-x: auto; }}
+                tr:nth-child(even) {{ background-color: #f9f9f9; }}
+                tr:hover {{ background-color: #f1f1f1; }}
             </style>
         </head>
         <body>
@@ -571,7 +575,9 @@ class ExportUtils:
 
                 <section aria-labelledby="summary-stats-title">
                     <h2 id="summary-stats-title">Summary Statistics</h2>
-                    {summary_df.to_html(index=False, classes='summary-table')}
+                    <div class="table-responsive">
+                        {summary_df.to_html(index=False, classes='summary-table')}
+                    </div>
                 </section>
 
                 <section aria-labelledby="data-overview-title">
