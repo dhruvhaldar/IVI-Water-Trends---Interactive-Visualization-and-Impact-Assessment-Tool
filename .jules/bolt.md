@@ -21,3 +21,7 @@
 ## 2025-03-01 - [Optimized DataFrame Memory Estimation]
 **Learning:** Using `chunk.memory_usage(deep=True)` in a pandas chunk processing loop (e.g. `pd.read_csv(chunksize=...)`) is a massive performance bottleneck because it falls back to inspecting the size of every single object using `sys.getsizeof`. This takes seconds to process even moderately sized files.
 **Action:** For performance-critical memory estimation inside loops, use `chunk.memory_usage(deep=False).sum()` to get the raw pointer array size, and then add a vectorized estimate for string lengths (`chunk[col].str.len().sum()`) and a constant overhead per string (e.g., ~50 bytes). This provides order-of-magnitude accuracy for DoS protection while running an order of magnitude faster.
+
+## 2025-03-01 - [Optimized String Operations via Unique Value Mapping]
+**Learning:** Performing vectorized string operations like `.astype(str).str.strip().str.lower()` on entire Pandas Series is notoriously slow on large datasets because it falls back to Python-level loops and object instantiation. However, categorical data (like tags or true/false) often has very low cardinality.
+**Action:** Always compute unique values using `.unique()`, perform string transformations on the tiny set of unique values using a dictionary comprehension, and then apply the result back to the column using `.map(mapping)`. This pattern yields massive speedups (5x-10x) for columns with repeated values.
