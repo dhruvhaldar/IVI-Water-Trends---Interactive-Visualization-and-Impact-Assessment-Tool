@@ -723,6 +723,12 @@ class WaterTrendsVisualizer:
                 '<head>\n    <meta name="viewport" content="width=device-width, initial-scale=1.0">\n    <title>Water Trends Dashboard</title>',
             )
 
+            # Add accessibility attributes to the graph container
+            html_content = html_content.replace(
+                'class="plotly-graph-div"',
+                'class="plotly-graph-div" role="region" aria-label="Interactive Water Trends Chart" tabindex="0"'
+            )
+
             # Inject CSP meta tag for security
             from .security_utils import inject_csp_meta_tag
 
@@ -829,6 +835,12 @@ class WaterTrendsVisualizer:
             html_content = html_content.replace(
                 "<head>",
                 '<head>\n    <meta name="viewport" content="width=device-width, initial-scale=1.0">\n    <title>Water Trends Visualization</title>',
+            )
+
+            # Add accessibility attributes to the graph container
+            html_content = html_content.replace(
+                'class="plotly-graph-div"',
+                'class="plotly-graph-div" role="region" aria-label="Interactive Water Trends Chart" tabindex="0"'
             )
 
             # Inject CSP meta tag for security
