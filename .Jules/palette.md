@@ -19,3 +19,7 @@
 ## 2024-11-20 - Interactive Plotly Chart Accessibility
 **Learning:** Plotly interactive charts exported to HTML generate a container div (`<div class="plotly-graph-div">`) that lacks screen reader and keyboard accessibility attributes, leaving the visualization opaque and inaccessible to non-visual users navigating the document.
 **Action:** Always inject `role="region"`, a descriptive `aria-label`, and `tabindex="0"` into the `plotly-graph-div` container when generating standalone HTML or reports with Plotly. This allows screen readers to announce the interactive area and keyboard users to focus on it.
+
+## 2024-05-24 - Add Explicit Keyboard Focus to Plotly HTML Exports
+**Learning:** Plotly's interactive chart containers (`.plotly-graph-div`) receive keyboard focus when configured properly (e.g., via `tabindex="0"`), but their default HTML exports completely lack visual focus indicators. This means keyboard-only users have no way to see when they've tabbed onto the chart container.
+**Action:** When exporting Plotly charts to interactive HTML via `to_html()`, always inject custom `<style>.plotly-graph-div:focus-visible { outline: 3px solid #ff7f0e; outline-offset: 2px; border-radius: 4px; }</style>` into the document `<head>` to ensure proper WCAG focus visibility.
