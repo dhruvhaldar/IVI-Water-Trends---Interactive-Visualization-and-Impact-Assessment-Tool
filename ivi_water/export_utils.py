@@ -556,6 +556,7 @@ class ExportUtils:
 
         # Safe column names
         safe_columns = [html.escape(str(col)) for col in df.columns]
+        columns_html = '\n                        '.join(f'<li class="column-badge">{col}</li>' for col in safe_columns)
 
         # HTML content
         html_content = f"""
@@ -590,6 +591,9 @@ class ExportUtils:
                 .table-responsive:focus-visible {{ outline: 3px solid #ff7f0e; outline-offset: 2px; }}
                 tr:nth-child(even) {{ background-color: #f9f9f9; }}
                 tr:hover {{ background-color: #f1f1f1; }}
+                .column-list {{ display: flex; flex-wrap: wrap; gap: 8px; padding: 0; list-style: none; margin-top: 15px; }}
+                .column-badge {{ background-color: #e2e8f0; color: #334155; padding: 4px 10px; border-radius: 16px; font-size: 0.9em; font-family: monospace; border: 1px solid #cbd5e1; }}
+                .visually-hidden {{ position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }}
             </style>
         </head>
         <body>
@@ -609,8 +613,11 @@ class ExportUtils:
 
                 <section aria-labelledby="data-overview-title">
                     <h2 id="data-overview-title">Data Overview</h2>
-                    <p>Total records: {len(df)}</p>
-                    <p>Columns: {', '.join(safe_columns)}</p>
+                    <p>Total records: <strong>{len(df):,}</strong></p>
+                    <h3 class="visually-hidden">Columns</h3>
+                    <ul class="column-list" aria-label="Dataset columns">
+                        {columns_html}
+                    </ul>
                 </section>
             </main>
         </body>

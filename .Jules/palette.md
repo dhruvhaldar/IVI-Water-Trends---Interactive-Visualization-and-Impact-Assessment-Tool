@@ -19,3 +19,6 @@
 ## 2024-11-20 - Interactive Plotly Chart Accessibility
 **Learning:** Plotly interactive charts exported to HTML generate a container div (`<div class="plotly-graph-div">`) that lacks screen reader and keyboard accessibility attributes, leaving the visualization opaque and inaccessible to non-visual users navigating the document.
 **Action:** Always inject `role="region"`, a descriptive `aria-label`, and `tabindex="0"` into the `plotly-graph-div` container when generating standalone HTML or reports with Plotly. This allows screen readers to announce the interactive area and keyboard users to focus on it.
+## 2024-12-05 - Semantic Lists for Technical Data Readability
+**Learning:** Dumping pandas DataFrame columns as comma-separated strings in HTML reports creates a dense wall of text that is hostile to screen readers and difficult for users to visually scan.
+**Action:** Always format data schemas and column lists as semantic unordered lists (`<ul>`) with visual badge styling to improve scannability and structural navigation for assistive technologies.
