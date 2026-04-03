@@ -849,12 +849,18 @@ class DataProcessor:
 
                     # Optimization: Use unique values for string transformations to avoid expensive Pandas Series string operations (~5x-10x speedup)
                     unique_vals = df_clean["pond_presence"].unique()
-                    clean_mapping = {val: str(val).strip().lower() for val in unique_vals}
-                    final_mapping = {val: pond_mapping.get(clean_val) for val, clean_val in clean_mapping.items()}
 
-                    df_clean["pond_presence"] = df_clean["pond_presence"].map(
-                        final_mapping
-                    )
+                    # Fallback to vectorized operations if cardinality is high (> 50% of rows) to prevent memory spikes
+                    if len(unique_vals) > len(df_clean) * 0.5:
+                        cleaned_series = df_clean["pond_presence"].astype(str).str.strip().str.lower()
+                        df_clean["pond_presence"] = cleaned_series.map(pond_mapping)
+                    else:
+                        clean_mapping = {val: str(val).strip().lower() for val in unique_vals}
+                        final_mapping = {val: pond_mapping.get(clean_val) for val, clean_val in clean_mapping.items()}
+
+                        df_clean["pond_presence"] = df_clean["pond_presence"].map(
+                            final_mapping
+                        )
 
                 df_clean["pond_presence"] = pd.to_numeric(
                     df_clean["pond_presence"], errors="coerce"
@@ -873,8 +879,13 @@ class DataProcessor:
                 # Standardize intervention types
                 # Optimization: Use unique mapping to avoid expensive Pandas Series string operations
                 unique_interventions = df_clean["intervention_type"].unique()
-                intervention_mapping = {val: str(val).strip().lower() for val in unique_interventions}
-                df_clean["intervention_type"] = df_clean["intervention_type"].map(intervention_mapping)
+
+                # Fallback to vectorized operations if cardinality is high (> 50% of rows) to prevent memory spikes
+                if len(unique_interventions) > len(df_clean) * 0.5:
+                    df_clean["intervention_type"] = df_clean["intervention_type"].astype(str).str.strip().str.lower()
+                else:
+                    intervention_mapping = {val: str(val).strip().lower() for val in unique_interventions}
+                    df_clean["intervention_type"] = df_clean["intervention_type"].map(intervention_mapping)
 
                 # Validate intervention types
                 # Optimization: Use boolean mask instead of creating intermediate DataFrame
@@ -1569,9 +1580,15 @@ class DataProcessor:
 
                 # Optimization: Use unique mapping to avoid expensive Pandas Series string operations
                 unique_interventions = df_clean[intervention_col].unique()
-                clean_mapping = {val: str(val).lower() for val in unique_interventions}
-                final_mapping = {val: mapping.get(clean_val) for val, clean_val in clean_mapping.items()}
-                df_clean[intervention_col] = df_clean[intervention_col].map(final_mapping)
+
+                # Fallback to vectorized operations if cardinality is high (> 50% of rows) to prevent memory spikes
+                if len(unique_interventions) > len(df_clean) * 0.5:
+                    cleaned_series = df_clean[intervention_col].astype(str).str.strip().str.lower()
+                    df_clean[intervention_col] = cleaned_series.map(mapping)
+                else:
+                    clean_mapping = {val: str(val).strip().lower() for val in unique_interventions}
+                    final_mapping = {val: mapping.get(clean_val) for val, clean_val in clean_mapping.items()}
+                    df_clean[intervention_col] = df_clean[intervention_col].map(final_mapping)
 
             # Convert to numeric and handle missing values
             df_clean[intervention_col] = pd.to_numeric(
