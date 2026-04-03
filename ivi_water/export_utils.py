@@ -884,7 +884,7 @@ For questions or support, contact: IVI Water Trends Team"""
                         # Add title and viewport for accessibility and mobile responsiveness
                         html_content = html_content.replace(
                             "<head>",
-                            '<head>\n    <meta name="viewport" content="width=device-width, initial-scale=1.0">\n    <title>Water Trends Visualization</title>',
+                            '<head>\n    <meta name="viewport" content="width=device-width, initial-scale=1.0">\n    <title>Water Trends Visualization</title>\n    <style>.plotly-graph-div:focus-visible { outline: 3px solid #ff7f0e; outline-offset: 2px; border-radius: 4px; }</style>',
                         )
 
                         # Add accessibility attributes to the graph container
