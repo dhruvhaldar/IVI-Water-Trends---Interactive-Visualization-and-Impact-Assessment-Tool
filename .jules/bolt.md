@@ -25,3 +25,7 @@
 ## 2025-03-01 - [Optimized String Operations via Unique Value Mapping]
 **Learning:** Performing vectorized string operations like `.astype(str).str.strip().str.lower()` on entire Pandas Series is notoriously slow on large datasets because it falls back to Python-level loops and object instantiation. However, categorical data (like tags or true/false) often has very low cardinality.
 **Action:** Always compute unique values using `.unique()`, perform string transformations on the tiny set of unique values using a dictionary comprehension, and then apply the result back to the column using `.map(mapping)`. This pattern yields massive speedups (5x-10x) for columns with repeated values.
+
+## 2025-03-01 - [Categorical GroupBy Cartesian Product Prevention]
+**Learning:** In Pandas, grouping or pivoting by categorical columns (like `location_id` or `season`) without specifying `observed=True` forces the calculation of a cartesian product of ALL defined categories, even if the dataframe was filtered. This causes massive memory spikes and performance bottlenecks in downstream operations like visualization (e.g. plotting a subset of locations).
+**Action:** Always pass `observed=True` to `groupby` and `pivot_table` when working with categorical data unless the zero-filled missing categories are explicitly required for the output.
