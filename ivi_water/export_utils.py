@@ -590,6 +590,8 @@ class ExportUtils:
                 .table-responsive:focus-visible {{ outline: 3px solid #ff7f0e; outline-offset: 2px; }}
                 tr:nth-child(even) {{ background-color: #f9f9f9; }}
                 tr:hover {{ background-color: #f1f1f1; }}
+                .column-list {{ list-style-type: none; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; }}
+                .column-badge {{ background-color: #e9ecef; color: #495057; padding: 4px 8px; border-radius: 4px; font-size: 0.9em; border: 1px solid #ced4da; }}
             </style>
         </head>
         <body>
@@ -610,7 +612,10 @@ class ExportUtils:
                 <section aria-labelledby="data-overview-title">
                     <h2 id="data-overview-title">Data Overview</h2>
                     <p>Total records: {len(df)}</p>
-                    <p>Columns: {', '.join(safe_columns)}</p>
+                    <p>Columns:</p>
+                    <ul class="column-list">
+                        {''.join(f'<li class="column-badge">{col}</li>' for col in safe_columns)}
+                    </ul>
                 </section>
             </main>
         </body>
