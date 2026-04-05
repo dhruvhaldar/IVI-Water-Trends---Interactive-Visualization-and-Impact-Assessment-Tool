@@ -556,6 +556,7 @@ class ExportUtils:
 
         # Safe column names
         safe_columns = [html.escape(str(col)) for col in df.columns]
+        columns_html = "".join([f'<li><span class="badge">{col}</span></li>' for col in safe_columns])
 
         # HTML content
         html_content = f"""
@@ -590,6 +591,23 @@ class ExportUtils:
                 .table-responsive:focus-visible {{ outline: 3px solid #ff7f0e; outline-offset: 2px; }}
                 tr:nth-child(even) {{ background-color: #f9f9f9; }}
                 tr:hover {{ background-color: #f1f1f1; }}
+                .badge-list {{
+                    list-style-type: none;
+                    padding: 0;
+                    margin: 10px 0;
+                    display: flex;
+                    flex-wrap: wrap;
+                    gap: 8px;
+                }}
+                .badge {{
+                    background-color: #e2e8f0;
+                    color: #1e293b;
+                    padding: 4px 12px;
+                    border-radius: 16px;
+                    font-size: 0.9em;
+                    font-family: monospace;
+                    border: 1px solid #cbd5e1;
+                }}
             </style>
         </head>
         <body>
@@ -610,7 +628,10 @@ class ExportUtils:
                 <section aria-labelledby="data-overview-title">
                     <h2 id="data-overview-title">Data Overview</h2>
                     <p>Total records: {len(df)}</p>
-                    <p>Columns: {', '.join(safe_columns)}</p>
+                    <p id="columns-label">Columns:</p>
+                    <ul class="badge-list" aria-labelledby="columns-label">
+                        {columns_html}
+                    </ul>
                 </section>
             </main>
         </body>
