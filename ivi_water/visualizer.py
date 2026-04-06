@@ -9,8 +9,7 @@ analysis using Plotly and optional 3D visualization with PyVista.
 import os
 import logging
 import html
-from typing import Dict, List, Optional, Union, Tuple, Any
-from pathlib import Path
+from typing import Dict, List, Optional, Tuple
 
 # Third-party imports
 import numpy as np
@@ -18,7 +17,6 @@ import pandas as pd
 import plotly.graph_objects as go
 import plotly.express as px
 from plotly.subplots import make_subplots
-import plotly.offline as pyo
 
 # Optional 3D visualization
 try:
@@ -726,7 +724,7 @@ class WaterTrendsVisualizer:
             # Add accessibility attributes to the graph container
             html_content = html_content.replace(
                 'class="plotly-graph-div"',
-                'class="plotly-graph-div" role="region" aria-label="Interactive Water Trends Chart" tabindex="0"'
+                'class="plotly-graph-div" role="region" aria-label="Interactive Water Trends Chart" tabindex="0"',
             )
 
             # Inject CSP meta tag for security
@@ -840,7 +838,7 @@ class WaterTrendsVisualizer:
             # Add accessibility attributes to the graph container
             html_content = html_content.replace(
                 'class="plotly-graph-div"',
-                'class="plotly-graph-div" role="region" aria-label="Interactive Water Trends Chart" tabindex="0"'
+                'class="plotly-graph-div" role="region" aria-label="Interactive Water Trends Chart" tabindex="0"',
             )
 
             # Inject CSP meta tag for security
