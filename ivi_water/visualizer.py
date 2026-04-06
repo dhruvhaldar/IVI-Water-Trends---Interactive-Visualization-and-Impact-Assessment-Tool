@@ -9,8 +9,7 @@ analysis using Plotly and optional 3D visualization with PyVista.
 import os
 import logging
 import html
-from typing import Dict, List, Optional, Union, Tuple, Any
-from pathlib import Path
+from typing import Dict, List, Optional, Tuple
 
 # Third-party imports
 import numpy as np
@@ -18,7 +17,6 @@ import pandas as pd
 import plotly.graph_objects as go
 import plotly.express as px
 from plotly.subplots import make_subplots
-import plotly.offline as pyo
 
 # Optional 3D visualization
 try:
@@ -233,7 +231,9 @@ class WaterTrendsVisualizer:
             else:
                 # Aggregate across all locations
                 df_filtered = (
-                    df.groupby(["year", "season"])["water_area_ha"].mean().reset_index()
+                    df.groupby(["year", "season"], observed=True)["water_area_ha"]
+                    .mean()
+                    .reset_index()
                 )
                 title = title or "Average Seasonal Water Trends - All Locations"
                 self.logger.debug(
@@ -379,7 +379,9 @@ class WaterTrendsVisualizer:
 
         # Calculate average water area by intervention and year
         avg_data = (
-            df.groupby(["year", intervention_col])["water_area_ha"].mean().reset_index()
+            df.groupby(["year", intervention_col], observed=True)["water_area_ha"]
+            .mean()
+            .reset_index()
         )
         avg_data[intervention_col] = avg_data[intervention_col].map(
             {0: "Without Intervention", 1: "With Intervention"}
@@ -475,7 +477,11 @@ class WaterTrendsVisualizer:
         """
         # Pivot data for heatmap
         heatmap_data = df.pivot_table(
-            index="location_id", columns="year", values=metric, aggfunc="mean"
+            index="location_id",
+            columns="year",
+            values=metric,
+            aggfunc="mean",
+            observed=True,
         )
 
         safe_title = self._sanitize_text(
@@ -651,7 +657,9 @@ class WaterTrendsVisualizer:
         for location in location_ids[:3]:
             safe_location = self._sanitize_text(location)
             loc_data = df_filtered[df_filtered["location_id"] == location]
-            avg_counts = loc_data.groupby("year")["water_body_count"].mean()
+            avg_counts = loc_data.groupby("year", observed=True)[
+                "water_body_count"
+            ].mean()
 
             fig.add_trace(
                 go.Scatter(
@@ -667,7 +675,7 @@ class WaterTrendsVisualizer:
 
         # Plot 3: Yearly comparison
         yearly_avg = (
-            df_filtered.groupby(["year", "location_id"])["water_area_ha"]
+            df_filtered.groupby(["year", "location_id"], observed=True)["water_area_ha"]
             .mean()
             .reset_index()
         )
@@ -726,7 +734,7 @@ class WaterTrendsVisualizer:
             # Add accessibility attributes to the graph container
             html_content = html_content.replace(
                 'class="plotly-graph-div"',
-                'class="plotly-graph-div" role="region" aria-label="Interactive Water Trends Chart" tabindex="0"'
+                'class="plotly-graph-div" role="region" aria-label="Interactive Water Trends Chart" tabindex="0"',
             )
 
             # Inject CSP meta tag for security
@@ -840,7 +848,7 @@ class WaterTrendsVisualizer:
             # Add accessibility attributes to the graph container
             html_content = html_content.replace(
                 'class="plotly-graph-div"',
-                'class="plotly-graph-div" role="region" aria-label="Interactive Water Trends Chart" tabindex="0"'
+                'class="plotly-graph-div" role="region" aria-label="Interactive Water Trends Chart" tabindex="0"',
             )
 
             # Inject CSP meta tag for security
