@@ -9,7 +9,7 @@ and create PDF-friendly summaries.
 import os
 import logging
 import html
-from typing import Dict, List, Optional, Union, Any, Tuple
+from typing import List, Optional
 from datetime import datetime
 from pathlib import Path
 
@@ -17,7 +17,6 @@ from pathlib import Path
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
-from matplotlib.backends.backend_pdf import PdfPages
 
 # Optional PDF generation
 try:
@@ -524,7 +523,7 @@ class ExportUtils:
         if "water_area_ha" in df.columns and "year" in df.columns:
             # Create trend chart
             fig, ax = plt.subplots(figsize=self.figure_size)
-            yearly_avg = df.groupby("year")["water_area_ha"].mean()
+            yearly_avg = df.groupby("year", observed=True)["water_area_ha"].mean()
             ax.plot(yearly_avg.index, yearly_avg.values, marker="o", linewidth=2)
             ax.set_title("Average Water Area Over Time")
             ax.set_xlabel("Year")
@@ -714,7 +713,7 @@ class ExportUtils:
 
         # Water area trends
         if "water_area_ha" in df.columns and "year" in df.columns:
-            yearly_avg = df.groupby("year")["water_area_ha"].mean()
+            yearly_avg = df.groupby("year", observed=True)["water_area_ha"].mean()
             if len(yearly_avg) > 1:
                 trend_slope = np.polyfit(yearly_avg.index, yearly_avg.values, 1)[0]
                 if trend_slope > 0.5:
@@ -726,7 +725,7 @@ class ExportUtils:
 
         # Seasonal patterns
         if "season" in df.columns and "water_area_ha" in df.columns:
-            seasonal_avg = df.groupby("season")["water_area_ha"].mean()
+            seasonal_avg = df.groupby("season", observed=True)["water_area_ha"].mean()
             max_season = seasonal_avg.idxmax()
             min_season = seasonal_avg.idxmin()
             insights.append(

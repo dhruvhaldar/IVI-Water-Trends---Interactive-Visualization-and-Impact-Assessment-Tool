@@ -25,3 +25,7 @@
 ## 2025-03-01 - [Optimized String Operations via Unique Value Mapping]
 **Learning:** Performing vectorized string operations like `.astype(str).str.strip().str.lower()` on entire Pandas Series is notoriously slow on large datasets because it falls back to Python-level loops and object instantiation. However, categorical data (like tags or true/false) often has very low cardinality.
 **Action:** Always compute unique values using `.unique()`, perform string transformations on the tiny set of unique values using a dictionary comprehension, and then apply the result back to the column using `.map(mapping)`. This pattern yields massive speedups (5x-10x) for columns with repeated values.
+
+## 2025-03-01 - [Categorical GroupBy Memory Spike Optimization]
+**Learning:** In Pandas, performing `groupby` or `pivot_table` operations on categorical columns without specifying `observed=True` can cause massive memory spikes and O(N*M) execution times. This happens because Pandas defaults to expanding the Cartesian product of all possible unobserved categories.
+**Action:** Always explicitly pass `observed=True` to `groupby` and `pivot_table` when working with any potentially categorical data (like 'season' or 'location_id') to ensure Pandas only processes categories that actually appear in the data.
