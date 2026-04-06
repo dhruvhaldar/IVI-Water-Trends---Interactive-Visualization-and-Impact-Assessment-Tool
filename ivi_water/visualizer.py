@@ -231,9 +231,7 @@ class WaterTrendsVisualizer:
             else:
                 # Aggregate across all locations
                 df_filtered = (
-                    df.groupby(["year", "season"], observed=True)["water_area_ha"]
-                    .mean()
-                    .reset_index()
+                    df.groupby(["year", "season"], observed=True)["water_area_ha"].mean().reset_index()
                 )
                 title = title or "Average Seasonal Water Trends - All Locations"
                 self.logger.debug(
@@ -379,9 +377,7 @@ class WaterTrendsVisualizer:
 
         # Calculate average water area by intervention and year
         avg_data = (
-            df.groupby(["year", intervention_col], observed=True)["water_area_ha"]
-            .mean()
-            .reset_index()
+            df.groupby(["year", intervention_col], observed=True)["water_area_ha"].mean().reset_index()
         )
         avg_data[intervention_col] = avg_data[intervention_col].map(
             {0: "Without Intervention", 1: "With Intervention"}
@@ -477,11 +473,7 @@ class WaterTrendsVisualizer:
         """
         # Pivot data for heatmap
         heatmap_data = df.pivot_table(
-            index="location_id",
-            columns="year",
-            values=metric,
-            aggfunc="mean",
-            observed=True,
+            index="location_id", columns="year", values=metric, aggfunc="mean", observed=True
         )
 
         safe_title = self._sanitize_text(
@@ -657,9 +649,7 @@ class WaterTrendsVisualizer:
         for location in location_ids[:3]:
             safe_location = self._sanitize_text(location)
             loc_data = df_filtered[df_filtered["location_id"] == location]
-            avg_counts = loc_data.groupby("year", observed=True)[
-                "water_body_count"
-            ].mean()
+            avg_counts = loc_data.groupby("year", observed=True)["water_body_count"].mean()
 
             fig.add_trace(
                 go.Scatter(
