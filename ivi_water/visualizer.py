@@ -231,7 +231,9 @@ class WaterTrendsVisualizer:
             else:
                 # Aggregate across all locations
                 df_filtered = (
-                    df.groupby(["year", "season"], observed=True)["water_area_ha"].mean().reset_index()
+                    df.groupby(["year", "season"], observed=True)["water_area_ha"]
+                    .mean()
+                    .reset_index()
                 )
                 title = title or "Average Seasonal Water Trends - All Locations"
                 self.logger.debug(
@@ -377,7 +379,9 @@ class WaterTrendsVisualizer:
 
         # Calculate average water area by intervention and year
         avg_data = (
-            df.groupby(["year", intervention_col], observed=True)["water_area_ha"].mean().reset_index()
+            df.groupby(["year", intervention_col], observed=True)["water_area_ha"]
+            .mean()
+            .reset_index()
         )
         avg_data[intervention_col] = avg_data[intervention_col].map(
             {0: "Without Intervention", 1: "With Intervention"}
@@ -473,7 +477,11 @@ class WaterTrendsVisualizer:
         """
         # Pivot data for heatmap
         heatmap_data = df.pivot_table(
-            index="location_id", columns="year", values=metric, aggfunc="mean", observed=True
+            index="location_id",
+            columns="year",
+            values=metric,
+            aggfunc="mean",
+            observed=True,
         )
 
         safe_title = self._sanitize_text(
@@ -649,7 +657,9 @@ class WaterTrendsVisualizer:
         for location in location_ids[:3]:
             safe_location = self._sanitize_text(location)
             loc_data = df_filtered[df_filtered["location_id"] == location]
-            avg_counts = loc_data.groupby("year", observed=True)["water_body_count"].mean()
+            avg_counts = loc_data.groupby("year", observed=True)[
+                "water_body_count"
+            ].mean()
 
             fig.add_trace(
                 go.Scatter(
@@ -721,10 +731,24 @@ class WaterTrendsVisualizer:
                 '<head>\n    <meta name="viewport" content="width=device-width, initial-scale=1.0">\n    <title>Water Trends Dashboard</title>\n    <style>.plotly-graph-div:focus-visible { outline: 3px solid #ff7f0e; outline-offset: 2px; border-radius: 4px; }</style>',
             )
 
-            # Add accessibility attributes to the graph container
+            # Add accessibility attributes to the graph container with dynamic ARIA label
+            title_text = "Interactive Water Trends Chart"
+            if getattr(fig.layout, "title", None) and getattr(
+                fig.layout.title, "text", None
+            ):
+                import re, html as html_lib
+
+                # Extract text, remove HTML tags, and escape for attribute safety
+                raw_text = html_lib.unescape(fig.layout.title.text)
+                clean_text = re.sub(r"<[^>]+>", "", raw_text).strip()
+                if clean_text:
+                    title_text = (
+                        f"{html_lib.escape(clean_text, quote=True)} - Interactive Chart"
+                    )
+
             html_content = html_content.replace(
                 'class="plotly-graph-div"',
-                'class="plotly-graph-div" role="region" aria-label="Interactive Water Trends Chart" tabindex="0"',
+                f'class="plotly-graph-div" role="region" aria-label="{title_text}" tabindex="0"',
             )
 
             # Inject CSP meta tag for security
@@ -835,10 +859,24 @@ class WaterTrendsVisualizer:
                 '<head>\n    <meta name="viewport" content="width=device-width, initial-scale=1.0">\n    <title>Water Trends Visualization</title>\n    <style>.plotly-graph-div:focus-visible { outline: 3px solid #ff7f0e; outline-offset: 2px; border-radius: 4px; }</style>',
             )
 
-            # Add accessibility attributes to the graph container
+            # Add accessibility attributes to the graph container with dynamic ARIA label
+            title_text = "Interactive Water Trends Chart"
+            if getattr(fig.layout, "title", None) and getattr(
+                fig.layout.title, "text", None
+            ):
+                import re, html as html_lib
+
+                # Extract text, remove HTML tags, and escape for attribute safety
+                raw_text = html_lib.unescape(fig.layout.title.text)
+                clean_text = re.sub(r"<[^>]+>", "", raw_text).strip()
+                if clean_text:
+                    title_text = (
+                        f"{html_lib.escape(clean_text, quote=True)} - Interactive Chart"
+                    )
+
             html_content = html_content.replace(
                 'class="plotly-graph-div"',
-                'class="plotly-graph-div" role="region" aria-label="Interactive Water Trends Chart" tabindex="0"',
+                f'class="plotly-graph-div" role="region" aria-label="{title_text}" tabindex="0"',
             )
 
             # Inject CSP meta tag for security

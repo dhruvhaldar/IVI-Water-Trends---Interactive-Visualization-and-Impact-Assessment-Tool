@@ -891,10 +891,22 @@ For questions or support, contact: IVI Water Trends Team"""
                             '<head>\n    <meta name="viewport" content="width=device-width, initial-scale=1.0">\n    <title>Water Trends Visualization</title>\n    <style>.plotly-graph-div:focus-visible { outline: 3px solid #ff7f0e; outline-offset: 2px; border-radius: 4px; }</style>',
                         )
 
-                        # Add accessibility attributes to the graph container
+                        # Add accessibility attributes to the graph container with dynamic ARIA label
+                        title_text = "Interactive Water Trends Chart"
+                        if getattr(fig.layout, "title", None) and getattr(
+                            fig.layout.title, "text", None
+                        ):
+                            import re, html as html_lib
+
+                            # Extract text, remove HTML tags, and escape for attribute safety
+                            raw_text = html_lib.unescape(fig.layout.title.text)
+                            clean_text = re.sub(r"<[^>]+>", "", raw_text).strip()
+                            if clean_text:
+                                title_text = f"{html_lib.escape(clean_text, quote=True)} - Interactive Chart"
+
                         html_content = html_content.replace(
                             'class="plotly-graph-div"',
-                            'class="plotly-graph-div" role="region" aria-label="Interactive Water Trends Chart" tabindex="0"',
+                            f'class="plotly-graph-div" role="region" aria-label="{title_text}" tabindex="0"',
                         )
 
                         from .security_utils import inject_csp_meta_tag
