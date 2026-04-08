@@ -396,13 +396,15 @@ class ExportUtils:
         summary_data = []
 
         # Basic statistics
-        summary_data.append(["Total Records", len(df)])
-        summary_data.append(
-            [
-                "Unique Locations",
-                df["location_id"].nunique() if "location_id" in df.columns else "N/A",
-            ]
+        summary_data.append(["Total Records", f"{len(df):,}"])
+
+        unique_locs = (
+            df["location_id"].nunique() if "location_id" in df.columns else "N/A"
         )
+        if isinstance(unique_locs, (int, float)):
+            unique_locs = f"{unique_locs:,}"
+        summary_data.append(["Unique Locations", unique_locs])
+
         summary_data.append(
             [
                 "Year Range",
@@ -417,20 +419,20 @@ class ExportUtils:
         # Water statistics
         if "water_area_ha" in df.columns:
             summary_data.append(
-                ["Mean Water Area (ha)", f"{df['water_area_ha'].mean():.2f}"]
+                ["Mean Water Area (ha)", f"{df['water_area_ha'].mean():,.2f}"]
             )
             summary_data.append(
-                ["Max Water Area (ha)", f"{df['water_area_ha'].max():.2f}"]
+                ["Max Water Area (ha)", f"{df['water_area_ha'].max():,.2f}"]
             )
             summary_data.append(
-                ["Min Water Area (ha)", f"{df['water_area_ha'].min():.2f}"]
+                ["Min Water Area (ha)", f"{df['water_area_ha'].min():,.2f}"]
             )
 
         # Intervention statistics
         if "pond_presence" in df.columns:
             with_pond = df[df["pond_presence"] == 1].shape[0]
-            summary_data.append(["Records with Pond", with_pond])
-            summary_data.append(["Records without Pond", len(df) - with_pond])
+            summary_data.append(["Records with Pond", f"{with_pond:,}"])
+            summary_data.append(["Records without Pond", f"{len(df) - with_pond:,}"])
 
         return pd.DataFrame(summary_data, columns=["Metric", "Value"])
 
@@ -610,7 +612,7 @@ class ExportUtils:
 
                 <section aria-labelledby="data-overview-title">
                     <h2 id="data-overview-title">Data Overview</h2>
-                    <p>Total records: {len(df)}</p>
+                    <p>Total records: {len(df):,}</p>
                     <p id="columns-label" style="margin-bottom: 8px;">Columns:</p>
                     <ul class="badge-list" aria-labelledby="columns-label">
                         {''.join(f'<li class="badge">{col}</li>' for col in safe_columns)}

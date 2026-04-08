@@ -27,3 +27,7 @@
 ## 2026-04-07 - Dynamic ARIA Labels for Plotly Charts
 **Learning:** Hardcoding generic ARIA labels like `aria-label="Interactive Chart"` across all visualizations creates a confusing experience for screen reader users when multiple charts exist on the same page. Without specific context, users cannot distinguish between different data representations.
 **Action:** Always extract the dynamic, specific title (e.g., `fig.layout.title.text`), strip any embedded HTML tags, HTML-escape it for safety, and use it in the `aria-label` attribute when injecting accessibility metadata into third-party wrapper elements.
+
+## 2024-10-24 - Number Formatting for Readability
+**Learning:** Raw integers displayed in summary tables and data reports (e.g., `1234567`) are difficult for users to parse at a glance and increase cognitive load compared to properly formatted numbers.
+**Action:** Always apply thousands separators (e.g., via f-string formatting like `f"{value:,}"`) to large numerical values in data tables, summaries, and HTML text output to improve quick scanning and readability.
