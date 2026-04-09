@@ -29,3 +29,7 @@
 ## 2025-03-01 - [Categorical GroupBy Memory Spike Optimization]
 **Learning:** In Pandas, performing `groupby` or `pivot_table` operations on categorical columns without specifying `observed=True` can cause massive memory spikes and O(N*M) execution times. This happens because Pandas defaults to expanding the Cartesian product of all possible unobserved categories.
 **Action:** Always explicitly pass `observed=True` to `groupby` and `pivot_table` when working with any potentially categorical data (like 'season' or 'location_id') to ensure Pandas only processes categories that actually appear in the data.
+
+## 2025-03-01 - [Avoid Redundant astype(str) on Pandas DataFrames]
+**Learning:** Calling `.astype(str)` multiple times on high-cardinality DataFrame columns (e.g., once to compute a mask and again to apply a modification) causes severe performance bottlenecks due to repetitive, heavy string copying. For 10M rows, this can waste ~3-4 seconds purely on string allocation.
+**Action:** When filtering and modifying Pandas columns based on string conditions, always store the initial `.astype(str)` result in a local variable (e.g., `s_col = df[col].astype(str)`) and reuse it for both computing the boolean mask and applying the mutated data.
