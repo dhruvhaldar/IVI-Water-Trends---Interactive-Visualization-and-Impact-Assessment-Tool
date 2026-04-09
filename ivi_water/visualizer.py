@@ -290,7 +290,7 @@ class WaterTrendsVisualizer:
                         fill="tonexty",
                         hovertemplate=f"<b>{season.capitalize()}</b><br>"
                         + "Year: %{x}<br>"
-                        + "Water Area: %{y:.2f} ha<extra></extra>",
+                        + "Water Area: %{y:,.2f} ha<extra></extra>",
                     )
                 )
 
