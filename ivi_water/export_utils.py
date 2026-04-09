@@ -666,25 +666,29 @@ class ExportUtils:
 
         # Format for Short (emoji-friendly, concise)
         water_area_avg = (
-            f"{df['water_area_ha'].mean():.1f} ha"
+            f"{df['water_area_ha'].mean():,.1f} ha"
             if "water_area_ha" in df.columns
             else "N/A"
         )
         water_area_max = (
-            f"{df['water_area_ha'].max():.1f} ha"
+            f"{df['water_area_ha'].max():,.1f} ha"
             if "water_area_ha" in df.columns
             else "N/A"
         )
 
         ponds_with = (
-            df[df["pond_presence"] == 1]["location_id"].nunique()
+            f"{df[df['pond_presence'] == 1]['location_id'].nunique():,}"
             if "pond_presence" in df.columns
             else "N/A"
         )
         ponds_without = (
-            df[df["pond_presence"] == 0]["location_id"].nunique()
+            f"{df[df['pond_presence'] == 0]['location_id'].nunique():,}"
             if "pond_presence" in df.columns
             else "N/A"
+        )
+
+        total_locations = (
+            f"{df['location_id'].nunique():,}" if "location_id" in df.columns else "N/A"
         )
 
         summary_text = f"""📊 *Water Trends Summary Report*
@@ -694,7 +698,7 @@ class ExportUtils:
 {insights}
 
 📈 *Quick Stats:*
-• Total Locations: {df['location_id'].nunique() if 'location_id' in df.columns else 'N/A'}
+• Total Locations: {total_locations}
 • Year Range: {df['year'].min()}-{df['year'].max() if 'year' in df.columns else 'N/A'}
 • Total Records: {len(df):,}
 
