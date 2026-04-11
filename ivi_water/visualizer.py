@@ -447,6 +447,8 @@ class WaterTrendsVisualizer:
             labels={"water_body_count": "Number of Water Bodies", "count": "Frequency"},
             nbins=30,
             barmode="overlay",
+            color_discrete_map=SEASON_COLORS,
+            category_orders={"season": SEASON_ORDER},
         )
 
         fig.update_layout(
@@ -535,6 +537,8 @@ class WaterTrendsVisualizer:
             title=safe_title,
             labels={"water_area_ha": "Water Area (hectares)", "season": "Season"},
             color="season",
+            color_discrete_map=SEASON_COLORS,
+            category_orders={"season": SEASON_ORDER},
         )
 
         fig.update_layout(height=self.height, width=self.width, showlegend=False)
