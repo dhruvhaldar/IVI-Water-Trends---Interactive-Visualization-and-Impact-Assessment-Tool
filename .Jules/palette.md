@@ -34,3 +34,6 @@
 ## 2024-05-24 - Consistent Semantic Color Mapping Across Dashboards
 **Learning:** When generating multiple visualizations that share a categorical dimension (e.g., seasons), omitting explicit color mapping (like `color_discrete_map`) in some charts causes plotting libraries to assign default palette colors. This inconsistency creates significant cognitive friction for users, as the same color means different things in different contexts.
 **Action:** Always apply explicit semantic color mappings (`color_discrete_map`) and category ordering (`category_orders`) consistently across all charts within an application or report.
+## 2024-11-20 - Plotly Tooltip Formatting for Readability
+**Learning:** Default tooltips in Plotly display raw floating-point numbers or large integers without thousands separators, making it difficult for users to read and quickly parse values in interactive dashboards, creating inconsistency with formatted static reports.
+**Action:** When customizing Plotly chart tooltips (`hovertemplate`), always use d3-style formatting syntax (e.g., `%{y:,.2f}` or `%{y:,}`) to include thousands separators and maintain visual consistency and readability for large numerical values.

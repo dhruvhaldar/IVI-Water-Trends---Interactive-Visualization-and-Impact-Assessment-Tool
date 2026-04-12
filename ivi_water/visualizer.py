@@ -644,6 +644,7 @@ class WaterTrendsVisualizer:
 
             for season in ["perennial", "winter", "monsoon"]:
                 if season in pivot_data.columns:
+                    color = SEASON_COLORS.get(season, "#7f7f7f")
                     fig.add_trace(
                         go.Scatter(
                             x=pivot_data.index,
@@ -651,7 +652,13 @@ class WaterTrendsVisualizer:
                             mode="lines",
                             stackgroup="one",
                             name=f"{safe_location} - {season}",
+                            line=dict(color=color, width=2),
+                            fillcolor=color,
+                            fill="tonexty",
                             showlegend=False,
+                            hovertemplate=f"<b>{safe_location} - {season.capitalize()}</b><br>"
+                            + "Year: %{x}<br>"
+                            + "Water Area: %{y:,.2f} ha<extra></extra>",
                         ),
                         row=1,
                         col=1,
@@ -672,6 +679,9 @@ class WaterTrendsVisualizer:
                     mode="lines+markers",
                     name=f"{safe_location} - Bodies",
                     showlegend=False,
+                    hovertemplate=f"<b>{safe_location}</b><br>"
+                    + "Year: %{x}<br>"
+                    + "Avg Bodies: %{y:,.2f}<extra></extra>",
                 ),
                 row=1,
                 col=2,
@@ -694,6 +704,9 @@ class WaterTrendsVisualizer:
                     mode="lines+markers",
                     name=safe_location,
                     showlegend=False,
+                    hovertemplate=f"<b>{safe_location}</b><br>"
+                    + "Year: %{x}<br>"
+                    + "Water Area: %{y:,.2f} ha<extra></extra>",
                 ),
                 row=2,
                 col=1,
@@ -706,6 +719,9 @@ class WaterTrendsVisualizer:
                 nbinsx=30,
                 name="Distribution",
                 showlegend=False,
+                hovertemplate="<b>Distribution</b><br>"
+                + "Area: %{x:,.2f} ha<br>"
+                + "Count: %{y:,}<extra></extra>",
             ),
             row=2,
             col=2,
