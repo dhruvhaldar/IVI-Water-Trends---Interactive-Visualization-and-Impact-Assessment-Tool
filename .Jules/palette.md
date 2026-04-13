@@ -37,3 +37,6 @@
 ## 2024-11-20 - Plotly Tooltip Formatting for Readability
 **Learning:** Default tooltips in Plotly display raw floating-point numbers or large integers without thousands separators, making it difficult for users to read and quickly parse values in interactive dashboards, creating inconsistency with formatted static reports.
 **Action:** When customizing Plotly chart tooltips (`hovertemplate`), always use d3-style formatting syntax (e.g., `%{y:,.2f}` or `%{y:,}`) to include thousands separators and maintain visual consistency and readability for large numerical values.
+## 2026-04-13 - Skip-Link Target Focus Management
+**Learning:** When using skip-to-content links that target non-interactive elements (like an `<h2>` heading), keyboard focus might not visually transfer in some browsers, or conversely, it may show an ugly default focus ring when the element receives programmatic focus.
+**Action:** Always add `tabindex="-1"` to the skip link's target element so it can programmatically receive focus, and apply CSS (e.g., `[tabindex="-1"]:focus { outline: none; }`) to remove the default focus outline, ensuring a smooth, visually clean transition.
