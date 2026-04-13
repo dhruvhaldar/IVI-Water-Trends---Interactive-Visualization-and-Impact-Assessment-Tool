@@ -588,6 +588,7 @@ class ExportUtils:
                 }}
                 .skip-link:focus {{ top: 0; }}
                 .skip-link:focus-visible {{ outline: 3px solid #ff7f0e; outline-offset: 2px; }}
+                h2[tabindex="-1"]:focus {{ outline: none; }}
                 .table-responsive {{ overflow-x: auto; }}
                 .table-responsive:focus-visible {{ outline: 3px solid #ff7f0e; outline-offset: 2px; }}
                 tr:nth-child(even) {{ background-color: #f9f9f9; }}
@@ -605,7 +606,7 @@ class ExportUtils:
                 </header>
 
                 <section aria-labelledby="summary-stats-title">
-                    <h2 id="summary-stats-title">Summary Statistics</h2>
+                    <h2 id="summary-stats-title" tabindex="-1">Summary Statistics</h2>
                     <div class="table-responsive" tabindex="0" role="region" aria-labelledby="summary-stats-title">
                         {summary_df.to_html(index=False, classes='summary-table')}
                     </div>
