@@ -411,6 +411,12 @@ class WaterTrendsVisualizer:
 
         fig.update_layout(height=self.height, width=self.width, hovermode="x unified")
 
+        fig.update_traces(
+            hovertemplate="<b>%{data.name}</b><br>Year: %{x}<br>"
+            "Average Water Area: %{y:,.2f} ha<extra></extra>"
+        )
+        fig.update_yaxes(tickformat=",.2f")
+
         return fig
 
     def create_water_body_distribution(
@@ -458,6 +464,12 @@ class WaterTrendsVisualizer:
             yaxis_title="Frequency",
         )
 
+        fig.update_traces(
+            hovertemplate="<b>%{data.name}</b><br>Number of Water Bodies: %{x}<br>"
+            "Frequency: %{y:,}<extra></extra>"
+        )
+        fig.update_yaxes(tickformat=",")
+
         return fig
 
     def create_trend_heatmap(
@@ -501,6 +513,11 @@ class WaterTrendsVisualizer:
             height=max(self.height, len(heatmap_data) * 20), width=self.width
         )
 
+        fig.update_traces(
+            hovertemplate="Location: %{y}<br>Year: %{x}<br>"
+            "Value: %{z:,.2f}<extra></extra>"
+        )
+
         return fig
 
     def create_seasonal_box_plot(
@@ -542,6 +559,12 @@ class WaterTrendsVisualizer:
         )
 
         fig.update_layout(height=self.height, width=self.width, showlegend=False)
+
+        fig.update_traces(
+            hovertemplate="<b>%{data.name}</b><br>"
+            "Water Area: %{y:,.2f} ha<extra></extra>"
+        )
+        fig.update_yaxes(tickformat=",.2f")
 
         return fig
 
@@ -598,6 +621,14 @@ class WaterTrendsVisualizer:
         )
 
         fig.update_layout(height=self.height, width=self.width)
+
+        # Ensure dynamic tooltip formatting based on axes values
+        fig.update_traces(
+            hovertemplate="<b>%{data.name}</b><br>"
+            "Water Area: %{x:,.2f} ha<br>Impact: %{y:,.2f}<extra></extra>"
+        )
+        fig.update_xaxes(tickformat=",.2f")
+        fig.update_yaxes(tickformat=",.2f")
 
         return fig
 
