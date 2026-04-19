@@ -769,25 +769,13 @@ class WaterTrendsVisualizer:
         )
 
         if save_path:
-            # Generate HTML content
-            # Optimization: Use CDN for plotly.js to reduce file size and improve speed
-            html_content = fig.to_html(include_plotlyjs="cdn")
-
-            # Add lang="en" for accessibility
-            html_content = html_content.replace("<html>", '<html lang="en">')
-
-            # Add title and viewport for accessibility and mobile responsiveness
-            html_content = html_content.replace(
-                "<head>",
-                '<head>\n    <meta name="viewport" content="width=device-width, initial-scale=1.0">\n    <title>Water Trends Dashboard</title>\n    <style>.plotly-graph-div:focus-visible { outline: 3px solid #ff7f0e; outline-offset: 2px; border-radius: 4px; }</style>',
-            )
-
-            # Add accessibility attributes to the graph container with dynamic ARIA label
+            # Extract title for document <title> and ARIA label
             title_text = "Interactive Water Trends Chart"
             if getattr(fig.layout, "title", None) and getattr(
                 fig.layout.title, "text", None
             ):
-                import re, html as html_lib
+                import re
+                import html as html_lib
 
                 # Extract text, remove HTML tags, and escape for attribute safety
                 raw_text = html_lib.unescape(fig.layout.title.text)
@@ -797,6 +785,22 @@ class WaterTrendsVisualizer:
                         f"{html_lib.escape(clean_text, quote=True)} - Interactive Chart"
                     )
 
+            # Generate HTML content
+            # Optimization: Use CDN for plotly.js to reduce file size and improve speed
+            html_content = fig.to_html(
+                include_plotlyjs="cdn", config={"responsive": True}
+            )
+
+            # Add lang="en" for accessibility
+            html_content = html_content.replace("<html>", '<html lang="en">')
+
+            # Add title and viewport for accessibility and mobile responsiveness
+            html_content = html_content.replace(
+                "<head>",
+                f'<head>\n    <meta name="viewport" content="width=device-width, initial-scale=1.0">\n    <title>{title_text}</title>\n    <style>.plotly-graph-div:focus-visible {{ outline: 3px solid #ff7f0e; outline-offset: 2px; border-radius: 4px; }}</style>',
+            )
+
+            # Add accessibility attributes to the graph container with dynamic ARIA label
             html_content = html_content.replace(
                 'class="plotly-graph-div"',
                 f'class="plotly-graph-div" role="region" aria-label="{title_text}" tabindex="0"',
@@ -896,26 +900,13 @@ class WaterTrendsVisualizer:
         filepath = os.path.join(save_dir, f"{filename}.{format}")
 
         if format == "html":
-            # Generate HTML string
-            # Optimization: Use CDN for plotly.js to reduce file size and improve speed
-            kwargs.setdefault("include_plotlyjs", "cdn")
-            html_content = fig.to_html(**kwargs)
-
-            # Add lang="en" for accessibility
-            html_content = html_content.replace("<html>", '<html lang="en">')
-
-            # Add title and viewport for accessibility and mobile responsiveness
-            html_content = html_content.replace(
-                "<head>",
-                '<head>\n    <meta name="viewport" content="width=device-width, initial-scale=1.0">\n    <title>Water Trends Visualization</title>\n    <style>.plotly-graph-div:focus-visible { outline: 3px solid #ff7f0e; outline-offset: 2px; border-radius: 4px; }</style>',
-            )
-
-            # Add accessibility attributes to the graph container with dynamic ARIA label
+            # Extract title for document <title> and ARIA label
             title_text = "Interactive Water Trends Chart"
             if getattr(fig.layout, "title", None) and getattr(
                 fig.layout.title, "text", None
             ):
-                import re, html as html_lib
+                import re
+                import html as html_lib
 
                 # Extract text, remove HTML tags, and escape for attribute safety
                 raw_text = html_lib.unescape(fig.layout.title.text)
@@ -925,6 +916,24 @@ class WaterTrendsVisualizer:
                         f"{html_lib.escape(clean_text, quote=True)} - Interactive Chart"
                     )
 
+            # Generate HTML string
+            # Optimization: Use CDN for plotly.js to reduce file size and improve speed
+            kwargs.setdefault("include_plotlyjs", "cdn")
+            if "config" not in kwargs:
+                kwargs["config"] = {}
+            kwargs["config"]["responsive"] = True
+            html_content = fig.to_html(**kwargs)
+
+            # Add lang="en" for accessibility
+            html_content = html_content.replace("<html>", '<html lang="en">')
+
+            # Add title and viewport for accessibility and mobile responsiveness
+            html_content = html_content.replace(
+                "<head>",
+                f'<head>\n    <meta name="viewport" content="width=device-width, initial-scale=1.0">\n    <title>{title_text}</title>\n    <style>.plotly-graph-div:focus-visible {{ outline: 3px solid #ff7f0e; outline-offset: 2px; border-radius: 4px; }}</style>',
+            )
+
+            # Add accessibility attributes to the graph container with dynamic ARIA label
             html_content = html_content.replace(
                 'class="plotly-graph-div"',
                 f'class="plotly-graph-div" role="region" aria-label="{title_text}" tabindex="0"',
