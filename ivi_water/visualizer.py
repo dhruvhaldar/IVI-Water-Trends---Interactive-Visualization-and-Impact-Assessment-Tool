@@ -776,14 +776,9 @@ class WaterTrendsVisualizer:
             # Add lang="en" for accessibility
             html_content = html_content.replace("<html>", '<html lang="en">')
 
-            # Add title and viewport for accessibility and mobile responsiveness
-            html_content = html_content.replace(
-                "<head>",
-                '<head>\n    <meta name="viewport" content="width=device-width, initial-scale=1.0">\n    <title>Water Trends Dashboard</title>\n    <style>.plotly-graph-div:focus-visible { outline: 3px solid #ff7f0e; outline-offset: 2px; border-radius: 4px; }</style>',
-            )
-
-            # Add accessibility attributes to the graph container with dynamic ARIA label
+            # Extract dynamic title for accessibility
             title_text = "Interactive Water Trends Chart"
+            page_title = "Water Trends Dashboard"
             if getattr(fig.layout, "title", None) and getattr(
                 fig.layout.title, "text", None
             ):
@@ -796,7 +791,15 @@ class WaterTrendsVisualizer:
                     title_text = (
                         f"{html_lib.escape(clean_text, quote=True)} - Interactive Chart"
                     )
+                    page_title = html_lib.escape(clean_text)
 
+            # Add title and viewport for accessibility and mobile responsiveness
+            html_content = html_content.replace(
+                "<head>",
+                f'<head>\n    <meta name="viewport" content="width=device-width, initial-scale=1.0">\n    <title>{page_title}</title>\n    <style>.plotly-graph-div:focus-visible {{ outline: 3px solid #ff7f0e; outline-offset: 2px; border-radius: 4px; }}</style>',
+            )
+
+            # Add accessibility attributes to the graph container with dynamic ARIA label
             html_content = html_content.replace(
                 'class="plotly-graph-div"',
                 f'class="plotly-graph-div" role="region" aria-label="{title_text}" tabindex="0"',
@@ -904,14 +907,9 @@ class WaterTrendsVisualizer:
             # Add lang="en" for accessibility
             html_content = html_content.replace("<html>", '<html lang="en">')
 
-            # Add title and viewport for accessibility and mobile responsiveness
-            html_content = html_content.replace(
-                "<head>",
-                '<head>\n    <meta name="viewport" content="width=device-width, initial-scale=1.0">\n    <title>Water Trends Visualization</title>\n    <style>.plotly-graph-div:focus-visible { outline: 3px solid #ff7f0e; outline-offset: 2px; border-radius: 4px; }</style>',
-            )
-
-            # Add accessibility attributes to the graph container with dynamic ARIA label
+            # Extract dynamic title for accessibility
             title_text = "Interactive Water Trends Chart"
+            page_title = "Water Trends Visualization"
             if getattr(fig.layout, "title", None) and getattr(
                 fig.layout.title, "text", None
             ):
@@ -924,7 +922,15 @@ class WaterTrendsVisualizer:
                     title_text = (
                         f"{html_lib.escape(clean_text, quote=True)} - Interactive Chart"
                     )
+                    page_title = html_lib.escape(clean_text)
 
+            # Add title and viewport for accessibility and mobile responsiveness
+            html_content = html_content.replace(
+                "<head>",
+                f'<head>\n    <meta name="viewport" content="width=device-width, initial-scale=1.0">\n    <title>{page_title}</title>\n    <style>.plotly-graph-div:focus-visible {{ outline: 3px solid #ff7f0e; outline-offset: 2px; border-radius: 4px; }}</style>',
+            )
+
+            # Add accessibility attributes to the graph container with dynamic ARIA label
             html_content = html_content.replace(
                 'class="plotly-graph-div"',
                 f'class="plotly-graph-div" role="region" aria-label="{title_text}" tabindex="0"',
