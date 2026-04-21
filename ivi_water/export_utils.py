@@ -893,12 +893,6 @@ For questions or support, contact: IVI Water Trends Team"""
                             "<html>", '<html lang="en">'
                         )
 
-                        # Add title and viewport for accessibility and mobile responsiveness
-                        html_content = html_content.replace(
-                            "<head>",
-                            '<head>\n    <meta name="viewport" content="width=device-width, initial-scale=1.0">\n    <title>Water Trends Visualization</title>\n    <style>.plotly-graph-div:focus-visible { outline: 3px solid #ff7f0e; outline-offset: 2px; border-radius: 4px; }</style>',
-                        )
-
                         # Add accessibility attributes to the graph container with dynamic ARIA label
                         title_text = "Interactive Water Trends Chart"
                         if getattr(fig.layout, "title", None) and getattr(
@@ -911,6 +905,12 @@ For questions or support, contact: IVI Water Trends Team"""
                             clean_text = re.sub(r"<[^>]+>", "", raw_text).strip()
                             if clean_text:
                                 title_text = f"{html_lib.escape(clean_text, quote=True)} - Interactive Chart"
+
+                        # Add title and viewport for accessibility and mobile responsiveness
+                        html_content = html_content.replace(
+                            "<head>",
+                            f'<head>\n    <meta name="viewport" content="width=device-width, initial-scale=1.0">\n    <title>{title_text}</title>\n    <style>.plotly-graph-div:focus-visible {{ outline: 3px solid #ff7f0e; outline-offset: 2px; border-radius: 4px; }}</style>',
+                        )
 
                         html_content = html_content.replace(
                             'class="plotly-graph-div"',
