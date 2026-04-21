@@ -43,3 +43,6 @@
 ## 2024-11-20 - Chart Tooltip Readability
 **Learning:** Default tooltips in Plotly display raw floating-point numbers or large integers without thousands separators, making it difficult for users to read and quickly parse values in interactive dashboards, creating inconsistency with formatted static reports.
 **Action:** When customizing Plotly chart tooltips (`hovertemplate`), always use d3-style formatting syntax (e.g., `%{y:,.2f}` or `%{y:,}`) to include thousands separators and maintain visual consistency and readability for large numerical values.
+## 2024-05-18 - Document Titles for Screen Readers
+**Learning:** Hardcoding generic `<title>` tags like `Water Trends Dashboard` across all visualizations creates a confusing experience for screen reader users navigating between browser tabs, as tabs cannot be distinguished without reading their content.
+**Action:** Always extract the specific, dynamic chart title (e.g., from `fig.layout.title.text`) and inject it into the `<title>` tag when generating standalone HTML or reports with Plotly. This ensures clear tab identification for screen readers (WCAG 2.4.2).
