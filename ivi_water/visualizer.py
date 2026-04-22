@@ -768,6 +768,16 @@ class WaterTrendsVisualizer:
             showlegend=False,
         )
 
+        # Apply formatted axes to improve readability for subplots
+        fig.update_yaxes(tickformat=",.2f", row=1, col=1)
+        fig.update_xaxes(tickformat="d", row=1, col=1)
+        fig.update_yaxes(tickformat=",.2f", row=1, col=2)
+        fig.update_xaxes(tickformat="d", row=1, col=2)
+        fig.update_yaxes(tickformat=",.2f", row=2, col=1)
+        fig.update_xaxes(tickformat="d", row=2, col=1)
+        fig.update_yaxes(tickformat=",", row=2, col=2)
+        fig.update_xaxes(tickformat=",.2f", row=2, col=2)
+
         if save_path:
             # Generate HTML content
             # Optimization: Use CDN for plotly.js to reduce file size and improve speed
