@@ -1085,7 +1085,9 @@ class DataProcessor:
             # Optimization: Use a dummy column and .notna() instead of indicator=True.
             # indicator=True is significantly slower due to categorical allocation and string comparisons.
             # This dummy column approach yields ~50% faster merge times on large data.
-            nrm_df_merge = nrm_df.copy(deep=False) if not nrm_df.empty else nrm_df.copy()
+            nrm_df_merge = (
+                nrm_df.copy(deep=False) if not nrm_df.empty else nrm_df.copy()
+            )
             nrm_df_merge["_nrm_indicator"] = 1
 
             merged_df = pd.merge(
