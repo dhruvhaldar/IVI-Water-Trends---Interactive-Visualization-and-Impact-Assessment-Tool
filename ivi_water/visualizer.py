@@ -400,6 +400,9 @@ class WaterTrendsVisualizer:
                 "Without Intervention": "#d62728",
                 "With Intervention": "#1f77b4",
             },
+            category_orders={
+                intervention_col: ["With Intervention", "Without Intervention"]
+            },
             title=safe_title,
             labels={
                 "water_area_ha": "Average Water Area (hectares)",
@@ -610,6 +613,9 @@ class WaterTrendsVisualizer:
             color_discrete_map={
                 "Without Intervention": "#d62728",
                 "With Intervention": "#1f77b4",
+            },
+            category_orders={
+                "intervention_status": ["With Intervention", "Without Intervention"]
             },
             title=safe_title,
             labels={
