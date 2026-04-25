@@ -516,9 +516,8 @@ class DataProcessor:
                 self.logger.warning(f"Removed {duplicates_removed} duplicate records")
 
             # Sort data for consistent ordering
-            # Optimization: Use inplace sort to avoid creating an extra copy of the DataFrame (~30% faster)
-            df_clean.sort_values(["location_id", "year", "season"], inplace=True)
-            df_clean.reset_index(drop=True, inplace=True)
+            # Optimization: Use ignore_index=True to avoid creating and immediately dropping an index object
+            df_clean.sort_values(["location_id", "year", "season"], inplace=True, ignore_index=True)
 
             # Add data quality flags
             df_clean["data_quality"] = df_clean.get("data_quality", "good")
@@ -953,9 +952,8 @@ class DataProcessor:
                 self.logger.warning(f"Removed {duplicates_removed} duplicate records")
 
             # Sort data for consistent ordering
-            # Optimization: Use inplace sort to avoid creating an extra copy of the DataFrame
-            df_clean.sort_values(["location_id", "year"], inplace=True)
-            df_clean.reset_index(drop=True, inplace=True)
+            # Optimization: Use ignore_index=True to avoid creating and immediately dropping an index object
+            df_clean.sort_values(["location_id", "year"], inplace=True, ignore_index=True)
 
             # Log summary statistics
             final_count = len(df_clean)
