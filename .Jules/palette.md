@@ -46,3 +46,6 @@
 ## 2024-05-18 - Document Titles for Screen Readers
 **Learning:** Hardcoding generic `<title>` tags like `Water Trends Dashboard` across all visualizations creates a confusing experience for screen reader users navigating between browser tabs, as tabs cannot be distinguished without reading their content.
 **Action:** Always extract the specific, dynamic chart title (e.g., from `fig.layout.title.text`) and inject it into the `<title>` tag when generating standalone HTML or reports with Plotly. This ensures clear tab identification for screen readers (WCAG 2.4.2).
+## 2024-05-18 - Plotly HTML Export Responsiveness
+**Learning:** Default Plotly interactive charts exported to HTML (`fig.to_html()`) do not automatically resize when the browser window or viewport changes, particularly on mobile screens. If a fixed width or height is set in the chart layout, this leads to layout breaks or forces the user to scroll horizontally.
+**Action:** When exporting Plotly charts to HTML via `to_html()`, always pass `config={'responsive': True}`. This explicitly enables responsiveness and ensures the chart container adapts fluidly to the screen size.

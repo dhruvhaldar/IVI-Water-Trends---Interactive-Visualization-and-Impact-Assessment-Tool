@@ -886,7 +886,7 @@ For questions or support, contact: IVI Water Trends Team"""
 
                         # Use to_html and inject CSP
                         # Optimization: Use CDN for plotly.js to reduce file size and improve speed
-                        html_content = fig.to_html(include_plotlyjs="cdn")
+                        html_content = fig.to_html(include_plotlyjs="cdn", config={'responsive': True})
 
                         # Add lang="en" for accessibility
                         html_content = html_content.replace(
