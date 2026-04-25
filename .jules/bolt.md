@@ -37,3 +37,7 @@
 ## 2025-03-01 - [Optimized Pandas Merge Indicator]
 **Learning:** Using `indicator=True` in `pd.merge()` is computationally expensive because it forces Pandas to allocate a new Categorical column and perform heavy string comparisons (e.g., checking if `_merge == 'both'`). For large datasets, this can double the time it takes to perform a merge.
 **Action:** When you only need to know if a record from the right DataFrame matched, add a lightweight dummy column (e.g., `df_right["_indicator"] = 1`) before the merge, perform a standard left merge, and then compute the presence mask using `.notna()`. Drop the dummy column afterwards. This yields ~50% faster merge times on large data.
+
+## 2025-03-01 - [Optimized DataFrame Sorting]
+**Learning:** Calling `reset_index(drop=True)` immediately after `sort_values(inplace=True)` causes Pandas to unnecessarily allocate a new Index object and immediately drop it.
+**Action:** When sorting a Pandas DataFrame and resetting the index is desired, pass `ignore_index=True` directly into the `sort_values()` call (e.g., `df.sort_values(cols, inplace=True, ignore_index=True)`). This clean performance optimization avoids allocating an index object only to immediately drop it.
