@@ -787,7 +787,7 @@ class WaterTrendsVisualizer:
         if save_path:
             # Generate HTML content
             # Optimization: Use CDN for plotly.js to reduce file size and improve speed
-            html_content = fig.to_html(include_plotlyjs="cdn")
+            html_content = fig.to_html(include_plotlyjs="cdn", config={'responsive': True})
 
             # Add lang="en" for accessibility
             html_content = html_content.replace("<html>", '<html lang="en">')
@@ -915,6 +915,7 @@ class WaterTrendsVisualizer:
             # Generate HTML string
             # Optimization: Use CDN for plotly.js to reduce file size and improve speed
             kwargs.setdefault("include_plotlyjs", "cdn")
+            kwargs["config"] = {**kwargs.get("config", {}), "responsive": True}
             html_content = fig.to_html(**kwargs)
 
             # Add lang="en" for accessibility
