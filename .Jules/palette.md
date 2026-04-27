@@ -49,3 +49,6 @@
 ## 2024-05-18 - Plotly HTML Export Responsiveness
 **Learning:** Default Plotly interactive charts exported to HTML (`fig.to_html()`) do not automatically resize when the browser window or viewport changes, particularly on mobile screens. If a fixed width or height is set in the chart layout, this leads to layout breaks or forces the user to scroll horizontally.
 **Action:** When exporting Plotly charts to HTML via `to_html()`, always pass `config={'responsive': True}`. This explicitly enables responsiveness and ensures the chart container adapts fluidly to the screen size.
+## 2024-11-20 - HTML Table Data A11y and UX Typography
+**Learning:** Pandas `to_html` tables lack proper screen reader associations (`scope="col"`) on header elements, causing cognitive overhead. Additionally, numerical value columns default to left-alignment and proportional fonts, making large numbers difficult to scan and compare across rows.
+**Action:** Injected `scope="col"` into generated `<th>` tags for accessibility, and added CSS to right-align the value column (`td:last-child`, `th:last-child`) along with `font-variant-numeric: tabular-nums` to ensure numerical digits align cleanly for UX scanning.

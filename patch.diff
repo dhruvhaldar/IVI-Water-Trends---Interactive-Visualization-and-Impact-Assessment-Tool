@@ -1,0 +1,29 @@
+--- ivi_water/export_utils.py
++++ ivi_water/export_utils.py
+@@ -558,6 +558,9 @@
+         # Safe column names
+         safe_columns = [html.escape(str(col)) for col in df.columns]
+
++        table_html = summary_df.to_html(index=False, classes='summary-table')
++        table_html = table_html.replace("<th>", '<th scope="col">')
++
+         # HTML content
+         html_content = f"""
+         <!DOCTYPE html>
+@@ -587,6 +590,7 @@
+                 tr:nth-child(even) {{ background-color: #f9f9f9; }}
+                 tr:hover {{ background-color: #f1f1f1; }}
+                 .badge-list {{ list-style-type: none; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; margin: 0; }}
+                 .badge {{ background-color: #e9ecef; color: #495057; padding: 4px 8px; border-radius: 4px; font-size: 0.9em; }}
++                .summary-table td:last-child, .summary-table th:last-child {{ text-align: right; font-variant-numeric: tabular-nums; }}
+             </style>
+         </head>
+         <body>
+@@ -600,7 +604,7 @@
+                 <section aria-labelledby="summary-stats-title">
+                     <h2 id="summary-stats-title" tabindex="-1">Summary Statistics</h2>
+                     <div class="table-responsive" tabindex="0" role="region" aria-labelledby="summary-stats-title">
+-                        {{summary_df.to_html(index=False, classes='summary-table')}}
++                        {{table_html}}
+                     </div>
+                 </section>
