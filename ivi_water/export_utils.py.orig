@@ -612,7 +612,7 @@ class ExportUtils:
                 <section aria-labelledby="summary-stats-title">
                     <h2 id="summary-stats-title" tabindex="-1">Summary Statistics</h2>
                     <div class="table-responsive" tabindex="0" role="region" aria-labelledby="summary-stats-title">
-                        {table_html}
+                        {summary_df.to_html(index=False, classes='summary-table')}
                     </div>
                 </section>
 
