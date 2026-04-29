@@ -52,3 +52,6 @@
 ## 2024-11-20 - HTML Table Data A11y and UX Typography
 **Learning:** Pandas `to_html` tables lack proper screen reader associations (`scope="col"`) on header elements, causing cognitive overhead. Additionally, numerical value columns default to left-alignment and proportional fonts, making large numbers difficult to scan and compare across rows.
 **Action:** Injected `scope="col"` into generated `<th>` tags for accessibility, and added CSS to right-align the value column (`td:last-child`, `th:last-child`) along with `font-variant-numeric: tabular-nums` to ensure numerical digits align cleanly for UX scanning.
+## 2024-10-18 - HTML Table Semantic Captions
+**Learning:** When generating HTML tables from Pandas DataFrames (e.g., via `to_html`), missing a semantic `<caption>` tag deprives screen reader users of essential context before they navigate the table data.
+**Action:** Always inject a semantic `<caption>` tag into the table output to provide essential context.

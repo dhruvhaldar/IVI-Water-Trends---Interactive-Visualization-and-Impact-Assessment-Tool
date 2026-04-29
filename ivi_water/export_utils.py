@@ -561,6 +561,7 @@ class ExportUtils:
 
         table_html = summary_df.to_html(index=False, classes='summary-table')
         table_html = table_html.replace("<th>", '<th scope="col">')
+        table_html = table_html.replace("<thead>", "<caption>Summary Statistics Data</caption>\n  <thead>")
 
         # HTML content
         html_content = f"""
