@@ -631,6 +631,8 @@ class WaterTrendsVisualizer:
         # Ensure dynamic tooltip formatting based on axes values
         fig.update_traces(
             hovertemplate="<b>%{data.name}</b><br>"
+            "Location: %{customdata[0]}<br>"
+            "Year: %{customdata[1]}<br>"
             "Water Area: %{x:,.2f} ha<br>Impact: %{y:,.2f}<extra></extra>"
         )
         fig.update_xaxes(tickformat=",.2f")
@@ -787,7 +789,9 @@ class WaterTrendsVisualizer:
         if save_path:
             # Generate HTML content
             # Optimization: Use CDN for plotly.js to reduce file size and improve speed
-            html_content = fig.to_html(include_plotlyjs="cdn", config={'responsive': True})
+            html_content = fig.to_html(
+                include_plotlyjs="cdn", config={"responsive": True}
+            )
 
             # Add lang="en" for accessibility
             html_content = html_content.replace("<html>", '<html lang="en">')
