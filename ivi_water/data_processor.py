@@ -1606,7 +1606,7 @@ class DataProcessor:
 
             # Group by intervention presence and calculate comprehensive statistics
             agg_dict = {
-                "water_area_ha": ["mean", "std", "min", "max", "count", "median"],
+                "water_area_ha": ["mean", "std", "min", "max", "count"],
                 "location_id": "nunique",
             }
 
@@ -1616,7 +1616,12 @@ class DataProcessor:
 
             # Perform aggregation
             # Optimization: observed=True prevents expanding categorical data to full cartesian product
-            agg_stats = df_clean.groupby(intervention_col, observed=True).agg(agg_dict)
+            grouped = df_clean.groupby(intervention_col, observed=True)
+            agg_stats = grouped.agg(agg_dict)
+
+            # Optimization: Calculate median separately for performance
+            # Mixing median (which requires sorting) with other aggs prevents optimization
+            agg_stats[("water_area_ha", "median")] = grouped["water_area_ha"].median()
 
             # Flatten column names and handle custom functions
             new_columns = []
