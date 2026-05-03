@@ -271,7 +271,7 @@ def get_spatial_units(
             raise click.ClickException(f"Failed to save output file: {e}")
 
         # Display results
-        click.echo(click.style(f"✓ Found {len(df)} {unit_type}s", fg="green"))
+        click.echo(click.style(f"✓ Found {len(df):,} {unit_type}s", fg="green"))
         click.echo(click.style(f"✓ Saved to {output_path}", fg="green"))
 
         # Show sample data
@@ -290,7 +290,7 @@ def get_spatial_units(
                 click.echo(f"  {safe_id:<15} | {safe_name:<30} | {safe_state}")
 
             if len(df) > sample_size:
-                click.echo(f"  ... and {len(df) - sample_size} more entries")
+                click.echo(f"  ... and {len(df) - sample_size:,} more entries")
 
         # Log completion
         logger.info(
@@ -465,15 +465,15 @@ def fetch_water_data(
             raise click.ClickException(f"Failed to save output file: {e}")
 
         # Display results and summary
-        click.echo(click.style(f"✓ Fetched {len(water_df)} records", fg="green"))
+        click.echo(click.style(f"✓ Fetched {len(water_df):,} records", fg="green"))
         click.echo(click.style(f"✓ Saved to {output_path}", fg="green"))
 
         click.echo("\n" + click.style("Data Summary:", fg="blue", bold=True))
-        click.echo(f"  Locations: {water_df['location_id'].nunique()}")
+        click.echo(f"  Locations: {water_df['location_id'].nunique():,}")
         click.echo(f"  Years: {water_df['year'].min()} - {water_df['year'].max()}")
         click.echo(f"  Seasons: {', '.join(sorted(water_df['season'].unique()))}")
         click.echo(
-            f"  Total water area range: {water_df['water_area_ha'].min():.2f} - {water_df['water_area_ha'].max():.2f} ha"
+            f"  Total water area range: {water_df['water_area_ha'].min():,.2f} - {water_df['water_area_ha'].max():,.2f} ha"
         )
 
         # Show sample data
@@ -487,11 +487,11 @@ def fetch_water_data(
                 safe_season = sanitize_for_terminal(str(row["season"]))
                 click.echo(
                     f"  {safe_loc:<8} | {row['year']:<6} | {safe_season:<10} | "
-                    f"{row['water_area_ha']:<8.2f} ha | {row['water_body_count']:<3} bodies"
+                    f"{row['water_area_ha']:<8,.2f} ha | {row['water_body_count']:<3,} bodies"
                 )
 
             if len(water_df) > sample_size:
-                click.echo(f"  ... and {len(water_df) - sample_size} more records")
+                click.echo(f"  ... and {len(water_df) - sample_size:,} more records")
 
         # Log completion
         logger.info(
@@ -547,11 +547,11 @@ def merge_data(ctx, water_data, nrm_data, output):
         sanitize_dataframe(merged_df).to_csv(output_path, index=False)
 
         click.echo(f"Merged data saved to {output_path}")
-        click.echo(f"Total records: {len(merged_df)}")
+        click.echo(f"Total records: {len(merged_df):,}")
 
         if nrm_data:
             click.echo(
-                f"Records with NRM data: {merged_df['nrm_data_available'].sum()}"
+                f"Records with NRM data: {merged_df['nrm_data_available'].sum():,}"
             )
 
     except Exception as e:
