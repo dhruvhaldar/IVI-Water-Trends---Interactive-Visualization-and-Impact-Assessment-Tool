@@ -55,3 +55,6 @@
 ## 2024-10-18 - HTML Table Semantic Captions
 **Learning:** When generating HTML tables from Pandas DataFrames (e.g., via `to_html`), missing a semantic `<caption>` tag deprives screen reader users of essential context before they navigate the table data.
 **Action:** Always inject a semantic `<caption>` tag into the table output to provide essential context.
+## 2024-11-20 - CLI Number Formatting
+**Learning:** Users scanning terminal outputs for data tools struggle to read large record counts or metrics without thousands separators. CLI output is an interface too!
+**Action:** Always apply `:,` formatting to large numerical outputs in CLI feedback and logs.
