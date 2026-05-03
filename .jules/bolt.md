@@ -41,3 +41,7 @@
 ## 2025-03-01 - [Optimized DataFrame Sorting]
 **Learning:** Calling `reset_index(drop=True)` immediately after `sort_values(inplace=True)` causes Pandas to unnecessarily allocate a new Index object and immediately drop it.
 **Action:** When sorting a Pandas DataFrame and resetting the index is desired, pass `ignore_index=True` directly into the `sort_values()` call (e.g., `df.sort_values(cols, inplace=True, ignore_index=True)`). This clean performance optimization avoids allocating an index object only to immediately drop it.
+
+## 2025-03-01 - [Optimized Pandas groupby.agg() Performance]
+**Learning:** In Pandas, mixing standard aggregations (`mean`, `std`, `min`, `max`, `count`) with `median` inside a single `groupby().agg()` call forces pandas to abandon its optimized Cython fast-paths because calculating the median requires sorting the data. This causes a significant performance drop for the entire aggregation block.
+**Action:** When you need to calculate both standard metrics and median, pull the `median` calculation out into its own step (e.g., `agg_stats[("water_area_ha", "median")] = grouped["water_area_ha"].median()`). This allows the initial `.agg()` to run much faster on the optimized fast-path.
