@@ -572,8 +572,8 @@ class ExportUtils:
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
             <title>Water Trends Summary Report</title>
             <style>
-                body {{ font-family: Arial, sans-serif; margin: 40px; }}
-                h1 {{ color: #2c3e50; text-align: center; }}
+                body {{ font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif; margin: 40px; }}
+                h1 {{ color: #2c3e50; text-align: center; margin: 0; }}
                 h2 {{ color: #34495e; border-bottom: 2px solid #226699; }}
                 table {{ border-collapse: collapse; width: 100%; margin: 20px 0; }}
                 th, td {{ border: 1px solid #ddd; padding: 8px; text-align: left; }}
@@ -600,13 +600,20 @@ class ExportUtils:
                 .badge-list {{ list-style-type: none; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; margin: 0; }}
                 .badge {{ background-color: #e9ecef; color: #495057; padding: 4px 8px; border-radius: 4px; font-size: 0.9em; }}
                 .summary-table td:last-child, .summary-table th:last-child {{ text-align: right; font-variant-numeric: tabular-nums; }}
+                .header-wrapper {{ display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }}
+                .print-button {{ background: #226699; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; }}
+                .print-button:focus-visible {{ outline: 3px solid #ff7f0e; outline-offset: 2px; }}
+                @media print {{ .print-button, .skip-link {{ display: none !important; }} }}
             </style>
         </head>
         <body>
             <a href="#summary-stats-title" class="skip-link">Skip to main content</a>
             <main>
                 <header>
-                    <h1>Water Trends Summary Report</h1>
+                    <div class="header-wrapper">
+                        <h1>Water Trends Summary Report</h1>
+                        <button onClick="window.print()" class="print-button" aria-label="Print Report"><span aria-hidden="true">🖨️</span> Print Report</button>
+                    </div>
                     <p class="summary">Generated on: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</p>
                 </header>
 
