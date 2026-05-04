@@ -58,3 +58,6 @@
 ## 2024-11-20 - CLI Number Formatting
 **Learning:** Users scanning terminal outputs for data tools struggle to read large record counts or metrics without thousands separators. CLI output is an interface too!
 **Action:** Always apply `:,` formatting to large numerical outputs in CLI feedback and logs.
+## 2024-11-20 - Context-Aware Functional Buttons
+**Learning:** Users frequently want to save or print static data summaries, but default browser print dialogs are hidden behind menus, reducing discoverability. However, adding functional buttons (like Print) to static HTML reports clutters the final printed document if not handled correctly.
+**Action:** Inject an explicit "Print Report" `<button>` call-to-action in the document header for discoverability, and use `@media print { .print-button { display: none !important; } }` in the CSS to ensure the button is cleanly stripped from the final generated PDF or printed page. Also, ensure the button hides decorative emojis using `aria-hidden="true"`.
