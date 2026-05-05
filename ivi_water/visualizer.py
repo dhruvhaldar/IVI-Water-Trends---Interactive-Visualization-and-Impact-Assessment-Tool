@@ -230,8 +230,14 @@ class WaterTrendsVisualizer:
                 )
             else:
                 # Aggregate across all locations
+                # Optimization: Avoid in-place mutation of df. Convert to category in groupby directly or slice.
+                df_proc = df[["year", "season", "water_area_ha"]].copy()
+                for col in ["year", "season"]:
+                    if not isinstance(df_proc[col].dtype, pd.CategoricalDtype):
+                        df_proc[col] = df_proc[col].astype("category")
+
                 df_filtered = (
-                    df.groupby(["year", "season"], observed=True)["water_area_ha"]
+                    df_proc.groupby(["year", "season"], observed=True)["water_area_ha"]
                     .mean()
                     .reset_index()
                 )
@@ -378,8 +384,14 @@ class WaterTrendsVisualizer:
             )
 
         # Calculate average water area by intervention and year
+        # Optimization: Convert grouping columns to category for faster groupby
+        df_proc = df[["year", intervention_col, "water_area_ha"]].copy()
+        for col in ["year", intervention_col]:
+            if not isinstance(df_proc[col].dtype, pd.CategoricalDtype):
+                df_proc[col] = df_proc[col].astype("category")
+
         avg_data = (
-            df.groupby(["year", intervention_col], observed=True)["water_area_ha"]
+            df_proc.groupby(["year", intervention_col], observed=True)["water_area_ha"]
             .mean()
             .reset_index()
         )
@@ -706,7 +718,13 @@ class WaterTrendsVisualizer:
         # Plot 2: Water body count over time
         for location in location_ids[:3]:
             safe_location = self._sanitize_text(location)
-            loc_data = df_filtered[df_filtered["location_id"] == location]
+            loc_data = df_filtered[df_filtered["location_id"] == location].copy()
+            # Optimization: Convert grouping columns to category for faster groupby
+            if "year" in loc_data.columns and not isinstance(
+                loc_data["year"].dtype, pd.CategoricalDtype
+            ):
+                loc_data["year"] = loc_data["year"].astype("category")
+
             avg_counts = loc_data.groupby("year", observed=True)[
                 "water_body_count"
             ].mean()
@@ -727,8 +745,14 @@ class WaterTrendsVisualizer:
             )
 
         # Plot 3: Yearly comparison
+        # Optimization: Convert grouping columns to category for faster groupby
+        df_proc = df_filtered[["year", "location_id", "water_area_ha"]].copy()
+        for col in ["year", "location_id"]:
+            if not isinstance(df_proc[col].dtype, pd.CategoricalDtype):
+                df_proc[col] = df_proc[col].astype("category")
+
         yearly_avg = (
-            df_filtered.groupby(["year", "location_id"], observed=True)["water_area_ha"]
+            df_proc.groupby(["year", "location_id"], observed=True)["water_area_ha"]
             .mean()
             .reset_index()
         )

@@ -45,3 +45,6 @@
 ## 2025-03-01 - [Optimized Pandas groupby.agg() Performance]
 **Learning:** In Pandas, mixing standard aggregations (`mean`, `std`, `min`, `max`, `count`) with `median` inside a single `groupby().agg()` call forces pandas to abandon its optimized Cython fast-paths because calculating the median requires sorting the data. This causes a significant performance drop for the entire aggregation block.
 **Action:** When you need to calculate both standard metrics and median, pull the `median` calculation out into its own step (e.g., `agg_stats[("water_area_ha", "median")] = grouped["water_area_ha"].median()`). This allows the initial `.agg()` to run much faster on the optimized fast-path.
+## 2025-03-01 - [Avoid In-Place DataFrame Mutation during Optimization]
+**Learning:** Mutating DataFrame arguments in-place (e.g., converting columns to `category` dtype for faster `groupby`) is a dangerous side effect that can silently break caller/downstream code expecting the original data types.
+**Action:** When dynamically converting grouping columns to `category` dtype for optimized Pandas `groupby` operations, always slice and copy the required columns first (e.g., `df_proc = df[['col1', 'col2']].copy()`) to prevent dangerous in-place mutation of the original DataFrame and avoid SettingWithCopyWarning.
