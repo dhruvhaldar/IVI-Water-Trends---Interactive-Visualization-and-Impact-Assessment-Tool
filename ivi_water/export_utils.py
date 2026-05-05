@@ -526,7 +526,11 @@ class ExportUtils:
         if "water_area_ha" in df.columns and "year" in df.columns:
             # Create trend chart
             fig, ax = plt.subplots(figsize=self.figure_size)
-            yearly_avg = df.groupby("year", observed=True)["water_area_ha"].mean()
+            # Optimization: Convert grouping columns to category for faster groupby
+            df_proc = df[["year", "water_area_ha"]].copy()
+            if not isinstance(df_proc["year"].dtype, pd.CategoricalDtype):
+                df_proc["year"] = df_proc["year"].astype("category")
+            yearly_avg = df_proc.groupby("year", observed=True)["water_area_ha"].mean()
             ax.plot(yearly_avg.index, yearly_avg.values, marker="o", linewidth=2)
             ax.set_title("Average Water Area Over Time")
             ax.set_xlabel("Year")
@@ -559,9 +563,11 @@ class ExportUtils:
         # Safe column names
         safe_columns = [html.escape(str(col)) for col in df.columns]
 
-        table_html = summary_df.to_html(index=False, classes='summary-table')
+        table_html = summary_df.to_html(index=False, classes="summary-table")
         table_html = table_html.replace("<th>", '<th scope="col">')
-        table_html = table_html.replace("<thead>", "<caption>Summary Statistics Data</caption>\n  <thead>")
+        table_html = table_html.replace(
+            "<thead>", "<caption>Summary Statistics Data</caption>\n  <thead>"
+        )
 
         # HTML content
         html_content = f"""
@@ -738,7 +744,11 @@ class ExportUtils:
 
         # Water area trends
         if "water_area_ha" in df.columns and "year" in df.columns:
-            yearly_avg = df.groupby("year", observed=True)["water_area_ha"].mean()
+            # Optimization: Convert grouping columns to category for faster groupby
+            df_proc = df[["year", "water_area_ha"]].copy()
+            if not isinstance(df_proc["year"].dtype, pd.CategoricalDtype):
+                df_proc["year"] = df_proc["year"].astype("category")
+            yearly_avg = df_proc.groupby("year", observed=True)["water_area_ha"].mean()
             if len(yearly_avg) > 1:
                 trend_slope = np.polyfit(yearly_avg.index, yearly_avg.values, 1)[0]
                 if trend_slope > 0.5:
@@ -750,7 +760,13 @@ class ExportUtils:
 
         # Seasonal patterns
         if "season" in df.columns and "water_area_ha" in df.columns:
-            seasonal_avg = df.groupby("season", observed=True)["water_area_ha"].mean()
+            # Optimization: Convert grouping columns to category for faster groupby
+            df_proc = df[["season", "water_area_ha"]].copy()
+            if not isinstance(df_proc["season"].dtype, pd.CategoricalDtype):
+                df_proc["season"] = df_proc["season"].astype("category")
+            seasonal_avg = df_proc.groupby("season", observed=True)[
+                "water_area_ha"
+            ].mean()
             max_season = seasonal_avg.idxmax()
             min_season = seasonal_avg.idxmin()
             insights.append(
