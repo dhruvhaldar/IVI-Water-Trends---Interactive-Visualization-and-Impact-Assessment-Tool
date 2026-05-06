@@ -601,13 +601,16 @@ class ExportUtils:
                 h2[tabindex="-1"]:focus {{ outline: none; }}
                 .table-responsive {{ overflow-x: auto; }}
                 .table-responsive:focus-visible {{ outline: 3px solid #ff7f0e; outline-offset: 2px; }}
+                tr {{ transition: background-color 0.15s ease; }}
                 tr:nth-child(even) {{ background-color: #f9f9f9; }}
                 tr:hover {{ background-color: #f1f1f1; }}
                 .badge-list {{ list-style-type: none; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; margin: 0; }}
                 .badge {{ background-color: #e9ecef; color: #495057; padding: 4px 8px; border-radius: 4px; font-size: 0.9em; }}
                 .summary-table td:last-child, .summary-table th:last-child {{ text-align: right; font-variant-numeric: tabular-nums; }}
                 .header-wrapper {{ display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }}
-                .print-button {{ background: #226699; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; }}
+                .print-button {{ background: #226699; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; transition: background-color 0.2s ease, transform 0.1s ease; }}
+                .print-button:hover {{ background-color: #1a4f76; }}
+                .print-button:active {{ transform: scale(0.98); }}
                 .print-button:focus-visible {{ outline: 3px solid #ff7f0e; outline-offset: 2px; }}
                 @media print {{ .print-button, .skip-link {{ display: none !important; }} }}
             </style>
