@@ -61,3 +61,10 @@
 ## 2024-11-20 - Context-Aware Functional Buttons
 **Learning:** Users frequently want to save or print static data summaries, but default browser print dialogs are hidden behind menus, reducing discoverability. However, adding functional buttons (like Print) to static HTML reports clutters the final printed document if not handled correctly.
 **Action:** Inject an explicit "Print Report" `<button>` call-to-action in the document header for discoverability, and use `@media print { .print-button { display: none !important; } }` in the CSS to ensure the button is cleanly stripped from the final generated PDF or printed page. Also, ensure the button hides decorative emojis using `aria-hidden="true"`.
+## 2026-05-06 - CSS Formatting in Python f-strings
+**Learning:** When generating HTML with embedded CSS via Python f-strings, single curly braces for CSS blocks will cause a `KeyError` because Python interprets them as formatting variables.
+**Action:** Always escape curly braces by doubling them (`{{` and `}}`) in CSS within Python f-strings to avoid crashes and ensure smooth rendering.
+
+## 2026-05-06 - Smooth Interactive States
+**Learning:** Interactive elements in reports (like buttons or hoverable rows) feel jarring if they snap instantly between states. Smooth transitions provide a polished, physical feel that users appreciate.
+**Action:** Add `transition: background-color 0.2s ease, transform 0.1s ease;` (or similar) alongside `:hover` and `:active` styles for buttons and table rows in generated reports.
