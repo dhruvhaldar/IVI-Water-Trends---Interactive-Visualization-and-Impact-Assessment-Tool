@@ -68,3 +68,6 @@
 ## 2026-05-06 - Smooth Interactive States
 **Learning:** Interactive elements in reports (like buttons or hoverable rows) feel jarring if they snap instantly between states. Smooth transitions provide a polished, physical feel that users appreciate.
 **Action:** Add `transition: background-color 0.2s ease, transform 0.1s ease;` (or similar) alongside `:hover` and `:active` styles for buttons and table rows in generated reports.
+## 2024-05-09 - PDF Report Table Contrast Ratio
+**Learning:** The default `colors.grey` background with `colors.whitesmoke` text in ReportLab tables produces a contrast ratio of ~2.5:1, which fails WCAG AA standards (4.5:1 required) and makes the PDF headers hard to read.
+**Action:** Replaced `colors.grey` with a brand-aligned `colors.HexColor('#226699')` to achieve a 7.8:1 contrast ratio, passing WCAG AAA and improving readability for all users.

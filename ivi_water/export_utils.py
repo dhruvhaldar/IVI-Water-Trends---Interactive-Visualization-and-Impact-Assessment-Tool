@@ -508,7 +508,7 @@ class ExportUtils:
         table.setStyle(
             TableStyle(
                 [
-                    ("BACKGROUND", (0, 0), (-1, 0), colors.grey),
+                    ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor('#226699')),
                     ("TEXTCOLOR", (0, 0), (-1, 0), colors.whitesmoke),
                     ("ALIGN", (0, 0), (-1, -1), "CENTER"),
                     ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
