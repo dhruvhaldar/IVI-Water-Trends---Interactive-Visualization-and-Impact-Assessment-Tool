@@ -71,3 +71,7 @@
 ## 2024-05-09 - PDF Report Table Contrast Ratio
 **Learning:** The default `colors.grey` background with `colors.whitesmoke` text in ReportLab tables produces a contrast ratio of ~2.5:1, which fails WCAG AA standards (4.5:1 required) and makes the PDF headers hard to read.
 **Action:** Replaced `colors.grey` with a brand-aligned `colors.HexColor('#226699')` to achieve a 7.8:1 contrast ratio, passing WCAG AAA and improving readability for all users.
+
+## 2024-05-24 - Smooth Scrolling & Back-to-Top in HTML Reports
+**Learning:** Generated HTML reports with large data tables can trap keyboard users at the bottom of the document. Standard anchor links without smooth scrolling can be disorienting.
+**Action:** Always include a "Back to Top" link with `scroll-behavior: smooth` in generated long-form HTML documents to ensure keyboard users can easily return to the main navigation/header, and use `@media print` to hide it.

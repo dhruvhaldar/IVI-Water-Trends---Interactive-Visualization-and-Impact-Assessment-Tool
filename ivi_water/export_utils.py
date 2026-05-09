@@ -612,7 +612,11 @@ class ExportUtils:
                 .print-button:hover {{ background-color: #1a4f76; }}
                 .print-button:active {{ transform: scale(0.98); }}
                 .print-button:focus-visible {{ outline: 3px solid #ff7f0e; outline-offset: 2px; }}
-                @media print {{ .print-button, .skip-link {{ display: none !important; }} }}
+                html {{ scroll-behavior: smooth; }}
+                .back-to-top {{ display: inline-block; margin-top: 20px; padding: 8px 16px; color: #226699; text-decoration: none; font-weight: 500; border-radius: 4px; transition: background-color 0.2s ease; }}
+                .back-to-top:hover {{ background-color: #f1f1f1; }}
+                .back-to-top:focus-visible {{ outline: 3px solid #ff7f0e; outline-offset: 2px; }}
+                @media print {{ .print-button, .skip-link, .back-to-top {{ display: none !important; }} }}
             </style>
         </head>
         <body>
@@ -641,6 +645,10 @@ class ExportUtils:
                         {''.join(f'<li class="badge">{col}</li>' for col in safe_columns)}
                     </ul>
                 </section>
+
+                <footer style="text-align: center; border-top: 1px solid #ddd; margin-top: 40px; padding-top: 20px; padding-bottom: 20px;">
+                    <a href="#summary-stats-title" class="back-to-top" aria-label="Scroll back to top of the report">↑ Back to Top</a>
+                </footer>
             </main>
         </body>
         </html>
