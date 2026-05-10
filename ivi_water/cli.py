@@ -263,7 +263,7 @@ def get_spatial_units(
 
             file_size = output_path.stat().st_size
             logger.info(
-                f"Saved {len(df)} spatial units to {output_path} ({file_size} bytes)"
+                f"Saved {len(df):,} spatial units to {output_path} ({file_size:,} bytes)"
             )
 
         except Exception as e:
@@ -294,7 +294,7 @@ def get_spatial_units(
 
         # Log completion
         logger.info(
-            f"Successfully completed spatial units fetch: {len(df)} units retrieved"
+            f"Successfully completed spatial units fetch: {len(df):,} units retrieved"
         )
 
     except click.ClickException:
@@ -418,7 +418,7 @@ def fetch_water_data(
         # Display progress
         click.echo(
             click.style(
-                f"Fetching water data for {len(location_list)} locations...", fg="blue"
+                f"Fetching water data for {len(location_list):,} locations...", fg="blue"
             )
         )
 
@@ -457,7 +457,7 @@ def fetch_water_data(
 
             file_size = output_path.stat().st_size
             logger.info(
-                f"Saved {len(water_df)} water records to {output_path} ({file_size} bytes)"
+                f"Saved {len(water_df):,} water records to {output_path} ({file_size:,} bytes)"
             )
 
         except Exception as e:
@@ -495,8 +495,8 @@ def fetch_water_data(
 
         # Log completion
         logger.info(
-            f"Successfully completed water data fetch: {len(water_df)} records "
-            f"for {len(location_list)} locations from {start_year}-{end_year}"
+            f"Successfully completed water data fetch: {len(water_df):,} records "
+            f"for {len(location_list):,} locations from {start_year}-{end_year}"
         )
 
     except click.ClickException:
