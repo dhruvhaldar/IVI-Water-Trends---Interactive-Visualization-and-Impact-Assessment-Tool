@@ -9,6 +9,7 @@ and create PDF-friendly summaries.
 import os
 import logging
 import html
+import re
 from typing import List, Optional
 from datetime import datetime
 from pathlib import Path
@@ -568,6 +569,8 @@ class ExportUtils:
         table_html = table_html.replace(
             "<thead>", "<caption>Summary Statistics Data</caption>\n  <thead>"
         )
+        # Apply scope="row" to the first column <td>s for screen reader accessibility
+        table_html = re.sub(r'(<tr>\s*)<td>(.*?)</td>', r'\1<th scope="row">\2</th>', table_html)
 
         # HTML content
         html_content = f"""

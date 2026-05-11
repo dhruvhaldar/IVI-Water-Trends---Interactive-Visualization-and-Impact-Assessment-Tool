@@ -75,3 +75,7 @@
 ## 2024-05-24 - Smooth Scrolling & Back-to-Top in HTML Reports
 **Learning:** Generated HTML reports with large data tables can trap keyboard users at the bottom of the document. Standard anchor links without smooth scrolling can be disorienting.
 **Action:** Always include a "Back to Top" link with `scroll-behavior: smooth` in generated long-form HTML documents to ensure keyboard users can easily return to the main navigation/header, and use `@media print` to hide it.
+
+## 2024-05-11 - Table Row Headers Accessibility
+**Learning:** By default, Pandas `to_html()` generates data rows with `<td>` tags for the first column. This makes it difficult for screen readers to properly associate row data with their corresponding row headers, creating cognitive overhead for users relying on assistive technologies.
+**Action:** Always ensure that row headers in HTML tables (the first column indicating what the row represents) use `<th scope="row">` instead of `<td>` to properly define their semantic role and improve accessibility for screen readers.
