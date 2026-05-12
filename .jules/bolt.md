@@ -48,3 +48,7 @@
 ## 2025-03-01 - [Avoid In-Place DataFrame Mutation during Optimization]
 **Learning:** Mutating DataFrame arguments in-place (e.g., converting columns to `category` dtype for faster `groupby`) is a dangerous side effect that can silently break caller/downstream code expecting the original data types.
 **Action:** When dynamically converting grouping columns to `category` dtype for optimized Pandas `groupby` operations, always slice and copy the required columns first (e.g., `df_proc = df[['col1', 'col2']].copy()`) to prevent dangerous in-place mutation of the original DataFrame and avoid SettingWithCopyWarning.
+
+## 2025-05-12 - [Pandas Merge Cartesian Product Optimization]
+**Learning:** Performing a `pd.merge` where the right DataFrame has duplicate keys on the `merge_on` columns causes a massive Cartesian product expansion, severely inflating row counts. This dramatically slows down the merge operation and all downstream aggregations. In our case, dropping duplicates reduced merge time from ~6.0s to ~0.06s.
+**Action:** When performing a left join primarily to check for existence or join an indicator flag, always explicitly drop duplicates on the `merge_on` keys from a shallow copy of the right DataFrame *before* merging (e.g., `df_right.drop_duplicates(subset=merge_on).copy(deep=False)`) to prevent data explosion.
