@@ -509,7 +509,7 @@ class ExportUtils:
         table.setStyle(
             TableStyle(
                 [
-                    ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor('#226699')),
+                    ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#226699")),
                     ("TEXTCOLOR", (0, 0), (-1, 0), colors.whitesmoke),
                     ("ALIGN", (0, 0), (-1, -1), "CENTER"),
                     ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
@@ -570,7 +570,9 @@ class ExportUtils:
             "<thead>", "<caption>Summary Statistics Data</caption>\n  <thead>"
         )
         # Apply scope="row" to the first column <td>s for screen reader accessibility
-        table_html = re.sub(r'(<tr>\s*)<td>(.*?)</td>', r'\1<th scope="row">\2</th>', table_html)
+        table_html = re.sub(
+            r"(<tr>\s*)<td>(.*?)</td>", r'\1<th scope="row">\2</th>', table_html
+        )
 
         # HTML content
         html_content = f"""
@@ -628,7 +630,7 @@ class ExportUtils:
                 <header>
                     <div class="header-wrapper">
                         <h1>Water Trends Summary Report</h1>
-                        <button onClick="window.print()" class="print-button" aria-label="Print Report"><span aria-hidden="true">🖨️</span> Print Report</button>
+                        <button onClick="window.print()" class="print-button" aria-label="Print Report" title="Print Report (Keyboard: Ctrl+P / Cmd+P)"><span aria-hidden="true">🖨️</span> Print Report</button>
                     </div>
                     <p class="summary">Generated on: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</p>
                 </header>
