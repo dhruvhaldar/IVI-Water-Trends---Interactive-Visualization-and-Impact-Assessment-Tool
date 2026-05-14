@@ -583,7 +583,7 @@ class ExportUtils:
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
             <title>Water Trends Summary Report</title>
             <style>
-                body {{ font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif; margin: 40px; }}
+                body {{ font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif; margin: 40px; color: #333; background-color: #fff; }}
                 h1 {{ color: #2c3e50; text-align: center; margin: 0; }}
                 h2 {{ color: #34495e; border-bottom: 2px solid #226699; }}
                 table {{ border-collapse: collapse; width: 100%; margin: 20px 0; }}
