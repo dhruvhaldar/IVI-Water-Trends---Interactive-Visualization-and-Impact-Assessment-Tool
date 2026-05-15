@@ -432,7 +432,7 @@ class ExportUtils:
 
         # Intervention statistics
         if "pond_presence" in df.columns:
-            with_pond = df[df["pond_presence"] == 1].shape[0]
+            with_pond = (df["pond_presence"] == 1).sum()
             summary_data.append(["Records with Pond", f"{with_pond:,}"])
             summary_data.append(["Records without Pond", f"{len(df) - with_pond:,}"])
 
@@ -806,7 +806,7 @@ class ExportUtils:
 
         # Data quality
         if "data_quality" in df.columns:
-            good_quality = df[df["data_quality"] == "good"].shape[0]
+            good_quality = (df["data_quality"] == "good").sum()
             quality_pct = (good_quality / len(df)) * 100
             if quality_pct > 90:
                 insights.append("✅ High data quality (>90%)")
