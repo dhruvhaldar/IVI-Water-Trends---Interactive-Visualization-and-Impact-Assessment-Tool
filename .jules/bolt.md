@@ -52,3 +52,7 @@
 ## 2025-05-12 - [Pandas Merge Cartesian Product Optimization]
 **Learning:** Performing a `pd.merge` where the right DataFrame has duplicate keys on the `merge_on` columns causes a massive Cartesian product expansion, severely inflating row counts. This dramatically slows down the merge operation and all downstream aggregations. In our case, dropping duplicates reduced merge time from ~6.0s to ~0.06s.
 **Action:** When performing a left join primarily to check for existence or join an indicator flag, always explicitly drop duplicates on the `merge_on` keys from a shallow copy of the right DataFrame *before* merging (e.g., `df_right.drop_duplicates(subset=merge_on).copy(deep=False)`) to prevent data explosion.
+
+## 2025-03-01 - [Optimized Row Counting in Pandas DataFrames]
+**Learning:** Using `df[df[condition]].shape[0]` to count rows matching a condition in a Pandas DataFrame is highly inefficient. It forces Pandas to allocate memory and copy all matching rows into a brand new DataFrame, only to check its length and immediately discard it. For large DataFrames, this introduces significant overhead.
+**Action:** Always use `(df[condition]).sum()` to count rows that match a specific condition. This evaluates the boolean mask array and sums the `True` values (which are treated as `1`), running >20x faster than creating a temporary DataFrame.
