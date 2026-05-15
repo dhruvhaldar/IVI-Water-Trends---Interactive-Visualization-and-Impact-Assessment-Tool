@@ -603,7 +603,7 @@ class ExportUtils:
                 }}
                 .skip-link:focus {{ top: 0; }}
                 .skip-link:focus-visible {{ outline: 3px solid #ff7f0e; outline-offset: 2px; }}
-                h2[tabindex="-1"]:focus {{ outline: none; }}
+                h1[tabindex="-1"]:focus, h2[tabindex="-1"]:focus {{ outline: none; }}
                 .table-responsive {{ overflow-x: auto; }}
                 .table-responsive:focus-visible {{ outline: 3px solid #ff7f0e; outline-offset: 2px; }}
                 tr {{ transition: background-color 0.15s ease; }}
@@ -629,7 +629,7 @@ class ExportUtils:
             <main>
                 <header>
                     <div class="header-wrapper">
-                        <h1>Water Trends Summary Report</h1>
+                        <h1 id="report-title" tabindex="-1">Water Trends Summary Report</h1>
                         <button onClick="window.print()" class="print-button" aria-label="Print Report" title="Print Report (Keyboard: Ctrl+P / Cmd+P)"><span aria-hidden="true">🖨️</span> Print Report</button>
                     </div>
                     <p class="summary">Generated on: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</p>
@@ -643,8 +643,10 @@ class ExportUtils:
                 </section>
 
                 <section aria-labelledby="data-overview-title">
-                    <h2 id="data-overview-title">Data Overview</h2>
-                    <p>Total records: {len(df):,}</p>
+                    <h2 id="data-overview-title" tabindex="-1">Data Overview</h2>
+                    <div class="summary" style="margin-bottom: 20px;">
+                        <p style="margin: 0;">Total records: <strong>{len(df):,}</strong></p>
+                    </div>
                     <p id="columns-label" style="margin-bottom: 8px;">Columns:</p>
                     <ul class="badge-list" aria-labelledby="columns-label">
                         {''.join(f'<li class="badge">{col}</li>' for col in safe_columns)}
@@ -652,7 +654,7 @@ class ExportUtils:
                 </section>
 
                 <footer style="text-align: center; border-top: 1px solid #ddd; margin-top: 40px; padding-top: 20px; padding-bottom: 20px;">
-                    <a href="#summary-stats-title" class="back-to-top" aria-label="Scroll back to top of the report">↑ Back to Top</a>
+                    <a href="#report-title" class="back-to-top" aria-label="Scroll back to top of the report">↑ Back to Top</a>
                 </footer>
             </main>
         </body>

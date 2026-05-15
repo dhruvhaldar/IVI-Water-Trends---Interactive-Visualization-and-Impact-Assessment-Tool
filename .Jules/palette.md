@@ -84,3 +84,6 @@
 ## 2024-05-24 - HTML Report Base Colors vs OS Dark Mode
 **Learning:** If an HTML report specifies background colors for some elements (like tables or summary boxes) but leaves the `body` background transparent, users whose OS or browser defaults to dark mode might see light text rendered against those light hardcoded backgrounds, making the text invisible.
 **Action:** When generating static HTML reports with custom element backgrounds, always explicitly define `color` and `background-color` on the `body` tag to ensure proper contrast regardless of user browser preferences.
+## 2026-05-15 - Enhancing Quick-Scannable Summary Metrics
+**Learning:** Raw `<p>` tags for important standalone stats (like "Total Records") blend in with surrounding text, making them hard to scan quickly in generated reports.
+**Action:** Always wrap key metrics in `<strong>` and utilize existing callout containers (like the `.summary` class) to elevate their visual hierarchy and scannability, avoiding plain paragraph text for high-value data.
