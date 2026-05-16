@@ -56,3 +56,7 @@
 ## 2025-03-01 - [Optimized Row Counting in Pandas DataFrames]
 **Learning:** Using `df[df[condition]].shape[0]` to count rows matching a condition in a Pandas DataFrame is highly inefficient. It forces Pandas to allocate memory and copy all matching rows into a brand new DataFrame, only to check its length and immediately discard it. For large DataFrames, this introduces significant overhead.
 **Action:** Always use `(df[condition]).sum()` to count rows that match a specific condition. This evaluates the boolean mask array and sums the `True` values (which are treated as `1`), running >20x faster than creating a temporary DataFrame.
+
+## 2025-05-16 - [Binary Means Computation]
+**Learning:** Computing means for subsets of data based on a binary condition using boolean masks (e.g., `df[df["col"] == 1]["val"].mean()`) involves creating masks, slicing the dataframe, and running operations multiple times.
+**Action:** When computing means (or other aggregations) on subsets split by a binary column, use `groupby(col)["val"].mean()` instead. This avoids intermediate copies and boolean mask overhead, providing a clean performance improvement.

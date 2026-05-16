@@ -796,8 +796,13 @@ class ExportUtils:
 
         # Intervention impact
         if "pond_presence" in df.columns and "water_area_ha" in df.columns:
-            with_pond = df[df["pond_presence"] == 1]["water_area_ha"].mean()
-            without_pond = df[df["pond_presence"] == 0]["water_area_ha"].mean()
+            # Optimization: Groupby is faster than creating boolean masks and copying subsets
+            # when computing mean for binary conditions.
+            pond_means = df.groupby("pond_presence", observed=True)[
+                "water_area_ha"
+            ].mean()
+            with_pond = pond_means.get(1, 0)
+            without_pond = pond_means.get(0, 0)
 
             if with_pond > without_pond * 1.2:
                 insights.append("💪 Pond locations show 20%+ higher water area")
