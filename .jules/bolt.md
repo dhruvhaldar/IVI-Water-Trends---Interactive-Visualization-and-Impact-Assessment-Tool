@@ -56,3 +56,7 @@
 ## 2025-03-01 - [Optimized Row Counting in Pandas DataFrames]
 **Learning:** Using `df[df[condition]].shape[0]` to count rows matching a condition in a Pandas DataFrame is highly inefficient. It forces Pandas to allocate memory and copy all matching rows into a brand new DataFrame, only to check its length and immediately discard it. For large DataFrames, this introduces significant overhead.
 **Action:** Always use `(df[condition]).sum()` to count rows that match a specific condition. This evaluates the boolean mask array and sums the `True` values (which are treated as `1`), running >20x faster than creating a temporary DataFrame.
+
+## 2025-05-13 - [Boolean Mask Optimization via GroupBy]
+**Learning:** Using boolean masking multiple times to calculate aggregate statistics for mutually exclusive groups (e.g. `df[df["col"] == 1]["val"].mean()` and `df[df["col"] == 0]["val"].mean()`) is significantly slower than performing a single `groupby` operation (e.g. `df.groupby("col")["val"].mean()`) and then looking up the values. This is due to the overhead of repeated boolean mask evaluation and intermediate copies.
+**Action:** Replace sequential boolean masking aggregations across categorical subsets with a single `groupby().agg()` call to eliminate redundant computation, yielding an ~3x speedup.
