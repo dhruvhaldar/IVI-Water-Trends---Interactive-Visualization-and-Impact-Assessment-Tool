@@ -87,3 +87,11 @@
 ## 2026-05-15 - Enhancing Quick-Scannable Summary Metrics
 **Learning:** Raw `<p>` tags for important standalone stats (like "Total Records") blend in with surrounding text, making them hard to scan quickly in generated reports.
 **Action:** Always wrap key metrics in `<strong>` and utilize existing callout containers (like the `.summary` class) to elevate their visual hierarchy and scannability, avoiding plain paragraph text for high-value data.
+
+## 2024-05-24 - Delightful Tab Icons for Static HTML Exports
+**Learning:** Generated standalone HTML reports and charts often lack favicons, resulting in generic browser default icons (like a blank page). This makes it difficult for users to identify the report tab among many open tabs, reducing usability.
+**Action:** Always inject a lightweight SVG data-URI favicon (e.g., `<link rel="icon" href="data:image/svg+xml,...">`) using a relevant emoji into the `<head>` of generated HTML files to provide an instantly recognizable and delightful touch without needing external assets.
+
+## 2024-05-24 - Aria-Hidden for Decorative Text Symbols
+**Learning:** Using text characters as decorative icons (like "↑" for a back-to-top link) causes screen readers to announce them literally (e.g., "Upwards arrow Back to Top"), creating a confusing and noisy experience for visually impaired users.
+**Action:** Always wrap decorative text symbols in `<span aria-hidden="true">` to ensure they are ignored by screen readers while remaining visible to sighted users.

@@ -517,7 +517,9 @@ class DataProcessor:
 
             # Sort data for consistent ordering
             # Optimization: Use ignore_index=True to avoid creating and immediately dropping an index object
-            df_clean.sort_values(["location_id", "year", "season"], inplace=True, ignore_index=True)
+            df_clean.sort_values(
+                ["location_id", "year", "season"], inplace=True, ignore_index=True
+            )
 
             # Add data quality flags
             df_clean["data_quality"] = df_clean.get("data_quality", "good")
@@ -953,7 +955,9 @@ class DataProcessor:
 
             # Sort data for consistent ordering
             # Optimization: Use ignore_index=True to avoid creating and immediately dropping an index object
-            df_clean.sort_values(["location_id", "year"], inplace=True, ignore_index=True)
+            df_clean.sort_values(
+                ["location_id", "year"], inplace=True, ignore_index=True
+            )
 
             # Log summary statistics
             final_count = len(df_clean)

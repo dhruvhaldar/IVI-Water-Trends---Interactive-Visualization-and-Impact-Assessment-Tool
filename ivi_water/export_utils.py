@@ -582,6 +582,7 @@ class ExportUtils:
             <meta charset="utf-8">
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
             <title>Water Trends Summary Report</title>
+            <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🌊</text></svg>">
             <style>
                 body {{ font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif; margin: 40px; color: #333; background-color: #fff; }}
                 h1 {{ color: #2c3e50; text-align: center; margin: 0; }}
@@ -654,7 +655,7 @@ class ExportUtils:
                 </section>
 
                 <footer style="text-align: center; border-top: 1px solid #ddd; margin-top: 40px; padding-top: 20px; padding-bottom: 20px;">
-                    <a href="#report-title" class="back-to-top" aria-label="Scroll back to top of the report">↑ Back to Top</a>
+                    <a href="#report-title" class="back-to-top" aria-label="Scroll back to top of the report"><span aria-hidden="true">↑</span> Back to Top</a>
                 </footer>
             </main>
         </body>

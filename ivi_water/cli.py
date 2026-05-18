@@ -418,7 +418,8 @@ def fetch_water_data(
         # Display progress
         click.echo(
             click.style(
-                f"Fetching water data for {len(location_list):,} locations...", fg="blue"
+                f"Fetching water data for {len(location_list):,} locations...",
+                fg="blue",
             )
         )
 
@@ -555,7 +556,7 @@ def merge_data(ctx, water_data, nrm_data, output):
             )
 
     except Exception as e:
-        click.echo(f"Error: {e}", err=True)
+        click.echo(click.style(f"❌ Error: {e}", fg="red"), err=True)
         sys.exit(1)
 
 
@@ -611,7 +612,7 @@ def visualize(ctx, data, location_id, chart_type, output, format):
         click.echo(f"Chart saved to {ctx.obj['output_dir']}/{output}.{format}")
 
     except Exception as e:
-        click.echo(f"Error: {e}", err=True)
+        click.echo(click.style(f"❌ Error: {e}", fg="red"), err=True)
         sys.exit(1)
 
 
@@ -650,7 +651,7 @@ def dashboard(ctx, data, locations, output):
         click.echo(f"Included locations: {', '.join(location_list)}")
 
     except Exception as e:
-        click.echo(f"Error: {e}", err=True)
+        click.echo(click.style(f"❌ Error: {e}", fg="red"), err=True)
         sys.exit(1)
 
 
@@ -697,7 +698,7 @@ def generate_report(ctx, data, report_type, output):
         click.echo(f"Report saved to {output_path}")
 
     except Exception as e:
-        click.echo(f"Error: {e}", err=True)
+        click.echo(click.style(f"❌ Error: {e}", fg="red"), err=True)
         sys.exit(1)
 
 
@@ -724,7 +725,7 @@ def setup_notebooks(ctx, template, output_dir):
         click.echo(f"Notebooks created in {notebook_dir}")
 
     except Exception as e:
-        click.echo(f"Error: {e}", err=True)
+        click.echo(click.style(f"❌ Error: {e}", fg="red"), err=True)
         sys.exit(1)
 
 
