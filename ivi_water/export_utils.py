@@ -715,16 +715,23 @@ class ExportUtils:
             else "N/A"
         )
 
-        ponds_with = (
-            f"{df[df['pond_presence'] == 1]['location_id'].nunique():,}"
-            if "pond_presence" in df.columns
-            else "N/A"
-        )
-        ponds_without = (
-            f"{df[df['pond_presence'] == 0]['location_id'].nunique():,}"
-            if "pond_presence" in df.columns
-            else "N/A"
-        )
+        if "pond_presence" in df.columns and "location_id" in df.columns:
+            # Optimization: Use groupby with categorical dtype for faster subset nunique aggregation
+            df_proc = df[["pond_presence", "location_id"]].copy()
+            if not isinstance(df_proc["pond_presence"].dtype, pd.CategoricalDtype):
+                df_proc["pond_presence"] = df_proc["pond_presence"].astype("category")
+
+            pond_counts = df_proc.groupby("pond_presence", observed=True)["location_id"].nunique()
+
+            # format values
+            ponds_with_val = pond_counts.get(1, 0)
+            ponds_without_val = pond_counts.get(0, 0)
+
+            ponds_with = f"{ponds_with_val:,}"
+            ponds_without = f"{ponds_without_val:,}"
+        else:
+            ponds_with = "N/A"
+            ponds_without = "N/A"
 
         total_locations = (
             f"{df['location_id'].nunique():,}" if "location_id" in df.columns else "N/A"
