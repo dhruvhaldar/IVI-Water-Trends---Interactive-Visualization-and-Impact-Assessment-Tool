@@ -95,3 +95,6 @@
 ## 2024-05-24 - Aria-Hidden for Decorative Text Symbols
 **Learning:** Using text characters as decorative icons (like "↑" for a back-to-top link) causes screen readers to announce them literally (e.g., "Upwards arrow Back to Top"), creating a confusing and noisy experience for visually impaired users.
 **Action:** Always wrap decorative text symbols in `<span aria-hidden="true">` to ensure they are ignored by screen readers while remaining visible to sighted users.
+## 2024-05-19 - Dark Mode Accessibility Fix in HTML Reports
+**Learning:** Hardcoded white backgrounds (`background-color: #fff;`) with unstyled `color` properties on child elements (or default light text) can lead to invisible text for users with OS/browser-level Dark Mode enabled.
+**Action:** When setting specific background colors (like white or light gray) on elements like `.summary` or the `body` tag, always explicitly define the text `color` to ensure sufficient contrast regardless of the user's system preferences.

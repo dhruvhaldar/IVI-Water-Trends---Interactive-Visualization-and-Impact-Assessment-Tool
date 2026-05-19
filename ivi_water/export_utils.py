@@ -589,8 +589,8 @@ class ExportUtils:
                 h2 {{ color: #34495e; border-bottom: 2px solid #226699; }}
                 table {{ border-collapse: collapse; width: 100%; margin: 20px 0; }}
                 th, td {{ border: 1px solid #ddd; padding: 8px; text-align: left; }}
-                th {{ background-color: #f2f2f2; font-weight: bold; }}
-                .summary {{ background-color: #f8f9fa; padding: 15px; border-radius: 5px; }}
+                th {{ background-color: #f2f2f2; color: #333; font-weight: bold; }}
+                .summary {{ background-color: #f8f9fa; color: #333; padding: 15px; border-radius: 5px; }}
                 .skip-link {{
                     position: absolute;
                     top: -40px;
