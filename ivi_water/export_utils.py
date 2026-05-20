@@ -612,7 +612,7 @@ class ExportUtils:
                 tr:hover {{ background-color: #f1f1f1; }}
                 .badge-list {{ list-style-type: none; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; margin: 0; }}
                 .badge {{ background-color: #e9ecef; color: #495057; padding: 4px 8px; border-radius: 4px; font-size: 0.9em; }}
-                .summary-table td:last-child, .summary-table th:last-child {{ text-align: right; font-variant-numeric: tabular-nums; }}
+                .summary-table td:not(:first-child), .summary-table th:not(:first-child) {{ text-align: right; font-variant-numeric: tabular-nums; }}
                 .header-wrapper {{ display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }}
                 .print-button {{ background: #226699; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; transition: background-color 0.2s ease, transform 0.1s ease; }}
                 .print-button:hover {{ background-color: #1a4f76; }}

@@ -98,3 +98,6 @@
 ## 2024-05-19 - Dark Mode Accessibility Fix in HTML Reports
 **Learning:** Hardcoded white backgrounds (`background-color: #fff;`) with unstyled `color` properties on child elements (or default light text) can lead to invisible text for users with OS/browser-level Dark Mode enabled.
 **Action:** When setting specific background colors (like white or light gray) on elements like `.summary` or the `body` tag, always explicitly define the text `color` to ensure sufficient contrast regardless of the user's system preferences.
+## 2026-05-24 - HTML Table Data A11y and UX Typography (Multiple Columns)
+**Learning:** Hardcoding `:last-child` for right-aligning numerical table columns only formats the final column, leaving other numerical columns (like mean, min, std in a summary table) left-aligned and hard to scan.
+**Action:** Use `:not(:first-child)` to apply tabular formatting and right-alignment to all data columns in summary tables, assuming the first column is the row header.
