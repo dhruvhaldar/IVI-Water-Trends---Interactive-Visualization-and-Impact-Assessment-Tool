@@ -271,8 +271,8 @@ def get_spatial_units(
             raise click.ClickException(f"Failed to save output file: {e}")
 
         # Display results
-        click.echo(click.style(f"✓ Found {len(df):,} {unit_type}s", fg="green"))
-        click.echo(click.style(f"✓ Saved to {output_path}", fg="green"))
+        click.echo(click.style(f"✅ Found {len(df):,} {unit_type}s", fg="green"))
+        click.echo(click.style(f"✅ Saved to {output_path}", fg="green"))
 
         # Show sample data
         if len(df) > 0:
@@ -466,8 +466,8 @@ def fetch_water_data(
             raise click.ClickException(f"Failed to save output file: {e}")
 
         # Display results and summary
-        click.echo(click.style(f"✓ Fetched {len(water_df):,} records", fg="green"))
-        click.echo(click.style(f"✓ Saved to {output_path}", fg="green"))
+        click.echo(click.style(f"✅ Fetched {len(water_df):,} records", fg="green"))
+        click.echo(click.style(f"✅ Saved to {output_path}", fg="green"))
 
         click.echo("\n" + click.style("Data Summary:", fg="blue", bold=True))
         click.echo(f"  Locations: {water_df['location_id'].nunique():,}")
@@ -547,7 +547,7 @@ def merge_data(ctx, water_data, nrm_data, output):
         # Sanitize data before saving
         sanitize_dataframe(merged_df).to_csv(output_path, index=False)
 
-        click.echo(f"Merged data saved to {output_path}")
+        click.echo(click.style(f"✅ Merged data saved to {output_path}", fg="green"))
         click.echo(f"Total records: {len(merged_df):,}")
 
         if nrm_data:
@@ -609,7 +609,7 @@ def visualize(ctx, data, location_id, chart_type, output, format):
         # Save figure
         viz.save_figure(fig, output, format, output_dir=ctx.obj["output_dir"])
 
-        click.echo(f"Chart saved to {ctx.obj['output_dir']}/{output}.{format}")
+        click.echo(click.style(f"✅ Chart saved to {ctx.obj['output_dir']}/{output}.{format}", fg="green"))
 
     except Exception as e:
         click.echo(click.style(f"❌ Error: {e}", fg="red"), err=True)
@@ -647,7 +647,7 @@ def dashboard(ctx, data, locations, output):
         # Save dashboard using secure save_figure method
         viz.save_figure(fig, output, "html", output_dir=ctx.obj["output_dir"])
 
-        click.echo(f"Dashboard saved to {ctx.obj['output_dir']}/{output}.html")
+        click.echo(click.style(f"✅ Dashboard saved to {ctx.obj['output_dir']}/{output}.html", fg="green"))
         click.echo(f"Included locations: {', '.join(location_list)}")
 
     except Exception as e:
@@ -695,7 +695,7 @@ def generate_report(ctx, data, report_type, output):
                 df, ctx.obj["output_dir"], output
             )
 
-        click.echo(f"Report saved to {output_path}")
+        click.echo(click.style(f"✅ Report saved to {output_path}", fg="green"))
 
     except Exception as e:
         click.echo(click.style(f"❌ Error: {e}", fg="red"), err=True)
@@ -722,7 +722,7 @@ def setup_notebooks(ctx, template, output_dir):
             create_basic_notebook(notebook_dir)
             create_advanced_notebook(notebook_dir)
 
-        click.echo(f"Notebooks created in {notebook_dir}")
+        click.echo(click.style(f"✅ Notebooks created in {notebook_dir}", fg="green"))
 
     except Exception as e:
         click.echo(click.style(f"❌ Error: {e}", fg="red"), err=True)
