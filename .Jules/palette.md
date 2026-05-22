@@ -101,3 +101,7 @@
 ## 2026-05-24 - HTML Table Data A11y and UX Typography (Multiple Columns)
 **Learning:** Hardcoding `:last-child` for right-aligning numerical table columns only formats the final column, leaving other numerical columns (like mean, min, std in a summary table) left-aligned and hard to scan.
 **Action:** Use `:not(:first-child)` to apply tabular formatting and right-alignment to all data columns in summary tables, assuming the first column is the row header.
+
+## 2024-05-21 - CLI Success Feedback Enhancements
+**Learning:** Text-only or plainly formatted CLI feedback (e.g., using a plain "✓") can easily get lost in dense terminal output, making it harder for users to quickly scan for successful task completions. Consistent color and highly visible emojis dramatically improve the CLI's scannability.
+**Action:** Consistently use the `✅` emoji and explicit `click.style(..., fg="green")` to style success messages in CLI tools to ensure they stand out clearly against standard terminal text.
