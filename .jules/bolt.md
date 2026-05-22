@@ -60,3 +60,7 @@
 ## 2025-05-18 - [Optimized Mean Aggregation on Binary Conditions]
 **Learning:** When computing means (or other aggregations) on subsets split by a binary condition, using `.groupby(col)[val_col].mean()` is ~1.5x faster than creating separate boolean masks (e.g., `df[df[col] == 1][val_col].mean()`) because it avoids allocating intermediate DataFrames and the overhead of computing boolean masks multiple times.
 **Action:** Replace sequential boolean masking with `.groupby(..., observed=True).mean()` and use `.get()` to extract specific subset results when comparing statistics across binary or low-cardinality groups.
+
+## 2025-05-19 - [Pandas nunique aggregation optimization]
+**Learning:** When optimizing Pandas `nunique()` aggregations on subsets, `groupby().nunique()` is slower than boolean masking unless the grouping column is explicitly converted to `category` dtype first.
+**Action:** Use boolean masking for nunique subset aggregation when dealing with object/string columns.
