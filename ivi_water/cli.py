@@ -227,7 +227,7 @@ def get_spatial_units(
             raise click.ClickException(f"Failed to fetch spatial units: {e}")
 
         if not units:
-            click.echo(click.style("No spatial units found.", fg="yellow"))
+            click.echo(click.style("⚠️ No spatial units found. Try a different unit type or state.", fg="yellow"))
             logger.warning(
                 f"No spatial units found for unit_type='{unit_type}', state='{state}'"
             )
@@ -239,7 +239,7 @@ def get_spatial_units(
 
             if df.empty:
                 click.echo(
-                    click.style("No valid spatial unit data found.", fg="yellow")
+                    click.style("⚠️ No valid spatial unit data found. Try a different unit type or state.", fg="yellow")
                 )
                 return
 
@@ -278,6 +278,10 @@ def get_spatial_units(
         if len(df) > 0:
             click.echo("\n" + click.style("Sample data:", fg="blue", bold=True))
 
+            # Add explicit tabular headers
+            click.echo(click.style(f"  {'ID':<15} | {'Name':<30} | State", fg="cyan"))
+            click.echo(click.style(f"  {'-'*15}-+-{'-'*30}-+-{'-'*15}", fg="cyan", dim=True))
+
             # Display first few rows with formatting
             sample_size = min(5, len(df))
             sample_df = df.head(sample_size)
@@ -290,7 +294,7 @@ def get_spatial_units(
                 click.echo(f"  {safe_id:<15} | {safe_name:<30} | {safe_state}")
 
             if len(df) > sample_size:
-                click.echo(f"  ... and {len(df) - sample_size:,} more entries")
+                click.echo(click.style(f"  ... and {len(df) - sample_size:,} more entries", dim=True))
 
         # Log completion
         logger.info(
@@ -442,7 +446,7 @@ def fetch_water_data(
         if water_df.empty:
             click.echo(
                 click.style(
-                    "No water data found for the specified parameters.", fg="yellow"
+                    "⚠️ No water data found for the specified parameters. Try adjusting the year range or seasons.", fg="yellow"
                 )
             )
             logger.warning("No water data retrieved")
@@ -480,6 +484,11 @@ def fetch_water_data(
         # Show sample data
         if len(water_df) > 0:
             click.echo("\n" + click.style("Sample records:", fg="blue"))
+
+            # Add explicit tabular headers
+            click.echo(click.style(f"  {'Location':<8} | {'Year':<6} | {'Season':<10} | {'Water Area':<11} | Bodies", fg="cyan"))
+            click.echo(click.style(f"  {'-'*8}-+-{'-'*6}-+-{'-'*10}-+-{'-'*11}-+-{'-'*8}", fg="cyan", dim=True))
+
             sample_size = min(3, len(water_df))
             sample_df = water_df.head(sample_size)
 
@@ -492,7 +501,7 @@ def fetch_water_data(
                 )
 
             if len(water_df) > sample_size:
-                click.echo(f"  ... and {len(water_df) - sample_size:,} more records")
+                click.echo(click.style(f"  ... and {len(water_df) - sample_size:,} more records", dim=True))
 
         # Log completion
         logger.info(

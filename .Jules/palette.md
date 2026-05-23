@@ -105,3 +105,7 @@
 ## 2024-05-21 - CLI Success Feedback Enhancements
 **Learning:** Text-only or plainly formatted CLI feedback (e.g., using a plain "✓") can easily get lost in dense terminal output, making it harder for users to quickly scan for successful task completions. Consistent color and highly visible emojis dramatically improve the CLI's scannability.
 **Action:** Consistently use the `✅` emoji and explicit `click.style(..., fg="green")` to style success messages in CLI tools to ensure they stand out clearly against standard terminal text.
+
+## 2024-11-20 - CLI Tabular Data Formatting and Scannability
+**Learning:** Printing tabular data to the CLI without column headers forces users to guess what each value represents, causing cognitive friction. Additionally, secondary text (like "... and 40 more records") can distract from the main data if not visually de-emphasized.
+**Action:** Always include explicit tabular headers styled distinctly (e.g., cyan color) when printing table rows in the CLI, and use `click.style(..., dim=True)` to de-emphasize secondary or trailing text to keep user focus on the primary data.
