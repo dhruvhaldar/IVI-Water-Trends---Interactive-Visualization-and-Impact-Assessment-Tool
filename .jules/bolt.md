@@ -64,3 +64,6 @@
 ## 2025-05-19 - [Pandas nunique aggregation optimization]
 **Learning:** When optimizing Pandas `nunique()` aggregations on subsets, `groupby().nunique()` is slower than boolean masking unless the grouping column is explicitly converted to `category` dtype first.
 **Action:** Use boolean masking for nunique subset aggregation when dealing with object/string columns.
+## 2025-05-19 - [Avoid .loc assignments in loops for DataFrame mutations]
+**Learning:** When updating Pandas DataFrames iteratively, using `.loc` assignments within a loop (e.g., `df.loc[idx, col] = val`) creates a massive performance bottleneck due to continuous DataFrame overhead, reallocation, and alignment checks.
+**Action:** Always collect the intermediate computed values into a standard Python dictionary and apply them to the DataFrame simultaneously using `.map()` (e.g., `df[col] = df.index.map(res_dict)`). This simple dictionary mapping refactor can reduce computation times by orders of magnitude for operations iterating over unique groupings.
