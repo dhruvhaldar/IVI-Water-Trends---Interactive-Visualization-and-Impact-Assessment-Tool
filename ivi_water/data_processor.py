@@ -1642,11 +1642,13 @@ class DataProcessor:
             agg_stats.columns = new_columns
 
             # Optimization: Calculate location_id_nunique using boolean masking instead of groupby().nunique()
-            # This is significantly faster for subset splits on large data when location_id is not categorical
+            # This is significantly faster for subset splits on large data when location_id is not categorical.
+            # Avoid repeated .loc assignments in a loop by collecting to a dict and mapping.
             s_col = df_clean[intervention_col]
-            agg_stats["location_id_nunique"] = 0
+            nunique_dict = {}
             for idx in agg_stats.index:
-                agg_stats.loc[idx, "location_id_nunique"] = df_clean.loc[s_col == idx, "location_id"].nunique()
+                nunique_dict[idx] = df_clean.loc[s_col == idx, "location_id"].nunique()
+            agg_stats["location_id_nunique"] = agg_stats.index.map(nunique_dict)
 
             # Ensure water_area_ha_valid_count exists (previously attempted via lambda but often resulted in obscure names)
             # Since we filtered for water_area_ha >= 0, count is equivalent to valid_count
