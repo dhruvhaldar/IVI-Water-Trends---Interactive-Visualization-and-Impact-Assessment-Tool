@@ -89,7 +89,9 @@ def sanitize_dataframe(df: pd.DataFrame) -> pd.DataFrame:
     if df.empty:
         return df
 
-    df_clean = df.copy()
+    # Optimization: Use shallow copy to avoid duplicating massive numeric columns.
+    # We only allocate new memory for string columns that actually require sanitization.
+    df_clean = df.copy(deep=False)
 
     # Identify object (string) columns
     string_cols = df_clean.select_dtypes(include=["object", "string"]).columns
@@ -106,7 +108,10 @@ def sanitize_dataframe(df: pd.DataFrame) -> pd.DataFrame:
             s_col = df_clean[col].astype(str)
             mask = s_col.str.startswith(CSV_INJECTION_CHARS, na=False)
             if mask.any():
-                df_clean.loc[mask, col] = "'" + s_col[mask]
+                # Assign a completely new Series to avoid SettingWithCopyWarning and mutating the original
+                new_col = s_col.copy()
+                new_col[mask] = "'" + s_col[mask]
+                df_clean[col] = new_col
             continue
 
         mapping = {}
