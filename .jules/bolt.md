@@ -67,3 +67,6 @@
 ## 2025-05-19 - [Avoid .loc assignments in loops for DataFrame mutations]
 **Learning:** When updating Pandas DataFrames iteratively, using `.loc` assignments within a loop (e.g., `df.loc[idx, col] = val`) creates a massive performance bottleneck due to continuous DataFrame overhead, reallocation, and alignment checks.
 **Action:** Always collect the intermediate computed values into a standard Python dictionary and apply them to the DataFrame simultaneously using `.map()` (e.g., `df[col] = df.index.map(res_dict)`). This simple dictionary mapping refactor can reduce computation times by orders of magnitude for operations iterating over unique groupings.
+## 2026-05-26 - [Shallow Copy Optimization for Specific Column Modification]
+**Learning:** Using `df.copy()` (deep copy) on large DataFrames when only modifying a few columns (e.g., string columns for sanitization) causes massive memory overhead and slows execution proportionally to the entire dataset size.
+**Action:** Use `df.copy(deep=False)` to create a shallow copy, and then construct a new `Series` for any column that requires in-place modification (e.g. `new_col = df[col].copy(); new_col[mask] = val; df[col] = new_col`). This isolates memory allocation solely to the modified columns.
