@@ -833,7 +833,7 @@ class ExportUtils:
                 insights.append("❌ Low data quality (<70%)")
 
         return (
-            "\n".join(insights) if insights else "📋 No significant insights detected"
+            "\n".join(insights) if insights else "⚠️ No significant insights detected. Try expanding your date range or ensuring the input data includes required columns like 'water_area_ha'."
         )
 
     def generate_detailed_report(
