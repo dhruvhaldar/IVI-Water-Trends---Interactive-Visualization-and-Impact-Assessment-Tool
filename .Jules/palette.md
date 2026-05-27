@@ -109,3 +109,6 @@
 ## 2024-11-20 - CLI Tabular Data Formatting and Scannability
 **Learning:** Printing tabular data to the CLI without column headers forces users to guess what each value represents, causing cognitive friction. Additionally, secondary text (like "... and 40 more records") can distract from the main data if not visually de-emphasized.
 **Action:** Always include explicit tabular headers styled distinctly (e.g., cyan color) when printing table rows in the CLI, and use `click.style(..., dim=True)` to de-emphasize secondary or trailing text to keep user focus on the primary data.
+## 2024-05-15 - Empty State Actionable Advice
+**Learning:** When displaying empty state messages like 'No data found' or 'No significant insights detected', users benefit greatly from actionable advice to recover.
+**Action:** Always include a clear warning emoji (like ⚠️) and provide actionable advice (e.g., 'Try expanding your date range') to guide the user on how to recover.
