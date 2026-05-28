@@ -628,6 +628,10 @@ class ExportUtils:
                 .back-to-top:hover {{ background-color: #f1f1f1; }}
                 .back-to-top:focus-visible {{ outline: 3px solid #ff7f0e; outline-offset: 2px; }}
                 @media print {{ .print-button, .skip-link, .back-to-top {{ display: none !important; }} }}
+                @media (prefers-reduced-motion: reduce) {{
+                    html {{ scroll-behavior: auto !important; }}
+                    * {{ transition: none !important; transform: none !important; }}
+                }}
             </style>
         </head>
         <body>
