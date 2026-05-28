@@ -70,3 +70,7 @@
 ## 2026-05-26 - [Shallow Copy Optimization for Specific Column Modification]
 **Learning:** Using `df.copy()` (deep copy) on large DataFrames when only modifying a few columns (e.g., string columns for sanitization) causes massive memory overhead and slows execution proportionally to the entire dataset size.
 **Action:** Use `df.copy(deep=False)` to create a shallow copy, and then construct a new `Series` for any column that requires in-place modification (e.g. `new_col = df[col].copy(); new_col[mask] = val; df[col] = new_col`). This isolates memory allocation solely to the modified columns.
+
+## 2025-05-19 - [Pandas subset nunique aggregation optimization revisited]
+**Learning:** For calculating the number of unique elements across subsets, `df.loc[mask, target_col].nunique()` is significantly faster (~3x) than `groupby(mask_col)[target_col].nunique()` because boolean masking directly filters arrays while bypassing pandas' slower groupby execution paths. This remains true even if the target column (`location_id`) is pre-converted to a categorical dtype.
+**Action:** When calculating unique counts for a few specific discrete subsets (like binary conditions), use boolean masking with `loc` instead of `groupby().nunique()`.
