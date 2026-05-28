@@ -725,16 +725,10 @@ class ExportUtils:
         )
 
         if "pond_presence" in df.columns and "location_id" in df.columns:
-            # Optimization: Use groupby with categorical dtype for faster subset nunique aggregation
-            df_proc = df[["pond_presence", "location_id"]].copy()
-            if not isinstance(df_proc["pond_presence"].dtype, pd.CategoricalDtype):
-                df_proc["pond_presence"] = df_proc["pond_presence"].astype("category")
-
-            pond_counts = df_proc.groupby("pond_presence", observed=True)["location_id"].nunique()
-
-            # format values
-            ponds_with_val = pond_counts.get(1, 0)
-            ponds_without_val = pond_counts.get(0, 0)
+            # Optimization: Use boolean masking for faster subset nunique aggregation
+            s_col = df["pond_presence"]
+            ponds_with_val = df.loc[s_col == 1, "location_id"].nunique()
+            ponds_without_val = df.loc[s_col == 0, "location_id"].nunique()
 
             ponds_with = f"{ponds_with_val:,}"
             ponds_without = f"{ponds_without_val:,}"
