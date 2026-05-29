@@ -474,12 +474,12 @@ def fetch_water_data(
         click.echo(click.style(f"✅ Saved to {output_path}", fg="green"))
 
         click.echo("\n" + click.style("Data Summary:", fg="blue", bold=True))
-        click.echo(f"  Locations: {water_df['location_id'].nunique():,}")
-        click.echo(f"  Years: {water_df['year'].min()} - {water_df['year'].max()}")
-        click.echo(f"  Seasons: {', '.join(sorted(water_df['season'].unique()))}")
-        click.echo(
-            f"  Total water area range: {water_df['water_area_ha'].min():,.2f} - {water_df['water_area_ha'].max():,.2f} ha"
-        )
+        click.echo(click.style(f"  Locations: {water_df['location_id'].nunique():,}", dim=True))
+        click.echo(click.style(f"  Years: {water_df['year'].min()} - {water_df['year'].max()}", dim=True))
+        click.echo(click.style(f"  Seasons: {', '.join(sorted(water_df['season'].unique()))}", dim=True))
+        click.echo(click.style(
+            f"  Total water area range: {water_df['water_area_ha'].min():,.2f} - {water_df['water_area_ha'].max():,.2f} ha", dim=True
+        ))
 
         # Show sample data
         if len(water_df) > 0:
@@ -557,12 +557,12 @@ def merge_data(ctx, water_data, nrm_data, output):
         sanitize_dataframe(merged_df).to_csv(output_path, index=False)
 
         click.echo(click.style(f"✅ Merged data saved to {output_path}", fg="green"))
-        click.echo(f"Total records: {len(merged_df):,}")
+        click.echo(click.style(f"  Total records: {len(merged_df):,}", dim=True))
 
         if nrm_data:
-            click.echo(
-                f"Records with NRM data: {merged_df['nrm_data_available'].sum():,}"
-            )
+            click.echo(click.style(
+                f"  Records with NRM data: {merged_df['nrm_data_available'].sum():,}", dim=True
+            ))
 
     except Exception as e:
         click.echo(click.style(f"❌ Error: {e}", fg="red"), err=True)
@@ -657,7 +657,7 @@ def dashboard(ctx, data, locations, output):
         viz.save_figure(fig, output, "html", output_dir=ctx.obj["output_dir"])
 
         click.echo(click.style(f"✅ Dashboard saved to {ctx.obj['output_dir']}/{output}.html", fg="green"))
-        click.echo(f"Included locations: {', '.join(location_list)}")
+        click.echo(click.style(f"  Included locations: {', '.join(location_list)}", dim=True))
 
     except Exception as e:
         click.echo(click.style(f"❌ Error: {e}", fg="red"), err=True)
