@@ -554,9 +554,7 @@ class WaterTrendsVisualizer:
         """
         if year_range:
             start_year, end_year = year_range
-            df_filtered = df[
-                (df["year"] >= start_year) & (df["year"] <= end_year)
-            ]
+            df_filtered = df[(df["year"] >= start_year) & (df["year"] <= end_year)]
         else:
             df_filtered = df
 

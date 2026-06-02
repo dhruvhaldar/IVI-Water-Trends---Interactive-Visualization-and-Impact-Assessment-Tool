@@ -115,3 +115,6 @@
 ## 2024-05-25 - HTML Report Reduced Motion Accessibility
 **Learning:** Generated HTML reports use `scroll-behavior: smooth` for back-to-top links and CSS `transition`/`transform` effects on interactive elements like buttons and rows. For users with vestibular disorders, these motion effects can trigger dizziness or nausea.
 **Action:** Always inject an `@media (prefers-reduced-motion: reduce)` CSS block into HTML report templates that forces `scroll-behavior: auto !important` on the `html` element and disables all transitions (`* { transition: none !important; transform: none !important; }`). This ensures the UI respects OS-level accessibility preferences while retaining visual polish for other users.
+## 2024-06-02 - Keyboard Accessible Tooltips for Metadata
+**Learning:** Adding descriptive `title` tooltips to metadata elements (like dataset column badges) provides excellent contextual help, but is inaccessible to keyboard users by default. Standard non-interactive elements (like `<li>` or `<span>`) do not receive focus, preventing keyboard users from seeing the native browser tooltip.
+**Action:** When adding tooltips to non-interactive informative elements, always add `tabindex="0"` to allow keyboard focus, and apply a clear `:focus-visible` outline alongside `cursor: help` to indicate interactivity to all users.
