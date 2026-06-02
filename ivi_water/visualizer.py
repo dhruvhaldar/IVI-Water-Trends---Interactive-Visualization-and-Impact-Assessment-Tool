@@ -223,7 +223,7 @@ class WaterTrendsVisualizer:
         try:
             # Filter data based on location_id
             if location_id:
-                df_filtered = df[df["location_id"] == location_id].copy()
+                df_filtered = df[df["location_id"] == location_id]
                 title = title or f"Seasonal Water Trends - {location_id}"
                 self.logger.debug(
                     f"Filtered data for location {location_id}: {len(df_filtered)} records"
@@ -552,13 +552,13 @@ class WaterTrendsVisualizer:
         Returns:
             Plotly Figure object
         """
-        df_filtered = df.copy()
-
         if year_range:
             start_year, end_year = year_range
-            df_filtered = df_filtered[
-                (df_filtered["year"] >= start_year) & (df_filtered["year"] <= end_year)
+            df_filtered = df[
+                (df["year"] >= start_year) & (df["year"] <= end_year)
             ]
+        else:
+            df_filtered = df
 
         safe_title = self._sanitize_text(title or "Water Area Distribution by Season")
 
