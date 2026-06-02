@@ -74,3 +74,7 @@
 ## 2025-05-19 - [Pandas subset nunique aggregation optimization revisited]
 **Learning:** For calculating the number of unique elements across subsets, `df.loc[mask, target_col].nunique()` is significantly faster (~3x) than `groupby(mask_col)[target_col].nunique()` because boolean masking directly filters arrays while bypassing pandas' slower groupby execution paths. This remains true even if the target column (`location_id`) is pre-converted to a categorical dtype.
 **Action:** When calculating unique counts for a few specific discrete subsets (like binary conditions), use boolean masking with `loc` instead of `groupby().nunique()`.
+
+## 2025-05-19 - [Avoid Redundant DataFrame Copies for Read-Only Downstream Operations]
+**Learning:** Calling `.copy()` on Pandas DataFrames (e.g., `df.copy()` or `df_filtered = df[...].copy()`) when the resulting DataFrame is only used for read-only operations (like passing to Plotly for visualization) forces Pandas to unnecessarily allocate memory and duplicate data. This is particularly wasteful when performed unconditionally or on massive datasets.
+**Action:** When filtering Pandas DataFrames for read-only downstream operations (like visualization), avoid chaining redundant `.copy()` calls. Slicing or boolean masking inherently returns a view or copy that is sufficient for non-mutating downstream tasks, bypassing expensive and wasteful memory reallocation.
