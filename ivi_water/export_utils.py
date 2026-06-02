@@ -398,6 +398,21 @@ class ExportUtils:
             self.logger.error(f"Unexpected error during export: {e}", exc_info=True)
             raise ValueError(f"Export failed: {e}")
 
+    def _get_column_tooltip(self, col: str) -> str:
+        """Get descriptive tooltip for known columns."""
+        tooltips = {
+            "water_area_ha": "Total surface area of water in hectares",
+            "water_body_count": "Number of distinct water bodies identified",
+            "location_id": "Unique identifier for the spatial unit",
+            "year": "Observation year",
+            "season": "Observation season (e.g., monsoon, winter, summer)",
+            "data_quality": "Quality indicator of the satellite observation",
+            "pond_presence": "Indicates if an NRM pond exists (1=Yes, 0=No)",
+            "crop_yield_ton_per_ha": "Estimated crop yield in tons per hectare",
+            "state": "State or region name",
+        }
+        return tooltips.get(col, f"Dataset column: {col}")
+
     def _create_summary_table(self, df: pd.DataFrame) -> pd.DataFrame:
         """Create summary statistics table."""
         summary_data = []
@@ -566,8 +581,11 @@ class ExportUtils:
         # Create summary table
         summary_df = self._create_summary_table(df)
 
-        # Safe column names
-        safe_columns = [html.escape(str(col)) for col in df.columns]
+        # Safe column names with tooltips
+        badges_html = "".join(
+            f'<li class="badge" title="{html.escape(self._get_column_tooltip(str(col)))}" tabindex="0">{html.escape(str(col))}</li>'
+            for col in df.columns
+        )
 
         table_html = summary_df.to_html(index=False, classes="summary-table")
         table_html = table_html.replace("<th>", '<th scope="col">')
@@ -616,7 +634,9 @@ class ExportUtils:
                 tr:nth-child(even) {{ background-color: #f9f9f9; }}
                 tr:hover {{ background-color: #f1f1f1; }}
                 .badge-list {{ list-style-type: none; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; margin: 0; }}
-                .badge {{ background-color: #e9ecef; color: #495057; padding: 4px 8px; border-radius: 4px; font-size: 0.9em; }}
+                .badge {{ background-color: #e9ecef; color: #495057; padding: 4px 8px; border-radius: 4px; font-size: 0.9em; cursor: help; transition: background-color 0.2s ease; }}
+                .badge:hover, .badge:focus-visible {{ background-color: #dee2e6; color: #212529; }}
+                .badge:focus-visible {{ outline: 2px solid #226699; outline-offset: 2px; }}
                 .summary-table td:not(:first-child), .summary-table th:not(:first-child) {{ text-align: right; font-variant-numeric: tabular-nums; }}
                 .header-wrapper {{ display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }}
                 .print-button {{ background: #226699; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; transition: background-color 0.2s ease, transform 0.1s ease; }}
@@ -659,7 +679,7 @@ class ExportUtils:
                     </div>
                     <p id="columns-label" style="margin-bottom: 8px;">Columns:</p>
                     <ul class="badge-list" aria-labelledby="columns-label">
-                        {''.join(f'<li class="badge">{col}</li>' for col in safe_columns)}
+                        {badges_html}
                     </ul>
                 </section>
 
@@ -808,7 +828,9 @@ class ExportUtils:
         # Intervention impact
         if "pond_presence" in df.columns and "water_area_ha" in df.columns:
             # Optimization: Use groupby for mean calculation instead of boolean masks to avoid intermediate copies
-            pond_means = df.groupby("pond_presence", observed=True)["water_area_ha"].mean()
+            pond_means = df.groupby("pond_presence", observed=True)[
+                "water_area_ha"
+            ].mean()
             with_pond = pond_means.get(1, 0.0)
             without_pond = pond_means.get(0, 0.0)
 
@@ -831,7 +853,9 @@ class ExportUtils:
                 insights.append("❌ Low data quality (<70%)")
 
         return (
-            "\n".join(insights) if insights else "⚠️ No significant insights detected. Try expanding your date range or ensuring the input data includes required columns like 'water_area_ha'."
+            "\n".join(insights)
+            if insights
+            else "⚠️ No significant insights detected. Try expanding your date range or ensuring the input data includes required columns like 'water_area_ha'."
         )
 
     def generate_detailed_report(
