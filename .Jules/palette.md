@@ -118,3 +118,7 @@
 ## 2024-06-02 - Keyboard Accessible Tooltips for Metadata
 **Learning:** Adding descriptive `title` tooltips to metadata elements (like dataset column badges) provides excellent contextual help, but is inaccessible to keyboard users by default. Standard non-interactive elements (like `<li>` or `<span>`) do not receive focus, preventing keyboard users from seeing the native browser tooltip.
 **Action:** When adding tooltips to non-interactive informative elements, always add `tabindex="0"` to allow keyboard focus, and apply a clear `:focus-visible` outline alongside `cursor: help` to indicate interactivity to all users.
+
+## 2026-05-25 - HTML Report Mobile Browser UI Cohesion
+**Learning:** By default, mobile browser UIs (like the address bar and status bar) use a default system color, which can look disconnected from a generated HTML report or chart that has a strong brand identity.
+**Action:** When generating static HTML reports or interactive charts meant for browser viewing, always inject a `<meta name="theme-color" content="[brand-color]">` tag (e.g., `#226699`) into the `<head>` to ensure the mobile browser UI matches the primary brand color, providing a seamless and polished experience.
