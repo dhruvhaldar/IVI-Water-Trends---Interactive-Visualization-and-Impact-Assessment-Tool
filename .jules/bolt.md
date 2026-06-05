@@ -78,3 +78,7 @@
 ## 2025-05-19 - [Avoid Redundant DataFrame Copies for Read-Only Downstream Operations]
 **Learning:** Calling `.copy()` on Pandas DataFrames (e.g., `df.copy()` or `df_filtered = df[...].copy()`) when the resulting DataFrame is only used for read-only operations (like passing to Plotly for visualization) forces Pandas to unnecessarily allocate memory and duplicate data. This is particularly wasteful when performed unconditionally or on massive datasets.
 **Action:** When filtering Pandas DataFrames for read-only downstream operations (like visualization), avoid chaining redundant `.copy()` calls. Slicing or boolean masking inherently returns a view or copy that is sufficient for non-mutating downstream tasks, bypassing expensive and wasteful memory reallocation.
+
+## 2025-05-19 - [Pandas groupby performance inside loops]
+**Learning:** Performing `groupby` on slices of a DataFrame iteratively inside a loop (e.g., `df[df['col'] == val].groupby().mean()`) is highly inefficient and creates redundant overhead, especially when combined with column casting (`astype("category")`) inside the loop.
+**Action:** When calculating grouped statistics needed for multiple specific entities in a loop, pre-compute the full `.groupby()` once across all entities outside the loop (using `.reset_index()`), and then filter the small resulting aggregated DataFrame inside the loop (e.g., `agg_df[agg_df['col'] == val]`). This eliminates repeated deep copies and categorization overhead.

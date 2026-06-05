@@ -714,23 +714,26 @@ class WaterTrendsVisualizer:
                     )
 
         # Plot 2: Water body count over time
+        # Optimization: Pre-compute grouping outside the loop to avoid redundant copies and casting
+        df_counts_proc = df_filtered[["year", "location_id", "water_body_count"]].copy()
+        for col in ["year", "location_id"]:
+            if not isinstance(df_counts_proc[col].dtype, pd.CategoricalDtype):
+                df_counts_proc[col] = df_counts_proc[col].astype("category")
+
+        yearly_counts = (
+            df_counts_proc.groupby(["year", "location_id"], observed=True)["water_body_count"]
+            .mean()
+            .reset_index()
+        )
+
         for location in location_ids[:3]:
             safe_location = self._sanitize_text(location)
-            loc_data = df_filtered[df_filtered["location_id"] == location].copy()
-            # Optimization: Convert grouping columns to category for faster groupby
-            if "year" in loc_data.columns and not isinstance(
-                loc_data["year"].dtype, pd.CategoricalDtype
-            ):
-                loc_data["year"] = loc_data["year"].astype("category")
-
-            avg_counts = loc_data.groupby("year", observed=True)[
-                "water_body_count"
-            ].mean()
+            loc_data = yearly_counts[yearly_counts["location_id"] == location]
 
             fig.add_trace(
                 go.Scatter(
-                    x=avg_counts.index,
-                    y=avg_counts.values,
+                    x=loc_data["year"],
+                    y=loc_data["water_body_count"],
                     mode="lines+markers",
                     name=f"{safe_location} - Bodies",
                     showlegend=False,
