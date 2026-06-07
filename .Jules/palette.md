@@ -122,3 +122,6 @@
 ## 2026-05-25 - HTML Report Mobile Browser UI Cohesion
 **Learning:** By default, mobile browser UIs (like the address bar and status bar) use a default system color, which can look disconnected from a generated HTML report or chart that has a strong brand identity.
 **Action:** When generating static HTML reports or interactive charts meant for browser viewing, always inject a `<meta name="theme-color" content="[brand-color]">` tag (e.g., `#226699`) into the `<head>` to ensure the mobile browser UI matches the primary brand color, providing a seamless and polished experience.
+## 2026-05-30 - Empty States with Actionable Advice
+**Learning:** When executing CLI commands that expect data inputs (like generating reports or visualizations), users are easily confused if the process fails silently or errors out when the input CSV is empty.
+**Action:** Always include an empty state check (e.g., `if df.empty:`) and provide clear, actionable advice with a warning emoji (e.g., '⚠️ No data found in the input file. Please ensure the CSV is populated before visualizing.') to guide users appropriately.

@@ -641,6 +641,16 @@ def visualize(ctx, data, location_id, chart_type, output, format):
     try:
         processor = DataProcessor(ctx.obj["data_dir"])
         df = processor.load_csv_safe(data)
+
+        if df.empty:
+            click.echo(
+                click.style(
+                    "⚠️ No data found in the input file. Please ensure the CSV is populated before visualizing.",
+                    fg="yellow",
+                )
+            )
+            return
+
         viz = WaterTrendsVisualizer()
 
         # Generate filename if not provided
@@ -690,6 +700,16 @@ def dashboard(ctx, data, locations, output):
     try:
         processor = DataProcessor(ctx.obj["data_dir"])
         df = processor.load_csv_safe(data)
+
+        if df.empty:
+            click.echo(
+                click.style(
+                    "⚠️ No data found in the input file. Please ensure the CSV is populated before creating dashboard.",
+                    fg="yellow",
+                )
+            )
+            return
+
         viz = WaterTrendsVisualizer()
 
         location_list = (
@@ -741,6 +761,16 @@ def generate_report(ctx, data, report_type, output):
     try:
         processor = DataProcessor(ctx.obj["data_dir"])
         df = processor.load_csv_safe(data)
+
+        if df.empty:
+            click.echo(
+                click.style(
+                    "⚠️ No data found in the input file. Please ensure the CSV is populated before generating reports.",
+                    fg="yellow",
+                )
+            )
+            return
+
         export_utils = ExportUtils()
 
         if not output:
