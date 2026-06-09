@@ -995,7 +995,7 @@ For questions or support, contact: IVI Water Trends Team"""
                         # Add title and viewport for accessibility and mobile responsiveness
                         html_content = html_content.replace(
                             "<head>",
-                            f'<head>\n    <meta name="viewport" content="width=device-width, initial-scale=1.0">\n    <meta name="theme-color" content="#226699">\n    <title>{title_text}</title>\n    <style>.plotly-graph-div:focus-visible {{ outline: 3px solid #ff7f0e; outline-offset: 2px; border-radius: 4px; }}</style>',
+                            f'<head>\n    <meta name="viewport" content="width=device-width, initial-scale=1.0">\n    <meta name="theme-color" content="#226699">\n    <title>{title_text}</title>\n    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🌊</text></svg>">\n    <style>.plotly-graph-div:focus-visible {{ outline: 3px solid #ff7f0e; outline-offset: 2px; border-radius: 4px; }}</style>',
                         )
 
                         html_content = html_content.replace(
