@@ -581,6 +581,16 @@ def merge_data(ctx, water_data, nrm_data, output):
 
         # Load water data
         water_df = processor.load_csv_safe(water_data)
+
+        if water_df.empty:
+            click.echo(
+                click.style(
+                    "⚠️ No data found in the input file. Please ensure the CSV is populated before merging.",
+                    fg="yellow",
+                )
+            )
+            return
+
         water_df = processor._clean_water_data(water_df)
 
         # Load NRM data if provided
