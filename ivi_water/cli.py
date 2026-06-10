@@ -220,6 +220,12 @@ def get_spatial_units(
             raise click.ClickException(f"API client initialization failed: {e}")
 
         # Fetch spatial units
+        click.echo(
+            click.style(
+                f"⏳ Fetching {unit_type} spatial units...",
+                fg="blue",
+            )
+        )
         try:
             units = client.get_spatial_units(unit_type, state)
         except Exception as e:
@@ -663,6 +669,13 @@ def visualize(ctx, data, location_id, chart_type, output, format):
 
         viz = WaterTrendsVisualizer()
 
+        click.echo(
+            click.style(
+                f"⏳ Generating {chart_type} chart...",
+                fg="blue",
+            )
+        )
+
         # Generate filename if not provided
         if not output:
             location_suffix = f"_{location_id}" if location_id else ""
@@ -734,6 +747,13 @@ def dashboard(ctx, data, locations, output):
             location_list = location_counts.index.tolist()
             df_filtered = df[df["location_id"].isin(location_list)]
 
+        click.echo(
+            click.style(
+                "⏳ Generating comprehensive dashboard...",
+                fg="blue",
+            )
+        )
+
         fig = viz.create_multi_location_dashboard(df_filtered, location_list)
 
         # Save dashboard using secure save_figure method
@@ -790,6 +810,13 @@ def generate_report(ctx, data, report_type, output):
             output = sanitize_filename(output)
         except ValueError as e:
             raise click.ClickException(f"Invalid output filename: {e}")
+
+        click.echo(
+            click.style(
+                f"⏳ Generating {report_type} report...",
+                fg="blue",
+            )
+        )
 
         if report_type == "summary":
             output_path = export_utils.generate_summary_report(

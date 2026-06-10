@@ -125,3 +125,6 @@
 ## 2026-05-30 - Empty States with Actionable Advice
 **Learning:** When executing CLI commands that expect data inputs (like generating reports or visualizations), users are easily confused if the process fails silently or errors out when the input CSV is empty.
 **Action:** Always include an empty state check (e.g., `if df.empty:`) and provide clear, actionable advice with a warning emoji (e.g., '⚠️ No data found in the input file. Please ensure the CSV is populated before visualizing.') to guide users appropriately.
+## 2026-06-10 - Add explicit loading states to long-running CLI tasks
+**Learning:** Users often assume a CLI tool has hung if there is no immediate visual feedback during network requests or expensive data generation operations.
+**Action:** Always include a visual loading indicator (e.g., `click.echo(click.style("⏳ Fetching...", fg="blue"))`) before long-running tasks to reassure users that the process is working.
