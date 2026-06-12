@@ -600,7 +600,9 @@ class ExportUtils:
         <head>
             <meta charset="utf-8">
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <meta name="theme-color" content="#226699">
+            <meta name="color-scheme" content="light dark">
+            <meta name="theme-color" content="#226699" media="(prefers-color-scheme: light)">
+            <meta name="theme-color" content="#121212" media="(prefers-color-scheme: dark)">
             <title>Water Trends Summary Report</title>
             <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🌊</text></svg>">
             <style>
@@ -648,6 +650,22 @@ class ExportUtils:
                 @media (prefers-reduced-motion: reduce) {{
                     html {{ scroll-behavior: auto !important; }}
                     * {{ transition: none !important; transform: none !important; }}
+                }}
+                @media (prefers-color-scheme: dark) {{
+                    body {{ background-color: #121212; color: #e0e0e0; }}
+                    h1 {{ color: #e0e0e0; }}
+                    h2 {{ color: #e0e0e0; border-bottom-color: #3b82f6; }}
+                    th {{ background-color: #1e1e1e; color: #e0e0e0; border-color: #333; }}
+                    td {{ border-color: #333; }}
+                    tr:nth-child(even) {{ background-color: #1a1a1a; }}
+                    tr:hover {{ background-color: #2c2c2c; }}
+                    .summary {{ background-color: #1e1e1e; color: #e0e0e0; border: 1px solid #333; }}
+                    .badge {{ background-color: #2c2c2c; color: #e0e0e0; }}
+                    .badge:hover, .badge:focus-visible {{ background-color: #3f3f3f; color: #fff; }}
+                    .print-button {{ background-color: #3b82f6; }}
+                    .print-button:hover {{ background-color: #2563eb; }}
+                    .back-to-top {{ color: #3b82f6; }}
+                    .back-to-top:hover {{ background-color: #1e1e1e; }}
                 }}
             </style>
         </head>

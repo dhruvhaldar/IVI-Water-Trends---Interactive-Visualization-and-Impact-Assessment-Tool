@@ -128,3 +128,7 @@
 ## 2026-06-10 - Add explicit loading states to long-running CLI tasks
 **Learning:** Users often assume a CLI tool has hung if there is no immediate visual feedback during network requests or expensive data generation operations.
 **Action:** Always include a visual loading indicator (e.g., `click.echo(click.style("⏳ Fetching...", fg="blue"))`) before long-running tasks to reassure users that the process is working.
+
+## 2024-05-25 - Native Dark Mode Support in Static Reports
+**Learning:** Static HTML reports lacking native OS-level Dark Mode support (`@media (prefers-color-scheme: dark)`) create a jarring, overly bright experience for users whose systems are set to dark mode. Without matching `<meta name="color-scheme" content="light dark">` and `<meta name="theme-color" media="...">` tags, the browser UI and document canvas will clash with user preferences.
+**Action:** Always inject `@media (prefers-color-scheme: dark)` CSS to adjust backgrounds, text colors, and component borders appropriately, and ensure the corresponding responsive `<meta name="theme-color">` tags are present in the `<head>` of generated HTML reports.
