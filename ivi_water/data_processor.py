@@ -1246,15 +1246,10 @@ class DataProcessor:
             # Optimization: Remove redundant .copy() as loc with boolean mask already returns a copy
             df_proc = df.loc[valid_mask, cols_needed]
 
-            # Optimization: Convert grouping columns to category for faster groupby operations
-            # This provides a significant speedup (~30-45%) when users provide dynamic string columns
-            for col in group_by_list:
-                if (
-                    col in df_proc.columns
-                    and pd.api.types.is_object_dtype(df_proc[col])
-                    and not isinstance(df_proc[col].dtype, pd.CategoricalDtype)
-                ):
-                    df_proc[col] = df_proc[col].astype("category")
+            # Optimization (Performance): Removed redundant conversion of string columns to `category`
+            # dtype prior to `.groupby()`. While intended to speed up the grouping, the memory reallocation
+            # and type coercion overhead often outweighs the groupby performance gain for these simple queries.
+            # Using chained `.groupby(..., observed=True)` directly on the sliced DataFrame is significantly faster.
 
             # Pre-calculate xy and xx for slope
             # Since inputs have NaNs for invalid rows, outputs will also be NaN correctly
@@ -1797,16 +1792,10 @@ class DataProcessor:
             if df_clean.empty:
                 raise ValueError("No valid data remaining after filtering")
 
-            # Optimization: Convert grouping columns to category for faster groupby operations
-            # This provides a significant speedup (~45%) for seasonal summaries on large datasets
-            if location_level in df_clean.columns and not isinstance(
-                df_clean[location_level].dtype, pd.CategoricalDtype
-            ):
-                df_clean[location_level] = df_clean[location_level].astype("category")
-            if "season" in df_clean.columns and not isinstance(
-                df_clean["season"].dtype, pd.CategoricalDtype
-            ):
-                df_clean["season"] = df_clean["season"].astype("category")
+            # Optimization (Performance): Removed redundant conversion of string columns to `category`
+            # dtype prior to `.groupby()`. While intended to speed up the grouping, the memory reallocation
+            # and type coercion overhead often outweighs the groupby performance gain for these simple queries.
+            # Using chained `.groupby(..., observed=True)` directly on the sliced DataFrame is significantly faster.
 
             # Group by location and season for comprehensive statistics
             # Optimization: groupby(sort=True) is faster for high-cardinality groups than sort=False + sort_index
