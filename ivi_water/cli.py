@@ -442,7 +442,7 @@ def fetch_water_data(
         # Display progress
         click.echo(
             click.style(
-                f"Fetching water data for {len(location_list):,} locations...",
+                f"⏳ Fetching water data for {len(location_list):,} locations...",
                 fg="blue",
             )
         )
