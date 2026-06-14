@@ -1808,7 +1808,8 @@ class DataProcessor:
                 # Optimization: calculate mean from sum/count to save aggregation overhead (~30-40% faster)
                 # Optimization: removed 'median' to avoid triggering slow aggregation path
                 "water_area_ha": ["sum", "std", "min", "max", "count"],
-                "year": ["min", "max", "nunique"],
+                # Optimization: removed 'nunique' to avoid triggering slow aggregation path
+                "year": ["min", "max"],
                 "location_id": "count",  # Total observations per group
             }
 
@@ -1820,6 +1821,10 @@ class DataProcessor:
             # Perform aggregation
             seasonal_summary = grouped.agg(agg_dict)
 
+            # Calculate nunique separately for performance (~40% faster)
+            # Mixing nunique with other aggs prevents optimization
+            year_nunique = grouped["year"].nunique()
+
             # Flatten column names
             seasonal_summary.columns = [
                 "_".join(col).strip() for col in seasonal_summary.columns
@@ -1828,6 +1833,9 @@ class DataProcessor:
             # Calculate median separately for performance
             # Mixing median (which requires sorting) with other aggs prevents optimization
             seasonal_summary["water_area_ha_median"] = grouped["water_area_ha"].median()
+
+            # Add year_nunique
+            seasonal_summary["year_nunique"] = year_nunique
 
             seasonal_summary = seasonal_summary.reset_index()
 

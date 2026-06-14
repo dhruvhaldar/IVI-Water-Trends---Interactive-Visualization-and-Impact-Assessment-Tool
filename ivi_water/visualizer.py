@@ -703,7 +703,9 @@ class WaterTrendsVisualizer:
 
         # Plot 2: Water body count over time
         yearly_counts = (
-            df_filtered.groupby(["year", "location_id"], observed=True)["water_body_count"]
+            df_filtered.groupby(["year", "location_id"], observed=True)[
+                "water_body_count"
+            ]
             .mean()
             .reset_index()
         )
