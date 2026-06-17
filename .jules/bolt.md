@@ -93,3 +93,7 @@
 ## 2025-05-20 - [Pandas groupby.agg() Mixing nunique Optimization]
 **Learning:** In Pandas, mixing `nunique` with standard aggregations (`sum`, `min`, `max`, `count`) inside a single `groupby().agg()` call forces Pandas to abandon its optimized Cython fast-paths for the entire grouping operation. This causes a significant performance drop (~20-40% slower) on large datasets.
 **Action:** When you need to calculate both standard metrics and `nunique` across groups, pull the `nunique` calculation out into its own step (e.g., `nunique = grouped["year"].nunique()`) and merge it with the rest of the standard aggregations. This allows the initial `.agg()` to run much faster on the optimized fast-path.
+
+## 2025-05-20 - [Combine Multiple Column Aggregations in pandas GroupBy]
+**Learning:** Performing multiple independent `.groupby().mean()` passes on the same grouping columns (e.g., `["year", "location_id"]`) for different target columns (e.g., `"water_area_ha"` and `"water_body_count"`) is inefficient. It forces Pandas to re-evaluate the groups, hash the columns, and sort the index twice.
+**Action:** Always combine the target columns into a single `.groupby()[["col1", "col2"]].mean()` call to execute the aggregation in a single optimized pass, cutting the overhead nearly in half.
