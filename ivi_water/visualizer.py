@@ -702,9 +702,10 @@ class WaterTrendsVisualizer:
                     )
 
         # Plot 2: Water body count over time
-        yearly_counts = (
+        # Optimize aggregation: Calculate means for both metrics in a single pass
+        yearly_stats = (
             df_filtered.groupby(["year", "location_id"], observed=True)[
-                "water_body_count"
+                ["water_area_ha", "water_body_count"]
             ]
             .mean()
             .reset_index()
@@ -712,7 +713,7 @@ class WaterTrendsVisualizer:
 
         for location in location_ids[:3]:
             safe_location = self._sanitize_text(location)
-            loc_data = yearly_counts[yearly_counts["location_id"] == location]
+            loc_data = yearly_stats[yearly_stats["location_id"] == location]
 
             fig.add_trace(
                 go.Scatter(
@@ -730,14 +731,9 @@ class WaterTrendsVisualizer:
             )
 
         # Plot 3: Yearly comparison
-        yearly_avg = (
-            df_filtered.groupby(["year", "location_id"], observed=True)["water_area_ha"]
-            .mean()
-            .reset_index()
-        )
         for location in location_ids[:3]:
             safe_location = self._sanitize_text(location)
-            loc_data = yearly_avg[yearly_avg["location_id"] == location]
+            loc_data = yearly_stats[yearly_stats["location_id"] == location]
 
             fig.add_trace(
                 go.Scatter(
