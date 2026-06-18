@@ -583,6 +583,13 @@ def fetch_water_data(
 def merge_data(ctx, water_data, nrm_data, output):
     """Merge water data with NRM impact data"""
     try:
+        click.echo(
+            click.style(
+                "⏳ Merging water and NRM data...",
+                fg="blue",
+            )
+        )
+
         processor = DataProcessor(ctx.obj["data_dir"])
 
         # Load water data
@@ -847,6 +854,13 @@ def generate_report(ctx, data, report_type, output):
 def setup_notebooks(ctx, template, output_dir):
     """Setup Jupyter notebooks for analysis"""
     try:
+        click.echo(
+            click.style(
+                "⏳ Setting up notebooks...",
+                fg="blue",
+            )
+        )
+
         notebook_dir = Path(output_dir) if output_dir else Path("notebooks")
         notebook_dir.mkdir(exist_ok=True)
 
