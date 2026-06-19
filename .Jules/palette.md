@@ -136,3 +136,7 @@
 ## 2026-06-18 - Explicit Loading States in Long-Running CLI Tasks
 **Learning:** Users often assume a CLI tool has hung if there is no immediate visual feedback during file I/O operations or data processing steps.
 **Action:** Always include a visual loading indicator (e.g., `click.echo(click.style("⏳ Action...", fg="blue"))`) before potentially slow tasks to reassure users that the process is working.
+
+## 2024-06-19 - Dashboard empty state feedback
+**Learning:** Running the `dashboard` CLI command with non-existent location IDs causes a crash deep within the visualization logic, providing a confusing traceback.
+**Action:** Always validate that filtered datasets are not empty before passing them to visualization functions, and provide a clear warning emoji (⚠️) with actionable advice.
