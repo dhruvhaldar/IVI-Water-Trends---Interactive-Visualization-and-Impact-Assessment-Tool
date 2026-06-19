@@ -754,6 +754,15 @@ def dashboard(ctx, data, locations, output):
             location_list = location_counts.index.tolist()
             df_filtered = df[df["location_id"].isin(location_list)]
 
+        if df_filtered.empty:
+            click.echo(
+                click.style(
+                    "⚠️ No data found for the specified locations. Please check the location IDs.",
+                    fg="yellow",
+                )
+            )
+            return
+
         click.echo(
             click.style(
                 "⏳ Generating comprehensive dashboard...",
