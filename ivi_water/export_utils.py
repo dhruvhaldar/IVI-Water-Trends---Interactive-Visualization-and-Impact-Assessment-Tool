@@ -579,7 +579,7 @@ class ExportUtils:
 
         # Safe column names with tooltips
         badges_html = "".join(
-            f'<li class="badge" title="{html.escape(self._get_column_tooltip(str(col)))}" tabindex="0">{html.escape(str(col))}</li>'
+            f'<li class="badge" title="{html.escape(self._get_column_tooltip(str(col)))}" aria-label="Column {html.escape(str(col))}: {html.escape(self._get_column_tooltip(str(col)))}" tabindex="0">{html.escape(str(col))}</li>'
             for col in df.columns
         )
 
@@ -677,7 +677,7 @@ class ExportUtils:
                         <h1 id="report-title" tabindex="-1">Water Trends Summary Report</h1>
                         <button onClick="window.print()" class="print-button" aria-label="Print Report" title="Print Report (Keyboard: Ctrl+P / Cmd+P)"><span aria-hidden="true">🖨️</span> Print Report</button>
                     </div>
-                    <p class="summary">Generated on: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</p>
+                    <p class="summary">Generated on: <time datetime="{datetime.now().isoformat()}">{datetime.now().strftime('%d %b %Y, %I:%M %p')}</time></p>
                 </header>
 
                 <section aria-labelledby="summary-stats-title">
