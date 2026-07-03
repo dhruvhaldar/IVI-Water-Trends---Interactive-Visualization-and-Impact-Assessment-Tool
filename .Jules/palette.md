@@ -140,3 +140,7 @@
 ## 2024-06-19 - Dashboard empty state feedback
 **Learning:** Running the `dashboard` CLI command with non-existent location IDs causes a crash deep within the visualization logic, providing a confusing traceback.
 **Action:** Always validate that filtered datasets are not empty before passing them to visualization functions, and provide a clear warning emoji (⚠️) with actionable advice.
+
+## 2026-07-03 - HTML Semantic `<time>` tags and reliable Tooltip `aria-label`
+**Learning:** Using `title` attributes on non-interactive elements like `<li>` lists for tooltips works fine visually when focused with `tabindex="0"`, but screen readers can be extremely inconsistent about announcing these `title` tooltips. Furthermore, string-based timestamps lack structural meaning for assistive technology and machine parsing.
+**Action:** When adding interactive tooltips via `title` to custom UI components, always provide a fallback `aria-label` (e.g., `aria-label="Column {col}: {tooltip}"`) to guarantee screen readers voice the description. Always wrap rendered timestamps in semantic `<time datetime="{isoformat}">` tags to improve structural document semantics.
