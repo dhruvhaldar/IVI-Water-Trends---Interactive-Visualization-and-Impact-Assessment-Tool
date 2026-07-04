@@ -144,3 +144,7 @@
 ## 2026-07-03 - HTML Semantic `<time>` tags and reliable Tooltip `aria-label`
 **Learning:** Using `title` attributes on non-interactive elements like `<li>` lists for tooltips works fine visually when focused with `tabindex="0"`, but screen readers can be extremely inconsistent about announcing these `title` tooltips. Furthermore, string-based timestamps lack structural meaning for assistive technology and machine parsing.
 **Action:** When adding interactive tooltips via `title` to custom UI components, always provide a fallback `aria-label` (e.g., `aria-label="Column {col}: {tooltip}"`) to guarantee screen readers voice the description. Always wrap rendered timestamps in semantic `<time datetime="{isoformat}">` tags to improve structural document semantics.
+
+## 2024-07-04 - Optimal Line Height for Text Readability
+**Learning:** Browsers typically default to a line-height of roughly 1.2. In data-dense HTML reports, this makes reading paragraphs or lists fatiguing and violates WCAG AAA accessibility recommendations (which suggest a line spacing of at least 1.5).
+**Action:** When generating static HTML reports with custom CSS, always explicitly set `line-height: 1.5` (or `1.6`) on the `body` element to ensure long text blocks and summaries remain highly legible for all users.
