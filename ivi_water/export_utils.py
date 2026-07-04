@@ -606,7 +606,7 @@ class ExportUtils:
             <title>Water Trends Summary Report</title>
             <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🌊</text></svg>">
             <style>
-                body {{ font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif; margin: 40px; color: #333; background-color: #fff; }}
+                body {{ font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif; margin: 40px; color: #333; background-color: #fff; line-height: 1.6; }}
                 h1 {{ color: #2c3e50; text-align: center; margin: 0; }}
                 h2 {{ color: #34495e; border-bottom: 2px solid #226699; }}
                 table {{ border-collapse: collapse; width: 100%; margin: 20px 0; }}
