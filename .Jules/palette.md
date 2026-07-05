@@ -148,3 +148,7 @@
 ## 2024-07-04 - Optimal Line Height for Text Readability
 **Learning:** Browsers typically default to a line-height of roughly 1.2. In data-dense HTML reports, this makes reading paragraphs or lists fatiguing and violates WCAG AAA accessibility recommendations (which suggest a line spacing of at least 1.5).
 **Action:** When generating static HTML reports with custom CSS, always explicitly set `line-height: 1.5` (or `1.6`) on the `body` element to ensure long text blocks and summaries remain highly legible for all users.
+
+## 2026-07-05 - Preserving HTML Report Visuals in Print
+**Learning:** Browsers strip background colors by default when printing HTML pages to save ink. In data reports, this destroys the visual hierarchy of summary boxes (`.summary`) and table headers (`th`), making the printed version harder to read and reducing contrast.
+**Action:** Always include `-webkit-print-color-adjust: exact; print-color-adjust: exact;` in the `@media print` CSS block of generated static HTML reports to ensure background colors are preserved in the final printed document or PDF export.

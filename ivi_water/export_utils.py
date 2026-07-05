@@ -646,7 +646,7 @@ class ExportUtils:
                 .back-to-top {{ display: inline-block; margin-top: 20px; padding: 8px 16px; color: #226699; text-decoration: none; font-weight: 500; border-radius: 4px; transition: background-color 0.2s ease; }}
                 .back-to-top:hover {{ background-color: #f1f1f1; }}
                 .back-to-top:focus-visible {{ outline: 3px solid #ff7f0e; outline-offset: 2px; }}
-                @media print {{ .print-button, .skip-link, .back-to-top {{ display: none !important; }} }}
+                @media print {{ .print-button, .skip-link, .back-to-top {{ display: none !important; }} body {{ -webkit-print-color-adjust: exact; print-color-adjust: exact; }} }}
                 @media (prefers-reduced-motion: reduce) {{
                     html {{ scroll-behavior: auto !important; }}
                     * {{ transition: none !important; transform: none !important; }}
