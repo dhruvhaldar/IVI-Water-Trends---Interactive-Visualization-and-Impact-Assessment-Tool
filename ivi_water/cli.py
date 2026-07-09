@@ -316,6 +316,8 @@ def get_spatial_units(
                     )
                 )
 
+        click.echo("\n" + click.style(f"💡 Tip: Use these location IDs with ", fg="yellow") + click.style("ivi-water fetch-water-data", fg="cyan", bold=True))
+
         # Log completion
         logger.info(
             f"Successfully completed spatial units fetch: {len(df):,} units retrieved"
@@ -554,6 +556,8 @@ def fetch_water_data(
                     )
                 )
 
+        click.echo("\n" + click.style(f"💡 Tip: Visualize these trends with ", fg="yellow") + click.style(f"ivi-water visualize --data {output_path}", fg="cyan", bold=True))
+
         # Log completion
         logger.info(
             f"Successfully completed water data fetch: {len(water_df):,} records "
@@ -635,6 +639,8 @@ def merge_data(ctx, water_data, nrm_data, output):
                 )
             )
 
+        click.echo("\n" + click.style(f"💡 Tip: Create a comprehensive dashboard with ", fg="yellow") + click.style(f"ivi-water dashboard --data {output_path}", fg="cyan", bold=True))
+
     except Exception as e:
         click.echo(click.style(f"❌ Error: {e}", fg="red"), err=True)
         sys.exit(1)
@@ -713,6 +719,8 @@ def visualize(ctx, data, location_id, chart_type, output, format):
             )
         )
 
+        click.echo("\n" + click.style(f"💡 Tip: Generate a full report with ", fg="yellow") + click.style(f"ivi-water generate-report --data {data}", fg="cyan", bold=True))
+
     except Exception as e:
         click.echo(click.style(f"❌ Error: {e}", fg="red"), err=True)
         sys.exit(1)
@@ -785,6 +793,8 @@ def dashboard(ctx, data, locations, output):
             click.style(f"  Included locations: {', '.join(location_list)}", dim=True)
         )
 
+        click.echo("\n" + click.style(f"💡 Tip: Generate a full report with ", fg="yellow") + click.style(f"ivi-water generate-report --data {data}", fg="cyan", bold=True))
+
     except Exception as e:
         click.echo(click.style(f"❌ Error: {e}", fg="red"), err=True)
         sys.exit(1)
@@ -849,6 +859,8 @@ def generate_report(ctx, data, report_type, output):
 
         click.echo(click.style(f"✅ Report saved to {output_path}", fg="green"))
 
+        click.echo("\n" + click.style(f"💡 Tip: Open the generated report file in your browser to view the insights.", fg="yellow"))
+
     except Exception as e:
         click.echo(click.style(f"❌ Error: {e}", fg="red"), err=True)
         sys.exit(1)
@@ -882,6 +894,8 @@ def setup_notebooks(ctx, template, output_dir):
             create_advanced_notebook(notebook_dir)
 
         click.echo(click.style(f"✅ Notebooks created in {notebook_dir}", fg="green"))
+
+        click.echo("\n" + click.style(f"💡 Tip: Start Jupyter notebook to begin your analysis.", fg="yellow"))
 
     except Exception as e:
         click.echo(click.style(f"❌ Error: {e}", fg="red"), err=True)
