@@ -152,3 +152,7 @@
 ## 2026-07-05 - Preserving HTML Report Visuals in Print
 **Learning:** Browsers strip background colors by default when printing HTML pages to save ink. In data reports, this destroys the visual hierarchy of summary boxes (`.summary`) and table headers (`th`), making the printed version harder to read and reducing contrast.
 **Action:** Always include `-webkit-print-color-adjust: exact; print-color-adjust: exact;` in the `@media print` CSS block of generated static HTML reports to ensure background colors are preserved in the final printed document or PDF export.
+
+## 2026-07-09 - CLI Next-Step Contextual Tips
+**Learning:** CLI tools often create dead-end experiences after a successful command execution. Without clear guidance on what to do next, users (especially beginners) struggle to discover downstream commands and the full workflow capability.
+**Action:** Always append context-aware "💡 Tip: [Actionable advice]" messages to the successful output of major CLI commands (e.g., suggesting visualization after data fetching) to improve discoverability and guide the user logically through the tool's intended workflow.
