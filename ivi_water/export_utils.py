@@ -675,7 +675,10 @@ class ExportUtils:
                 <header>
                     <div class="header-wrapper">
                         <h1 id="report-title" tabindex="-1">Water Trends Summary Report</h1>
-                        <button onClick="window.print()" class="print-button" aria-label="Print Report" title="Print Report (Keyboard: Ctrl+P / Cmd+P)"><span aria-hidden="true">🖨️</span> Print Report</button>
+                        <div style="display: flex; gap: 10px;">
+                            <button id="copy-btn" class="print-button" aria-label="Copy Data" title="Copy Data to Clipboard"><span aria-hidden="true">📋</span> Copy Data</button>
+                            <button onClick="window.print()" class="print-button" aria-label="Print Report" title="Print Report (Keyboard: Ctrl+P / Cmd+P)"><span aria-hidden="true">🖨️</span> Print Report</button>
+                        </div>
                     </div>
                     <p class="summary">Generated on: <time datetime="{datetime.now().isoformat()}">{datetime.now().strftime('%d %b %Y, %I:%M %p')}</time></p>
                 </header>
@@ -702,6 +705,24 @@ class ExportUtils:
                     <a href="#report-title" class="back-to-top" aria-label="Scroll back to top of the report"><span aria-hidden="true">↑</span> Back to Top</a>
                 </footer>
             </main>
+            <script>
+                document.getElementById('copy-btn').addEventListener('click', function() {{
+                    const table = document.querySelector('.summary-table');
+                    if (table) {{
+                        const text = table.innerText;
+                        navigator.clipboard.writeText(text).then(function() {{
+                            const btn = document.getElementById('copy-btn');
+                            const originalHTML = btn.innerHTML;
+                            btn.innerHTML = '<span aria-hidden="true">✅</span> Copied!';
+                            setTimeout(function() {{
+                                btn.innerHTML = originalHTML;
+                            }}, 2000);
+                        }}).catch(function(err) {{
+                            console.error('Could not copy text: ', err);
+                        }});
+                    }}
+                }});
+            </script>
         </body>
         </html>
         """

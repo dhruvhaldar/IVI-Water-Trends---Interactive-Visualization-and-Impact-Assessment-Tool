@@ -156,3 +156,7 @@
 ## 2026-07-09 - CLI Next-Step Contextual Tips
 **Learning:** CLI tools often create dead-end experiences after a successful command execution. Without clear guidance on what to do next, users (especially beginners) struggle to discover downstream commands and the full workflow capability.
 **Action:** Always append context-aware "💡 Tip: [Actionable advice]" messages to the successful output of major CLI commands (e.g., suggesting visualization after data fetching) to improve discoverability and guide the user logically through the tool's intended workflow.
+
+## 2026-07-10 - One-Click Copy Data Buttons
+**Learning:** Static HTML reports lacking easy ways to extract data create friction for users wanting to copy summary tables into external tools or presentations.
+**Action:** When adding functional buttons (like 'Print Report') to generated static HTML reports, also consider adding a "Copy Data" button using `navigator.clipboard.writeText(table.innerText)` to allow users to quickly extract the table content with visual feedback.
