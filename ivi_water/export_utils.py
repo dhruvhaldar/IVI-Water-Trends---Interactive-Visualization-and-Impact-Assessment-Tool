@@ -675,7 +675,10 @@ class ExportUtils:
                 <header>
                     <div class="header-wrapper">
                         <h1 id="report-title" tabindex="-1">Water Trends Summary Report</h1>
-                        <button onClick="window.print()" class="print-button" aria-label="Print Report" title="Print Report (Keyboard: Ctrl+P / Cmd+P)"><span aria-hidden="true">🖨️</span> Print Report</button>
+                        <div style="display: flex; gap: 8px;">
+                            <button onClick="const btn = this; navigator.clipboard.writeText(document.querySelector('.summary-table').innerText).then(() => {{ const originalText = btn.innerHTML; btn.innerHTML = '<span aria-hidden=\\'true\\'>✅</span> Copied!'; setTimeout(() => btn.innerHTML = originalText, 2000); }})" class="print-button" aria-label="Copy Data" title="Copy Table Data to Clipboard"><span aria-hidden="true">📋</span> Copy Data</button>
+                            <button onClick="window.print()" class="print-button" aria-label="Print Report" title="Print Report (Keyboard: Ctrl+P / Cmd+P)"><span aria-hidden="true">🖨️</span> Print Report</button>
+                        </div>
                     </div>
                     <p class="summary">Generated on: <time datetime="{datetime.now().isoformat()}">{datetime.now().strftime('%d %b %Y, %I:%M %p')}</time></p>
                 </header>

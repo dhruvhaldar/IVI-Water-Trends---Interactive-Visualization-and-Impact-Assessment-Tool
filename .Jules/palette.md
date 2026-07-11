@@ -156,3 +156,6 @@
 ## 2026-07-09 - CLI Next-Step Contextual Tips
 **Learning:** CLI tools often create dead-end experiences after a successful command execution. Without clear guidance on what to do next, users (especially beginners) struggle to discover downstream commands and the full workflow capability.
 **Action:** Always append context-aware "💡 Tip: [Actionable advice]" messages to the successful output of major CLI commands (e.g., suggesting visualization after data fetching) to improve discoverability and guide the user logically through the tool's intended workflow.
+## 2026-07-11 - Add Copy Data button to HTML reports
+**Learning:** Users often need to extract tabular data from generated HTML reports to use in other tools like Excel, but selecting HTML tables manually is error-prone. Providing a dedicated 'Copy Data' button that uses the Clipboard API significantly improves the UX of data extraction workflows.
+**Action:** When adding functional buttons to generated static HTML reports (e.g., via Python f-strings), consider including a 'Copy Data' button that uses `navigator.clipboard.writeText(table.innerText)` to quickly extract table content. Ensure temporary visual feedback is provided and escape JavaScript curly braces as `{{` and `}}` to avoid string formatting errors.
