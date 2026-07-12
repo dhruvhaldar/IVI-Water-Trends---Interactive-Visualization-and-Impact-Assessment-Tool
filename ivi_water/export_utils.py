@@ -638,15 +638,15 @@ class ExportUtils:
                 .badge:focus-visible {{ outline: 2px solid #226699; outline-offset: 2px; }}
                 .summary-table td:not(:first-child), .summary-table th:not(:first-child) {{ text-align: right; font-variant-numeric: tabular-nums; }}
                 .header-wrapper {{ display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }}
-                .print-button {{ background: #226699; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; transition: background-color 0.2s ease, transform 0.1s ease; }}
-                .print-button:hover {{ background-color: #1a4f76; }}
-                .print-button:active {{ transform: scale(0.98); }}
-                .print-button:focus-visible {{ outline: 3px solid #ff7f0e; outline-offset: 2px; }}
+                .action-button {{ background: #226699; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; transition: background-color 0.2s ease, transform 0.1s ease; }}
+                .action-button:hover {{ background-color: #1a4f76; }}
+                .action-button:active {{ transform: scale(0.98); }}
+                .action-button:focus-visible {{ outline: 3px solid #ff7f0e; outline-offset: 2px; }}
                 html {{ scroll-behavior: smooth; }}
                 .back-to-top {{ display: inline-block; margin-top: 20px; padding: 8px 16px; color: #226699; text-decoration: none; font-weight: 500; border-radius: 4px; transition: background-color 0.2s ease; }}
                 .back-to-top:hover {{ background-color: #f1f1f1; }}
                 .back-to-top:focus-visible {{ outline: 3px solid #ff7f0e; outline-offset: 2px; }}
-                @media print {{ .print-button, .skip-link, .back-to-top {{ display: none !important; }} body {{ -webkit-print-color-adjust: exact; print-color-adjust: exact; }} }}
+                @media print {{ .action-button, .skip-link, .back-to-top {{ display: none !important; }} body {{ -webkit-print-color-adjust: exact; print-color-adjust: exact; }} }}
                 @media (prefers-reduced-motion: reduce) {{
                     html {{ scroll-behavior: auto !important; }}
                     * {{ transition: none !important; transform: none !important; }}
@@ -662,8 +662,8 @@ class ExportUtils:
                     .summary {{ background-color: #1e1e1e; color: #e0e0e0; border: 1px solid #333; }}
                     .badge {{ background-color: #2c2c2c; color: #e0e0e0; }}
                     .badge:hover, .badge:focus-visible {{ background-color: #3f3f3f; color: #fff; }}
-                    .print-button {{ background-color: #3b82f6; }}
-                    .print-button:hover {{ background-color: #2563eb; }}
+                    .action-button {{ background-color: #3b82f6; }}
+                    .action-button:hover {{ background-color: #2563eb; }}
                     .back-to-top {{ color: #3b82f6; }}
                     .back-to-top:hover {{ background-color: #1e1e1e; }}
                 }}
@@ -675,13 +675,16 @@ class ExportUtils:
                 <header>
                     <div class="header-wrapper">
                         <h1 id="report-title" tabindex="-1">Water Trends Summary Report</h1>
-                        <button onClick="window.print()" class="print-button" aria-label="Print Report" title="Print Report (Keyboard: Ctrl+P / Cmd+P)"><span aria-hidden="true">🖨️</span> Print Report</button>
+                        <button onClick="window.print()" class="action-button" aria-label="Print Report" title="Print Report (Keyboard: Ctrl+P / Cmd+P)"><span aria-hidden="true">🖨️</span> Print Report</button>
                     </div>
                     <p class="summary">Generated on: <time datetime="{datetime.now().isoformat()}">{datetime.now().strftime('%d %b %Y, %I:%M %p')}</time></p>
                 </header>
 
                 <section aria-labelledby="summary-stats-title">
-                    <h2 id="summary-stats-title" tabindex="-1">Summary Statistics</h2>
+                    <h2 id="summary-stats-title" tabindex="-1" style="display: flex; justify-content: space-between; align-items: center; padding-bottom: 5px; margin-bottom: 10px;">
+                        <span>Summary Statistics</span>
+                        <button type="button" class="action-button" onclick="const b = this; if(b.dataset.copying) return; b.dataset.copying = '1'; const orig = b.innerHTML; const table = document.querySelector('.summary-table'); navigator.clipboard.writeText(table.innerText).finally(() => {{ b.innerHTML = '<span aria-hidden=&quot;true&quot;>✅</span> Copied!'; setTimeout(() => {{ b.innerHTML = orig; delete b.dataset.copying; }}, 2000); }});" aria-label="Copy Table Data" title="Copy Table Data to Clipboard (Keyboard: Enter)" style="font-size: 14px; font-weight: normal;"><span aria-hidden="true">📋</span> Copy Data</button>
+                    </h2>
                     <div class="table-responsive" tabindex="0" role="region" aria-labelledby="summary-stats-title">
                         {table_html}
                     </div>
