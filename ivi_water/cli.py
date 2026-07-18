@@ -316,7 +316,11 @@ def get_spatial_units(
                     )
                 )
 
-        click.echo("\n" + click.style(f"💡 Tip: Use these location IDs with ", fg="yellow") + click.style("ivi-water fetch-water-data", fg="cyan", bold=True))
+        click.echo(
+            "\n"
+            + click.style(f"💡 Tip: Use these location IDs with ", fg="yellow")
+            + click.style("ivi-water fetch-water-data", fg="cyan", bold=True)
+        )
 
         # Log completion
         logger.info(
@@ -556,7 +560,13 @@ def fetch_water_data(
                     )
                 )
 
-        click.echo("\n" + click.style(f"💡 Tip: Visualize these trends with ", fg="yellow") + click.style(f"ivi-water visualize --data {output_path}", fg="cyan", bold=True))
+        click.echo(
+            "\n"
+            + click.style(f"💡 Tip: Visualize these trends with ", fg="yellow")
+            + click.style(
+                f"ivi-water visualize --data {output_path}", fg="cyan", bold=True
+            )
+        )
 
         # Log completion
         logger.info(
@@ -639,7 +649,15 @@ def merge_data(ctx, water_data, nrm_data, output):
                 )
             )
 
-        click.echo("\n" + click.style(f"💡 Tip: Create a comprehensive dashboard with ", fg="yellow") + click.style(f"ivi-water dashboard --data {output_path}", fg="cyan", bold=True))
+        click.echo(
+            "\n"
+            + click.style(
+                f"💡 Tip: Create a comprehensive dashboard with ", fg="yellow"
+            )
+            + click.style(
+                f"ivi-water dashboard --data {output_path}", fg="cyan", bold=True
+            )
+        )
 
     except Exception as e:
         click.echo(click.style(f"❌ Error: {e}", fg="red"), err=True)
@@ -719,7 +737,13 @@ def visualize(ctx, data, location_id, chart_type, output, format):
             )
         )
 
-        click.echo("\n" + click.style(f"💡 Tip: Generate a full report with ", fg="yellow") + click.style(f"ivi-water generate-report --data {data}", fg="cyan", bold=True))
+        click.echo(
+            "\n"
+            + click.style(f"💡 Tip: Generate a full report with ", fg="yellow")
+            + click.style(
+                f"ivi-water generate-report --data {data}", fg="cyan", bold=True
+            )
+        )
 
     except Exception as e:
         click.echo(click.style(f"❌ Error: {e}", fg="red"), err=True)
@@ -793,7 +817,13 @@ def dashboard(ctx, data, locations, output):
             click.style(f"  Included locations: {', '.join(location_list)}", dim=True)
         )
 
-        click.echo("\n" + click.style(f"💡 Tip: Generate a full report with ", fg="yellow") + click.style(f"ivi-water generate-report --data {data}", fg="cyan", bold=True))
+        click.echo(
+            "\n"
+            + click.style(f"💡 Tip: Generate a full report with ", fg="yellow")
+            + click.style(
+                f"ivi-water generate-report --data {data}", fg="cyan", bold=True
+            )
+        )
 
     except Exception as e:
         click.echo(click.style(f"❌ Error: {e}", fg="red"), err=True)
@@ -859,7 +889,13 @@ def generate_report(ctx, data, report_type, output):
 
         click.echo(click.style(f"✅ Report saved to {output_path}", fg="green"))
 
-        click.echo("\n" + click.style(f"💡 Tip: Open the generated report file in your browser to view the insights.", fg="yellow"))
+        click.echo(
+            "\n"
+            + click.style(
+                f"💡 Tip: Open the generated report file in your browser to view the insights.",
+                fg="yellow",
+            )
+        )
 
     except Exception as e:
         click.echo(click.style(f"❌ Error: {e}", fg="red"), err=True)
@@ -871,8 +907,11 @@ def generate_report(ctx, data, report_type, output):
     "--template", type=click.Choice(["basic", "advanced"]), help="Notebook template"
 )
 @click.option("--output-dir", type=click.Path(), help="Output directory for notebooks")
+@click.option(
+    "--force", is_flag=True, help="Overwrite existing notebooks without prompting"
+)
 @click.pass_context
-def setup_notebooks(ctx, template, output_dir):
+def setup_notebooks(ctx, template, output_dir, force):
     """Setup Jupyter notebooks for analysis"""
     try:
         click.echo(
@@ -885,25 +924,59 @@ def setup_notebooks(ctx, template, output_dir):
         notebook_dir = Path(output_dir) if output_dir else Path("notebooks")
         notebook_dir.mkdir(exist_ok=True)
 
+        created = False
+        skipped = False
+
         if template == "basic":
-            create_basic_notebook(notebook_dir)
+            res = create_basic_notebook(notebook_dir, force)
+            if res:
+                created = True
+            else:
+                skipped = True
         elif template == "advanced":
-            create_advanced_notebook(notebook_dir)
+            res = create_advanced_notebook(notebook_dir, force)
+            if res:
+                created = True
+            else:
+                skipped = True
         else:
-            create_basic_notebook(notebook_dir)
-            create_advanced_notebook(notebook_dir)
+            res1 = create_basic_notebook(notebook_dir, force)
+            res2 = create_advanced_notebook(notebook_dir, force)
+            if res1 or res2:
+                created = True
+            if not res1 or not res2:
+                skipped = True
 
-        click.echo(click.style(f"✅ Notebooks created in {notebook_dir}", fg="green"))
+        if created:
+            click.echo(
+                click.style(
+                    f"✅ Notebooks created/updated in {notebook_dir}", fg="green"
+                )
+            )
+        if skipped:
+            click.echo(
+                click.style(
+                    f"⚠️ Some notebooks were skipped to prevent overwriting.",
+                    fg="yellow",
+                )
+            )
 
-        click.echo("\n" + click.style(f"💡 Tip: Start Jupyter notebook to begin your analysis.", fg="yellow"))
+        if created:
+            click.echo(
+                "\n"
+                + click.style(
+                    f"💡 Tip: Start Jupyter notebook to begin your analysis.",
+                    fg="yellow",
+                )
+            )
 
     except Exception as e:
         click.echo(click.style(f"❌ Error: {e}", fg="red"), err=True)
         sys.exit(1)
 
 
-def create_basic_notebook(notebook_dir: Path):
-    """Create basic analysis notebook"""
+def create_basic_notebook(notebook_dir: Path, force: bool = False) -> bool:
+    """Create basic analysis notebook. Returns True if created/overwritten, False if skipped."""
     notebook_content = {
         "cells": [
             {
@@ -996,12 +1069,24 @@ def create_basic_notebook(notebook_dir: Path):
     import json
 
     notebook_path = notebook_dir / "basic_analysis.ipynb"
+
+    if notebook_path.exists() and not force:
+        if not click.confirm(
+            click.style(
+                f"⚠️  Notebook {notebook_path.name} already exists. Overwrite and lose any changes?",
+                fg="yellow",
+            ),
+            default=False,
+        ):
+            return False
+
     with open(notebook_path, "w") as f:
         json.dump(notebook_content, f, indent=2)
+    return True
 
 
-def create_advanced_notebook(notebook_dir: Path):
-    """Create advanced analysis notebook"""
+def create_advanced_notebook(notebook_dir: Path, force: bool = False) -> bool:
+    """Create advanced analysis notebook. Returns True if created/overwritten, False if skipped."""
     notebook_content = {
         "cells": [
             {
@@ -1117,8 +1202,20 @@ def create_advanced_notebook(notebook_dir: Path):
     import json
 
     notebook_path = notebook_dir / "advanced_analysis.ipynb"
+
+    if notebook_path.exists() and not force:
+        if not click.confirm(
+            click.style(
+                f"⚠️  Notebook {notebook_path.name} already exists. Overwrite and lose any changes?",
+                fg="yellow",
+            ),
+            default=False,
+        ):
+            return False
+
     with open(notebook_path, "w") as f:
         json.dump(notebook_content, f, indent=2)
+    return True
 
 
 def main():
