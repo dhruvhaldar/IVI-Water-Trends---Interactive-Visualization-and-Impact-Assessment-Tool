@@ -164,3 +164,11 @@
 ## 2024-11-20 - CLI confirmation for editable artifacts
 **Learning:** CLI commands that generate user-editable files (like Jupyter notebooks) can accidentally overwrite user's work, causing data loss and poor UX.
 **Action:** Always add a confirmation prompt (e.g. `click.confirm`) or a `--force` flag before overwriting user-editable files to prevent accidental data loss.
+
+## 2026-07-21 - Graceful Empty States in Visualization Tools
+**Learning:** When visualization functions (like Plotly chart generators) receive an empty DataFrame, failing silently or throwing a `ValueError` causes cascading failures in dashboards and CLI tools.
+**Action:** Always validate  at the beginning of data visualization functions and return a graceful 'empty state' figure (e.g., hidden axes with a clear annotation) to provide clear UX feedback and prevent upstream crashes.
+
+## 2026-07-21 - Graceful Empty States in Visualization Tools
+**Learning:** When visualization functions (like Plotly chart generators) receive an empty DataFrame, failing silently or throwing a ValueError causes cascading failures in dashboards and applications.
+**Action:** Always validate `if df.empty:` at the beginning of data visualization functions and return a graceful 'empty state' figure (e.g., hidden axes with a clear warning annotation) to provide clear UX feedback and prevent upstream crashes.
