@@ -158,6 +158,26 @@ class WaterTrendsVisualizer:
             return None
         return html.escape(str(text))
 
+    def _create_empty_state_figure(self, title: str = "No Data Available", message: str = "⚠️ No valid data to display for the selected parameters.") -> go.Figure:
+        """Create a graceful empty state chart when no data is available."""
+        fig = go.Figure()
+        fig.update_layout(
+            title=self._sanitize_text(title),
+            xaxis={"visible": False},
+            yaxis={"visible": False},
+            annotations=[
+                {
+                    "text": message,
+                    "xref": "paper",
+                    "yref": "paper",
+                    "showarrow": False,
+                    "font": {"size": 16},
+                }
+            ],
+            template=self.theme
+        )
+        return fig
+
     def create_seasonal_stacked_area_chart(
         self,
         df: pd.DataFrame,
@@ -194,7 +214,7 @@ class WaterTrendsVisualizer:
         """
         # Input validation
         if df.empty:
-            raise ValueError("DataFrame cannot be empty")
+            return self._create_empty_state_figure()
 
         required_columns = ["year", "season", "water_area_ha"]
         missing_columns = [col for col in required_columns if col not in df.columns]
@@ -372,6 +392,9 @@ class WaterTrendsVisualizer:
         Returns:
             Plotly Figure object
         """
+        if df.empty:
+            return self._create_empty_state_figure()
+
         if intervention_col not in df.columns:
             raise ValueError(
                 f"Intervention column '{intervention_col}' not found in data"
@@ -588,6 +611,9 @@ class WaterTrendsVisualizer:
         Returns:
             Plotly Figure object
         """
+        if df.empty:
+            return self._create_empty_state_figure()
+
         if intervention_col not in df.columns:
             raise ValueError(f"Intervention column '{intervention_col}' not found")
 
@@ -653,6 +679,9 @@ class WaterTrendsVisualizer:
             Plotly Figure object with subplots
         """
         df_filtered = df[df["location_id"].isin(location_ids)]
+
+        if df_filtered.empty:
+            return self._create_empty_state_figure(title="Dashboard", message="⚠️ No valid data found for the specified locations.")
 
         # Create subplots
         fig = make_subplots(
@@ -850,6 +879,9 @@ class WaterTrendsVisualizer:
         Returns:
             PyVista Plotter object (if PyVista is available)
         """
+        if df.empty:
+            raise ValueError("DataFrame cannot be empty for 3D visualization")
+
         if not PYVISTA_AVAILABLE:
             logger.warning("PyVista not available for 3D visualization")
             return None
