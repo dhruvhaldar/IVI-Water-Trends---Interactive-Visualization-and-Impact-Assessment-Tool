@@ -158,6 +158,31 @@ class WaterTrendsVisualizer:
             return None
         return html.escape(str(text))
 
+    def _create_empty_state_figure(self, title: Optional[str] = None, message: str = "No valid data to display") -> go.Figure:
+        """Create a graceful empty state figure."""
+        fig = go.Figure()
+        fig.add_annotation(
+            text=f"⚠️ {message}",
+            xref="paper", yref="paper",
+            x=0.5, y=0.5, showarrow=False,
+            font=dict(size=16)
+        )
+        safe_title = self._sanitize_text(title or "No Data Available")
+        fig.update_layout(
+            title=dict(
+                text=safe_title,
+                x=0.5,
+                xanchor="center",
+                font=dict(size=16, family="Arial, sans-serif"),
+            ),
+            xaxis=dict(visible=False),
+            yaxis=dict(visible=False),
+            height=self.height,
+            width=self.width,
+            template=self.theme
+        )
+        return fig
+
     def create_seasonal_stacked_area_chart(
         self,
         df: pd.DataFrame,
@@ -194,7 +219,7 @@ class WaterTrendsVisualizer:
         """
         # Input validation
         if df.empty:
-            raise ValueError("DataFrame cannot be empty")
+            return self._create_empty_state_figure(title=title, message="DataFrame is empty")
 
         required_columns = ["year", "season", "water_area_ha"]
         missing_columns = [col for col in required_columns if col not in df.columns]
@@ -241,7 +266,7 @@ class WaterTrendsVisualizer:
                 )
 
             if df_filtered.empty:
-                raise ValueError("No data available after filtering/aggregation")
+                return self._create_empty_state_figure(title=title, message="No data available after filtering/aggregation")
 
             # Validate data quality
             if (df_filtered["water_area_ha"] < 0).any():
@@ -259,7 +284,7 @@ class WaterTrendsVisualizer:
                 raise ValueError(f"Unable to create seasonal chart: {e}")
 
             if pivot_df.empty:
-                raise ValueError("No data available after pivoting")
+                return self._create_empty_state_figure(title=title, message="No data available after pivoting")
 
             # Create stacked area chart
             fig = go.Figure()
@@ -372,6 +397,9 @@ class WaterTrendsVisualizer:
         Returns:
             Plotly Figure object
         """
+        if df.empty:
+            return self._create_empty_state_figure(title=title, message="DataFrame is empty")
+
         if intervention_col not in df.columns:
             raise ValueError(
                 f"Intervention column '{intervention_col}' not found in data"
@@ -439,12 +467,18 @@ class WaterTrendsVisualizer:
         Returns:
             Plotly Figure object
         """
+        if df.empty:
+            return self._create_empty_state_figure(title=title, message="DataFrame is empty")
+
         if season:
             df_filtered = df[df["season"] == season]
             title = title or f"Water Body Count Distribution - {season.capitalize()}"
         else:
             df_filtered = df
             title = title or "Water Body Count Distribution - All Seasons"
+
+        if df_filtered.empty:
+            return self._create_empty_state_figure(title=title, message=f"No valid data to display for season: {season}" if season else "No valid data to display")
 
         safe_title = self._sanitize_text(title)
 
@@ -492,6 +526,9 @@ class WaterTrendsVisualizer:
         Returns:
             Plotly Figure object
         """
+        if df.empty:
+            return self._create_empty_state_figure(title=title, message="DataFrame is empty")
+
         # Pivot data for heatmap
         heatmap_data = df.pivot_table(
             index="location_id",
@@ -500,6 +537,8 @@ class WaterTrendsVisualizer:
             aggfunc="mean",
             observed=True,
         )
+        if heatmap_data.empty:
+            return self._create_empty_state_figure(title=title, message="No valid data available after pivoting")
 
         safe_title = self._sanitize_text(
             title or f"Water Trends Heatmap - {metric.replace('_', ' ').title()}"
@@ -540,11 +579,17 @@ class WaterTrendsVisualizer:
         Returns:
             Plotly Figure object
         """
+        if df.empty:
+            return self._create_empty_state_figure(title=title, message="DataFrame is empty")
+
         if year_range:
             start_year, end_year = year_range
             df_filtered = df[(df["year"] >= start_year) & (df["year"] <= end_year)]
         else:
             df_filtered = df
+
+        if df_filtered.empty:
+            return self._create_empty_state_figure(title=title, message="No data available after filtering by year range")
 
         safe_title = self._sanitize_text(title or "Water Area Distribution by Season")
 
@@ -588,6 +633,9 @@ class WaterTrendsVisualizer:
         Returns:
             Plotly Figure object
         """
+        if df.empty:
+            return self._create_empty_state_figure(title=title, message="DataFrame is empty")
+
         if intervention_col not in df.columns:
             raise ValueError(f"Intervention column '{intervention_col}' not found")
 
@@ -652,7 +700,13 @@ class WaterTrendsVisualizer:
         Returns:
             Plotly Figure object with subplots
         """
+        if df.empty:
+            return self._create_empty_state_figure(title="Water Trends Dashboard", message="DataFrame is empty")
+
         df_filtered = df[df["location_id"].isin(location_ids)]
+
+        if df_filtered.empty:
+            return self._create_empty_state_figure(title="Water Trends Dashboard", message="No valid data to display for the selected locations")
 
         # Create subplots
         fig = make_subplots(
