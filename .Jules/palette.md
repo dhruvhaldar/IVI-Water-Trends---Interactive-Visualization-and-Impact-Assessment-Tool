@@ -168,3 +168,6 @@
 ## 2024-06-25 - Empty States with Graceful Visualizations
 **Learning:** When building data visualization functions (e.g., returning Plotly `go.Figure` objects) that accept Pandas DataFrames, users and downstream dashboards are easily broken if the process fails silently or raises exceptions like `ValueError` when the input DataFrame is empty.
 **Action:** Always handle the `df.empty` case by returning a graceful "empty state" figure (e.g., with hidden axes and an actionable annotation/message like "⚠️ No valid data to display") rather than throwing a `ValueError` or failing silently. This prevents unexpected application or dashboard crashes and gives users clear feedback.
+## 2026-07-23 - Add actionable advice to chart empty states
+**Learning:** When data visualizations fail to render because of empty datasets, the default 'DataFrame is empty' message leaves users confused about how to fix the issue.
+**Action:** Always handle `df.empty` cases in visualization functions by returning a graceful empty state figure with an actionable message (e.g., 'DataFrame is empty. Please ensure the input data contains records.') instead of a generic error.
