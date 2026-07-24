@@ -158,14 +158,21 @@ class WaterTrendsVisualizer:
             return None
         return html.escape(str(text))
 
-    def _create_empty_state_figure(self, title: Optional[str] = None, message: str = "No valid data to display. Please check your data source or filters.") -> go.Figure:
+    def _create_empty_state_figure(
+        self,
+        title: Optional[str] = None,
+        message: str = "No valid data to display. Please check your data source or filters.",
+    ) -> go.Figure:
         """Create a graceful empty state figure."""
         fig = go.Figure()
         fig.add_annotation(
             text=f"⚠️ {message}",
-            xref="paper", yref="paper",
-            x=0.5, y=0.5, showarrow=False,
-            font=dict(size=16)
+            xref="paper",
+            yref="paper",
+            x=0.5,
+            y=0.5,
+            showarrow=False,
+            font=dict(size=16),
         )
         safe_title = self._sanitize_text(title or "No Data Available")
         fig.update_layout(
@@ -179,7 +186,7 @@ class WaterTrendsVisualizer:
             yaxis=dict(visible=False),
             height=self.height,
             width=self.width,
-            template=self.theme
+            template=self.theme,
         )
         return fig
 
@@ -219,7 +226,10 @@ class WaterTrendsVisualizer:
         """
         # Input validation
         if df.empty:
-            return self._create_empty_state_figure(title=title, message="DataFrame is empty. Please ensure the input data contains records.")
+            return self._create_empty_state_figure(
+                title=title,
+                message="DataFrame is empty. Please ensure the input data contains records.",
+            )
 
         required_columns = ["year", "season", "water_area_ha"]
         missing_columns = [col for col in required_columns if col not in df.columns]
@@ -266,7 +276,10 @@ class WaterTrendsVisualizer:
                 )
 
             if df_filtered.empty:
-                return self._create_empty_state_figure(title=title, message="No data available after filtering/aggregation. Try adjusting your filters or location IDs.")
+                return self._create_empty_state_figure(
+                    title=title,
+                    message="No data available after filtering/aggregation. Try adjusting your filters or location IDs.",
+                )
 
             # Validate data quality
             if (df_filtered["water_area_ha"] < 0).any():
@@ -284,7 +297,10 @@ class WaterTrendsVisualizer:
                 raise ValueError(f"Unable to create seasonal chart: {e}")
 
             if pivot_df.empty:
-                return self._create_empty_state_figure(title=title, message="No data available after pivoting. Ensure your data contains the required columns with valid values.")
+                return self._create_empty_state_figure(
+                    title=title,
+                    message="No data available after pivoting. Ensure your data contains the required columns with valid values.",
+                )
 
             # Create stacked area chart
             fig = go.Figure()
@@ -398,7 +414,10 @@ class WaterTrendsVisualizer:
             Plotly Figure object
         """
         if df.empty:
-            return self._create_empty_state_figure(title=title, message="DataFrame is empty. Please ensure the input data contains records.")
+            return self._create_empty_state_figure(
+                title=title,
+                message="DataFrame is empty. Please ensure the input data contains records.",
+            )
 
         if intervention_col not in df.columns:
             raise ValueError(
@@ -468,7 +487,10 @@ class WaterTrendsVisualizer:
             Plotly Figure object
         """
         if df.empty:
-            return self._create_empty_state_figure(title=title, message="DataFrame is empty")
+            return self._create_empty_state_figure(
+                title=title,
+                message="DataFrame is empty. Please ensure the input data contains records.",
+            )
 
         if season:
             df_filtered = df[df["season"] == season]
@@ -478,7 +500,14 @@ class WaterTrendsVisualizer:
             title = title or "Water Body Count Distribution - All Seasons"
 
         if df_filtered.empty:
-            return self._create_empty_state_figure(title=title, message=f"No valid data to display for season: {season}. Try selecting a different season." if season else "No valid data to display. Please check your data source or filters.")
+            return self._create_empty_state_figure(
+                title=title,
+                message=(
+                    f"No valid data to display for season: {season}. Try selecting a different season."
+                    if season
+                    else "No valid data to display. Please check your data source or filters."
+                ),
+            )
 
         safe_title = self._sanitize_text(title)
 
@@ -527,7 +556,10 @@ class WaterTrendsVisualizer:
             Plotly Figure object
         """
         if df.empty:
-            return self._create_empty_state_figure(title=title, message="DataFrame is empty. Please ensure the input data contains records.")
+            return self._create_empty_state_figure(
+                title=title,
+                message="DataFrame is empty. Please ensure the input data contains records.",
+            )
 
         # Pivot data for heatmap
         heatmap_data = df.pivot_table(
@@ -538,7 +570,10 @@ class WaterTrendsVisualizer:
             observed=True,
         )
         if heatmap_data.empty:
-            return self._create_empty_state_figure(title=title, message="No valid data available after pivoting. Ensure your data contains the required columns with valid values.")
+            return self._create_empty_state_figure(
+                title=title,
+                message="No valid data available after pivoting. Ensure your data contains the required columns with valid values.",
+            )
 
         safe_title = self._sanitize_text(
             title or f"Water Trends Heatmap - {metric.replace('_', ' ').title()}"
@@ -580,7 +615,10 @@ class WaterTrendsVisualizer:
             Plotly Figure object
         """
         if df.empty:
-            return self._create_empty_state_figure(title=title, message="DataFrame is empty. Please ensure the input data contains records.")
+            return self._create_empty_state_figure(
+                title=title,
+                message="DataFrame is empty. Please ensure the input data contains records.",
+            )
 
         if year_range:
             start_year, end_year = year_range
@@ -589,7 +627,10 @@ class WaterTrendsVisualizer:
             df_filtered = df
 
         if df_filtered.empty:
-            return self._create_empty_state_figure(title=title, message="No data available after filtering by year range. Try expanding your date range.")
+            return self._create_empty_state_figure(
+                title=title,
+                message="No data available after filtering by year range. Try expanding your date range.",
+            )
 
         safe_title = self._sanitize_text(title or "Water Area Distribution by Season")
 
@@ -634,7 +675,10 @@ class WaterTrendsVisualizer:
             Plotly Figure object
         """
         if df.empty:
-            return self._create_empty_state_figure(title=title, message="DataFrame is empty. Please ensure the input data contains records.")
+            return self._create_empty_state_figure(
+                title=title,
+                message="DataFrame is empty. Please ensure the input data contains records.",
+            )
 
         if intervention_col not in df.columns:
             raise ValueError(f"Intervention column '{intervention_col}' not found")
@@ -701,12 +745,18 @@ class WaterTrendsVisualizer:
             Plotly Figure object with subplots
         """
         if df.empty:
-            return self._create_empty_state_figure(title="Water Trends Dashboard", message="DataFrame is empty. Please ensure the input data contains records.")
+            return self._create_empty_state_figure(
+                title="Water Trends Dashboard",
+                message="DataFrame is empty. Please ensure the input data contains records.",
+            )
 
         df_filtered = df[df["location_id"].isin(location_ids)]
 
         if df_filtered.empty:
-            return self._create_empty_state_figure(title="Water Trends Dashboard", message="No valid data to display for the selected locations. Try selecting different locations.")
+            return self._create_empty_state_figure(
+                title="Water Trends Dashboard",
+                message="No valid data to display for the selected locations. Try selecting different locations.",
+            )
 
         # Create subplots
         fig = make_subplots(
