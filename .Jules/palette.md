@@ -171,3 +171,6 @@
 ## 2026-07-23 - Add actionable advice to chart empty states
 **Learning:** When data visualizations fail to render because of empty datasets, the default 'DataFrame is empty' message leaves users confused about how to fix the issue.
 **Action:** Always handle `df.empty` cases in visualization functions by returning a graceful empty state figure with an actionable message (e.g., 'DataFrame is empty. Please ensure the input data contains records.') instead of a generic error.
+## 2024-05-20 - Actionable Empty States
+**Learning:** When users encounter empty states, just telling them it's empty is a dead end. Providing actionable advice like 'Please check your data source' drastically improves UX.
+**Action:** Always include actionable guidance when showing an empty state message.
