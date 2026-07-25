@@ -174,3 +174,6 @@
 ## 2024-05-20 - Actionable Empty States
 **Learning:** When users encounter empty states, just telling them it's empty is a dead end. Providing actionable advice like 'Please check your data source' drastically improves UX.
 **Action:** Always include actionable guidance when showing an empty state message.
+## 2025-05-20 - Dynamic Button State Accessibility
+**Learning:** Hardcoding `aria-label` on interactive elements like a 'Copy' button prevents screen readers from announcing subsequent DOM changes. When inline JS updates the button text to 'Copied!', the screen reader still reads the static `aria-label`.
+**Action:** Remove the static `aria-label` when the button's visible text provides sufficient context, and add `aria-live="polite"` so screen readers accurately announce state changes (like success messages) to non-visual users.
