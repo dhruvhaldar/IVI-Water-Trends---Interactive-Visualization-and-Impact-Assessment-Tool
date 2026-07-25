@@ -453,16 +453,11 @@ def fetch_water_data(
             )
         )
 
-        # Fetch water data with progress indication
+        # Fetch water data
         try:
-            with click.progressbar(
-                location_list, label="Fetching locations", show_eta=True, show_pos=True
-            ) as bar:
-                water_df = processor.load_water_data_from_api(
-                    client, location_list, start_year, end_year, season_list
-                )
-                for _ in bar:
-                    pass  # Progress bar will update automatically
+            water_df = processor.load_water_data_from_api(
+                client, location_list, start_year, end_year, season_list
+            )
 
         except Exception as e:
             logger.error(f"Failed to fetch water data: {e}")

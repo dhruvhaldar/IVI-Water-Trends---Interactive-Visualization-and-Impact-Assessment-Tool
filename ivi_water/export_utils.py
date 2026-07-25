@@ -677,8 +677,8 @@ class ExportUtils:
                     <div class="header-wrapper">
                         <h1 id="report-title" tabindex="-1">Water Trends Summary Report</h1>
                         <div class="button-group">
-                            <button onclick='if(this.dataset.active) return; this.dataset.active = "1"; const table = document.querySelector(".summary-table"); navigator.clipboard.writeText(table.innerText); const originalHTML = this.innerHTML; this.innerHTML = `&lt;span aria-hidden="true"&gt;✅&lt;/span&gt; Copied!`; setTimeout(() =&gt; {{ this.innerHTML = originalHTML; delete this.dataset.active; }}, 2000);' class="copy-button" aria-label="Copy Data" title="Copy Table Data"><span aria-hidden="true">📋</span> Copy Data</button>
-                            <button onClick="window.print()" class="print-button" aria-label="Print Report" title="Print Report (Keyboard: Ctrl+P / Cmd+P)"><span aria-hidden="true">🖨️</span> Print Report</button>
+                            <button onclick='if(this.dataset.active) return; this.dataset.active = "1"; const table = document.querySelector(".summary-table"); navigator.clipboard.writeText(table.innerText); const originalHTML = this.innerHTML; this.innerHTML = `&lt;span aria-hidden="true"&gt;✅&lt;/span&gt; Copied!`; setTimeout(() =&gt; {{ this.innerHTML = originalHTML; delete this.dataset.active; }}, 2000);' class="copy-button" aria-live="polite" title="Copy Table Data"><span aria-hidden="true">📋</span> Copy Data</button>
+                            <button onClick="window.print()" class="print-button" title="Print Report (Keyboard: Ctrl+P / Cmd+P)"><span aria-hidden="true">🖨️</span> Print Report</button>
                         </div>
                     </div>
                     <p class="summary">Generated on: <time datetime="{datetime.now().isoformat()}">{datetime.now().strftime('%d %b %Y, %I:%M %p')}</time></p>
