@@ -177,3 +177,6 @@
 ## 2025-05-20 - Dynamic Button State Accessibility
 **Learning:** Hardcoding `aria-label` on interactive elements like a 'Copy' button prevents screen readers from announcing subsequent DOM changes. When inline JS updates the button text to 'Copied!', the screen reader still reads the static `aria-label`.
 **Action:** Remove the static `aria-label` when the button's visible text provides sufficient context, and add `aria-live="polite"` so screen readers accurately announce state changes (like success messages) to non-visual users.
+## 2026-08-01 - Dynamic Tooltips on Interactive State Changes
+**Learning:** When using an inline JavaScript `onclick` handler to update the visible text of a button (e.g., from 'Copy Data' to 'Copied!'), any hardcoded `title` attribute acts as a tooltip that remains unchanged. This causes a confusing UX where the tooltip (e.g., 'Copy Table Data') persists even after the button indicates success.
+**Action:** When updating the text of an interactive element dynamically, temporarily remove its `title` attribute (tooltip) during the active state using `removeAttribute("title")` (while preserving the original value), and restore it using `setAttribute` once the state resets (e.g., after a `setTimeout`), ensuring clear feedback for both screen readers (via `aria-live`) and visual users.
