@@ -180,3 +180,6 @@
 ## 2026-08-01 - Dynamic Tooltips on Interactive State Changes
 **Learning:** When using an inline JavaScript `onclick` handler to update the visible text of a button (e.g., from 'Copy Data' to 'Copied!'), any hardcoded `title` attribute acts as a tooltip that remains unchanged. This causes a confusing UX where the tooltip (e.g., 'Copy Table Data') persists even after the button indicates success.
 **Action:** When updating the text of an interactive element dynamically, temporarily remove its `title` attribute (tooltip) during the active state using `removeAttribute("title")` (while preserving the original value), and restore it using `setAttribute` once the state resets (e.g., after a `setTimeout`), ensuring clear feedback for both screen readers (via `aria-live`) and visual users.
+## 2024-05-31 - Custom Tooltips for Keyboard Focus
+**Learning:** Native `title` tooltips typically do not appear when an element receives keyboard focus, making them inaccessible to sighted keyboard users.
+**Action:** When creating custom tooltips using `title` on focusable elements (like `.badge`), always implement CSS pseudo-elements (e.g., `::after` with `content: attr(title);` and `::before` for the arrow) triggered by `:focus-visible` to ensure the tooltip text is visible during keyboard navigation. Remember to set `position: relative;` on the parent element.

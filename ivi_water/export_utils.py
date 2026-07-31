@@ -633,9 +633,11 @@ class ExportUtils:
                 tr:nth-child(even) {{ background-color: #f9f9f9; }}
                 tr:hover {{ background-color: #f1f1f1; }}
                 .badge-list {{ list-style-type: none; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; margin: 0; }}
-                .badge {{ background-color: #e9ecef; color: #495057; padding: 4px 8px; border-radius: 4px; font-size: 0.9em; cursor: help; transition: background-color 0.2s ease; }}
+                .badge {{ background-color: #e9ecef; color: #495057; padding: 4px 8px; border-radius: 4px; font-size: 0.9em; cursor: help; transition: background-color 0.2s ease; position: relative; }}
                 .badge:hover, .badge:focus-visible {{ background-color: #dee2e6; color: #212529; }}
                 .badge:focus-visible {{ outline: 2px solid #226699; outline-offset: 2px; }}
+                .badge:focus-visible::after {{ content: attr(title); position: absolute; bottom: 130%; left: 50%; transform: translateX(-50%); background-color: #333; color: #fff; padding: 6px 10px; border-radius: 4px; white-space: normal; width: max-content; max-width: 250px; z-index: 10; pointer-events: none; font-size: 12px; line-height: 1.4; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }}
+                .badge:focus-visible::before {{ content: ''; position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%); border: 6px solid transparent; border-top-color: #333; }}
                 .summary-table td:not(:first-child), .summary-table th:not(:first-child) {{ text-align: right; font-variant-numeric: tabular-nums; }}
                 .header-wrapper {{ display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }}
                 .print-button, .copy-button {{ background: #226699; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; transition: background-color 0.2s ease, transform 0.1s ease; }}
