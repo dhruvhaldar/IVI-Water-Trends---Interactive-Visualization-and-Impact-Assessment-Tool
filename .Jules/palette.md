@@ -183,3 +183,6 @@
 ## 2024-05-31 - Custom Tooltips for Keyboard Focus
 **Learning:** Native `title` tooltips typically do not appear when an element receives keyboard focus, making them inaccessible to sighted keyboard users.
 **Action:** When creating custom tooltips using `title` on focusable elements (like `.badge`), always implement CSS pseudo-elements (e.g., `::after` with `content: attr(title);` and `::before` for the arrow) triggered by `:focus-visible` to ensure the tooltip text is visible during keyboard navigation. Remember to set `position: relative;` on the parent element.
+## 2026-08-02 - Custom CSS Tooltips Ghost Boxes
+**Learning:** Custom CSS tooltips using `content: attr(title)` will render empty dark boxes (ghost tooltips) when inline JavaScript temporarily removes the `title` attribute for visual feedback states.
+**Action:** Always include the `[title]` attribute selector (e.g., `.element[title]:focus-visible::after`) on custom CSS tooltip pseudo-elements to ensure they only render when the attribute is present.
