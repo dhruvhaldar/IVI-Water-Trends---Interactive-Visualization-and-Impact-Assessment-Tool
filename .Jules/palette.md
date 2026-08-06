@@ -186,3 +186,6 @@
 ## 2026-08-02 - Custom CSS Tooltips Ghost Boxes
 **Learning:** Custom CSS tooltips using `content: attr(title)` will render empty dark boxes (ghost tooltips) when inline JavaScript temporarily removes the `title` attribute for visual feedback states.
 **Action:** Always include the `[title]` attribute selector (e.g., `.element[title]:focus-visible::after`) on custom CSS tooltip pseudo-elements to ensure they only render when the attribute is present.
+## 2026-08-06 - Add explicit keyboard shortcut hints and SEO metadata to generated HTML reports
+**Learning:** While tooltips provide visual cues for keyboard shortcuts (like Ctrl+P for Print), screen reader users may miss them if they are only in the `title` attribute. Additionally, generated HTML files often lack basic SEO and context metadata.
+**Action:** Always add `aria-keyshortcuts` to buttons with keyboard shortcuts, and inject a `<meta name="description">` tag into the `<head>` of generated standalone HTML files.

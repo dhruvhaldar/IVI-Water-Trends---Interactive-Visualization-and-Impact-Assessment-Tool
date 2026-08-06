@@ -601,6 +601,7 @@ class ExportUtils:
             <meta charset="utf-8">
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
             <meta name="color-scheme" content="light dark">
+            <meta name="description" content="Detailed summary report of seasonal water trends and insights.">
             <meta name="theme-color" content="#226699" media="(prefers-color-scheme: light)">
             <meta name="theme-color" content="#121212" media="(prefers-color-scheme: dark)">
             <title>Water Trends Summary Report</title>
@@ -670,6 +671,18 @@ class ExportUtils:
                     .back-to-top {{ color: #3b82f6; }}
                     .back-to-top:hover {{ background-color: #1e1e1e; }}
                 }}
+                @keyframes fadeIn {{
+                    from {{ opacity: 0; transform: translateY(10px); }}
+                    to {{ opacity: 1; transform: translateY(0); }}
+                }}
+                main {{
+                    animation: fadeIn 0.4s ease-out forwards;
+                }}
+                @media (max-width: 600px) {{
+                    body {{ margin: 15px; }}
+                    .header-wrapper {{ flex-direction: column; align-items: flex-start; gap: 10px; }}
+                    .button-group {{ width: 100%; justify-content: space-between; }}
+                }}
             </style>
         </head>
         <body>
@@ -680,7 +693,7 @@ class ExportUtils:
                         <h1 id="report-title" tabindex="-1">Water Trends Summary Report</h1>
                         <div class="button-group">
                             <button onclick='if(this.dataset.active) return; this.dataset.active = "1"; const table = document.querySelector(".summary-table"); navigator.clipboard.writeText(table.innerText); const originalHTML = this.innerHTML; const originalTitle = this.title; this.removeAttribute("title"); this.innerHTML = `&lt;span aria-hidden="true"&gt;✅&lt;/span&gt; Copied!`; setTimeout(() =&gt; {{ this.innerHTML = originalHTML; this.setAttribute("title", originalTitle); delete this.dataset.active; }}, 2000);' class="copy-button" aria-live="polite" title="Copy Table Data"><span aria-hidden="true">📋</span> Copy Data</button>
-                            <button onClick="window.print()" class="print-button" title="Print Report (Keyboard: Ctrl+P / Cmd+P)"><span aria-hidden="true">🖨️</span> Print Report</button>
+                            <button onClick="window.print()" class="print-button" aria-keyshortcuts="Control+p Meta+p" title="Print Report (Keyboard: Ctrl+P / Cmd+P)"><span aria-hidden="true">🖨️</span> Print Report</button>
                         </div>
                     </div>
                     <p class="summary">Generated on: <time datetime="{datetime.now().isoformat()}">{datetime.now().strftime('%d %b %Y, %I:%M %p')}</time></p>
