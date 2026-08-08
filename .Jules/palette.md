@@ -189,3 +189,6 @@
 ## 2026-08-06 - Add explicit keyboard shortcut hints and SEO metadata to generated HTML reports
 **Learning:** While tooltips provide visual cues for keyboard shortcuts (like Ctrl+P for Print), screen reader users may miss them if they are only in the `title` attribute. Additionally, generated HTML files often lack basic SEO and context metadata.
 **Action:** Always add `aria-keyshortcuts` to buttons with keyboard shortcuts, and inject a `<meta name="description">` tag into the `<head>` of generated standalone HTML files.
+## 2026-08-07 - Add explicit SEO metadata to generated HTML reports
+**Learning:** Generated HTML files often lack basic SEO and context metadata like descriptions, which are helpful for screen readers to provide page context.
+**Action:** Always inject a `<meta name="description">` tag into the `<head>` of generated standalone HTML files.
