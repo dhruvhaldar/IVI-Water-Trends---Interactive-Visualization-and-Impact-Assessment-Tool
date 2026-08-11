@@ -307,7 +307,10 @@ def get_spatial_units(
                 safe_id = sanitize_for_terminal(str(row.get("id", "N/A")))
                 safe_name = sanitize_for_terminal(str(row.get("name", "N/A")))
                 safe_state = sanitize_for_terminal(str(row.get("state", "N/A")))
-                click.echo(f"  {safe_id:<15} | {safe_name:<30} | {safe_state}")
+                click.echo(
+                    f"  {safe_id:<15} | {safe_name:<30} | "
+                    + click.style(safe_state, dim=True)
+                )
 
             if len(df) > sample_size:
                 click.echo(
@@ -544,7 +547,8 @@ def fetch_water_data(
                 safe_season = sanitize_for_terminal(str(row["season"]))
                 click.echo(
                     f"  {safe_loc:<8} | {row['year']:<6} | {safe_season:<10} | "
-                    f"{row['water_area_ha']:<8,.2f} ha | {row['water_body_count']:<3,} bodies"
+                    f"{row['water_area_ha']:<8,.2f} ha | "
+                    + click.style(f"{row['water_body_count']:<3,} bodies", dim=True)
                 )
 
             if len(water_df) > sample_size:
