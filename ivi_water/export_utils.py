@@ -666,9 +666,9 @@ class ExportUtils:
                     .summary {{ background-color: #1e1e1e; color: #e0e0e0; border: 1px solid #333; }}
                     .badge {{ background-color: #2c2c2c; color: #e0e0e0; }}
                     .badge:hover, .badge:focus-visible {{ background-color: #3f3f3f; color: #fff; }}
-                    .print-button, .copy-button {{ background-color: #3b82f6; }}
-                    .print-button:hover, .copy-button:hover {{ background-color: #2563eb; }}
-                    .back-to-top {{ color: #3b82f6; }}
+                    .print-button, .copy-button {{ background-color: #2563eb; }}
+                    .print-button:hover, .copy-button:hover {{ background-color: #1d4ed8; }}
+                    .back-to-top {{ color: #60a5fa; }}
                     .back-to-top:hover {{ background-color: #1e1e1e; }}
                 }}
                 @keyframes fadeIn {{
