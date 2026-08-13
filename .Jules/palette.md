@@ -192,3 +192,6 @@
 ## 2026-08-07 - Add explicit SEO metadata to generated HTML reports
 **Learning:** Generated HTML files often lack basic SEO and context metadata like descriptions, which are helpful for screen readers to provide page context.
 **Action:** Always inject a `<meta name="description">` tag into the `<head>` of generated standalone HTML files.
+## 2026-08-13 - Update Button Contrast for Dark Mode
+**Learning:** Default Tailwind-style blue colors like #3b82f6 often fail WCAG contrast ratios against white text in dark mode environments, creating accessibility barriers for visually impaired users.
+**Action:** When styling buttons for dark mode, use a deeper shade like #2563eb for the background to ensure sufficient contrast with white text, and explicitly define text colors for links to prevent low-contrast defaults.

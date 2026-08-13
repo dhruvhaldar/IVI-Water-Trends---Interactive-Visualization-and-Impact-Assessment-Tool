@@ -172,7 +172,7 @@ class WaterTrendsVisualizer:
             x=0.5,
             y=0.5,
             showarrow=False,
-            font=dict(size=16),
+            font=dict(size=16, color='#555555'),
         )
         safe_title = self._sanitize_text(title or "No Data Available")
         fig.update_layout(
