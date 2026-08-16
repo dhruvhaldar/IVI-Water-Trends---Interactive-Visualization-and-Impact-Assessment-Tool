@@ -195,3 +195,6 @@
 ## 2026-08-13 - Update Button Contrast for Dark Mode
 **Learning:** Default Tailwind-style blue colors like #3b82f6 often fail WCAG contrast ratios against white text in dark mode environments, creating accessibility barriers for visually impaired users.
 **Action:** When styling buttons for dark mode, use a deeper shade like #2563eb for the background to ensure sufficient contrast with white text, and explicitly define text colors for links to prevent low-contrast defaults.
+## 2026-08-16 - Dynamic Empty State Contrast
+**Learning:** When adding text annotations to Plotly charts (e.g., empty state messages), explicitly defining text color dynamically based on the active theme ensures WCAG AA contrast requirements are met across all environments.
+**Action:** Always conditionally set `text_color` based on `self.theme` rather than relying on inherited defaults or hardcoding a single color.
