@@ -165,6 +165,9 @@ class WaterTrendsVisualizer:
     ) -> go.Figure:
         """Create a graceful empty state figure."""
         fig = go.Figure()
+        text_color = (
+            "#e0e0e0" if self.theme and "dark" in self.theme.lower() else "#555555"
+        )
         fig.add_annotation(
             text=f"⚠️ {message}",
             xref="paper",
@@ -172,7 +175,7 @@ class WaterTrendsVisualizer:
             x=0.5,
             y=0.5,
             showarrow=False,
-            font=dict(size=16, color='#555555'),
+            font=dict(size=16, color=text_color),
         )
         safe_title = self._sanitize_text(title or "No Data Available")
         fig.update_layout(
@@ -904,7 +907,8 @@ class WaterTrendsVisualizer:
             if getattr(fig.layout, "title", None) and getattr(
                 fig.layout.title, "text", None
             ):
-                import re, html as html_lib
+                import re
+                import html as html_lib
 
                 # Extract text, remove HTML tags, and escape for attribute safety
                 raw_text = html_lib.unescape(fig.layout.title.text)
@@ -1033,7 +1037,8 @@ class WaterTrendsVisualizer:
             if getattr(fig.layout, "title", None) and getattr(
                 fig.layout.title, "text", None
             ):
-                import re, html as html_lib
+                import re
+                import html as html_lib
 
                 # Extract text, remove HTML tags, and escape for attribute safety
                 raw_text = html_lib.unescape(fig.layout.title.text)
