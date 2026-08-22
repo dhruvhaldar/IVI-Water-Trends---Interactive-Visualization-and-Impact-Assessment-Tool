@@ -164,6 +164,10 @@ class WaterTrendsVisualizer:
         message: str = "No valid data to display. Please check your data source or filters.",
     ) -> go.Figure:
         """Create a graceful empty state figure."""
+        # Determine accessible text color based on theme
+        is_dark_theme = self.theme and "dark" in self.theme.lower()
+        text_color = "#e0e0e0" if is_dark_theme else "#555555"
+
         fig = go.Figure()
         fig.add_annotation(
             text=f"⚠️ {message}",
@@ -172,7 +176,7 @@ class WaterTrendsVisualizer:
             x=0.5,
             y=0.5,
             showarrow=False,
-            font=dict(size=16, color='#555555'),
+            font=dict(size=16, color=text_color),
         )
         safe_title = self._sanitize_text(title or "No Data Available")
         fig.update_layout(
