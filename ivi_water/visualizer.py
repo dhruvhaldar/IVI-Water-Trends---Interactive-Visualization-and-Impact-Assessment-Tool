@@ -164,6 +164,10 @@ class WaterTrendsVisualizer:
         message: str = "No valid data to display. Please check your data source or filters.",
     ) -> go.Figure:
         """Create a graceful empty state figure."""
+        # Determine accessible text color based on theme
+        is_dark_theme = self.theme and "dark" in self.theme.lower()
+        text_color = "#e0e0e0" if is_dark_theme else "#555555"
+
         fig = go.Figure()
 
         # Explicitly define text color dynamically based on the active theme
