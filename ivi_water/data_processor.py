@@ -1284,7 +1284,7 @@ class DataProcessor:
                 "xx": "sum",
             }
 
-            stats_df = grouped.agg(agg_funcs)
+            stats_df = grouped[list(agg_funcs.keys())].agg(agg_funcs)
 
             # Flatten MultiIndex columns
             stats_df.columns = [
@@ -1619,7 +1619,7 @@ class DataProcessor:
             # Perform aggregation
             # Optimization: observed=True prevents expanding categorical data to full cartesian product
             grouped = df_clean.groupby(intervention_col, observed=True)
-            agg_stats = grouped.agg(agg_dict)
+            agg_stats = grouped[list(agg_dict.keys())].agg(agg_dict)
 
             # Optimization: Calculate median separately for performance
             # Mixing median (which requires sorting) with other aggs prevents optimization
@@ -1819,7 +1819,7 @@ class DataProcessor:
                 agg_dict["water_body_count"] = ["std", "min", "max", "sum", "count"]
 
             # Perform aggregation
-            seasonal_summary = grouped.agg(agg_dict)
+            seasonal_summary = grouped[list(agg_dict.keys())].agg(agg_dict)
 
             # Calculate nunique separately for performance (~40% faster)
             # Mixing nunique with other aggs prevents optimization

@@ -97,3 +97,6 @@
 ## 2025-05-20 - [Combine Multiple Column Aggregations in pandas GroupBy]
 **Learning:** Performing multiple independent `.groupby().mean()` passes on the same grouping columns (e.g., `["year", "location_id"]`) for different target columns (e.g., `"water_area_ha"` and `"water_body_count"`) is inefficient. It forces Pandas to re-evaluate the groups, hash the columns, and sort the index twice.
 **Action:** Always combine the target columns into a single `.groupby()[["col1", "col2"]].mean()` call to execute the aggregation in a single optimized pass, cutting the overhead nearly in half.
+## 2026-08-26 - [Optimize GroupBy aggregations via column subsetting]
+**Learning:** In Pandas, executing `.agg(agg_dict)` directly on a GroupBy object incurs substantial overhead.
+**Action:** Explicitly subsetting the GroupBy object with the columns defined in the `agg_dict` keys prior to calling `.agg()` (e.g. `grouped[list(agg_dict.keys())].agg(agg_dict)`) significantly speeds up execution by avoiding unnecessary evaluation.
