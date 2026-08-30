@@ -964,9 +964,10 @@ def setup_notebooks(ctx, template, output_dir, force):
             click.echo(
                 "\n"
                 + click.style(
-                    f"💡 Tip: Start Jupyter notebook to begin your analysis.",
+                    f"💡 Tip: Start Jupyter notebook to begin your analysis. ",
                     fg="yellow",
                 )
+                + click.style("jupyter notebook", fg="cyan", bold=True)
             )
 
     except Exception as e:
