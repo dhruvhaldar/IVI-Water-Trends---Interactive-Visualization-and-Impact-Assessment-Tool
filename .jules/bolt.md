@@ -100,3 +100,6 @@
 ## 2026-08-26 - [Optimize GroupBy aggregations via column subsetting]
 **Learning:** In Pandas, executing `.agg(agg_dict)` directly on a GroupBy object incurs substantial overhead.
 **Action:** Explicitly subsetting the GroupBy object with the columns defined in the `agg_dict` keys prior to calling `.agg()` (e.g. `grouped[list(agg_dict.keys())].agg(agg_dict)`) significantly speeds up execution by avoiding unnecessary evaluation.
+## 2025-05-21 - [Remove GroupBy Subsetting Pessimization]
+**Learning:** Explicitly subsetting the GroupBy object with the columns defined in the `agg_dict` keys prior to calling `.agg()` (e.g. `grouped[list(agg_dict.keys())].agg(agg_dict)`) actually slows down execution due to unnecessary evaluation and overhead.
+**Action:** Do not explicitly subset the GroupBy object before calling `.agg()` if the aggregation dictionary implicitly selects the target columns. Just call `grouped.agg(agg_dict)` directly.
