@@ -198,3 +198,6 @@
 ## 2024-08-22 - Dynamic Empty State Annotation Colors
 **Learning:** When adding text annotations to Plotly charts (e.g., empty state messages), hardcoding a single color like `#555555` often fails WCAG contrast requirements when the chart is rendered in a dark theme.
 **Action:** Explicitly define text color dynamically based on the active theme (e.g., `#555555` for light themes, `#e0e0e0` for dark themes) to ensure WCAG AA contrast requirements are met across all environments.
+## 2026-08-30 - Highlight Actionable Command in Setup Tip
+**Learning:** Users easily miss text-based commands in terminal tip messages if they visually blend in with surrounding instructions.
+**Action:** When providing actionable commands within CLI '💡 Tip' messages, format the executable command string in a distinct color and weight (e.g., `fg='cyan', bold=True` with `click.style`) to ensure it stands out for easy copy-pasting.
