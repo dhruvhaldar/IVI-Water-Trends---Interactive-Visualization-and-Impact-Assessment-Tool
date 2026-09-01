@@ -115,7 +115,7 @@ def cli(
         output-dir: Directory for generated outputs
         
     Example:
-        $ ivi-water-trends --verbose --output-dir ./results fetch-water-data \
+        $ ivi-water --verbose --output-dir ./results fetch-water-data \
             --locations V001,V002 --start-year 2020 --end-year 2022
     """
     try:
@@ -193,8 +193,8 @@ def get_spatial_units(
     CoRE Stack API and saves them to a CSV file for further analysis.
 
     Examples:
-        $ ivi-water-trends get-spatial-units --unit-type village --state Maharashtra
-        $ ivi-water-trends get-spatial-units --unit-type micro-watershed --output my_units.csv
+        $ ivi-water get-spatial-units --unit-type village --state Maharashtra
+        $ ivi-water get-spatial-units --unit-type micro-watershed --output my_units.csv
     """
     try:
         logger.info(
@@ -378,8 +378,8 @@ def fetch_water_data(
     and time periods from the CoRE Stack API and saves it to a CSV file.
 
     Examples:
-        $ ivi-water-trends fetch-water-data --locations V001,V002 --start-year 2020 --end-year 2022
-        $ ivi-water-trends fetch-water-data --locations V001 --start-year 2020 --end-year 2022 --seasons monsoon,winter
+        $ ivi-water fetch-water-data --locations V001,V002 --start-year 2020 --end-year 2022
+        $ ivi-water fetch-water-data --locations V001 --start-year 2020 --end-year 2022 --seasons monsoon,winter
     """
     try:
         logger.info(
