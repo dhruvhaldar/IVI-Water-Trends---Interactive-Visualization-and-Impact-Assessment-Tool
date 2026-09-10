@@ -890,10 +890,9 @@ def generate_report(ctx, data, report_type, output):
 
         click.echo(
             "\n"
-            + click.style(
-                f"💡 Tip: Open the generated report file in your browser to view the insights.",
-                fg="yellow",
-            )
+            + click.style(f"💡 Tip: Open the generated report file ", fg="yellow")
+            + click.style(f"{output_path}", fg="cyan", bold=True)
+            + click.style(" in your browser to view the insights.", fg="yellow")
         )
 
     except Exception as e:
