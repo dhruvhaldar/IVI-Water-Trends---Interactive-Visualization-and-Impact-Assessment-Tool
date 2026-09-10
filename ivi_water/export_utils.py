@@ -670,6 +670,8 @@ class ExportUtils:
                     .print-button:hover, .copy-button:hover {{ background-color: #1d4ed8; }}
                     .back-to-top {{ color: #60a5fa; }}
                     .back-to-top:hover {{ background-color: #1e1e1e; }}
+                    .badge[title]:focus-visible::after, .print-button[title]:focus-visible::after, .copy-button[title]:focus-visible::after {{ background-color: #e0e0e0; color: #121212; }}
+                    .badge[title]:focus-visible::before, .print-button[title]:focus-visible::before, .copy-button[title]:focus-visible::before {{ border-top-color: #e0e0e0; }}
                 }}
                 @keyframes fadeIn {{
                     from {{ opacity: 0; transform: translateY(10px); }}

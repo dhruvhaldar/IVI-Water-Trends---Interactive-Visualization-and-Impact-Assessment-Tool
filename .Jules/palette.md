@@ -201,3 +201,7 @@
 ## 2026-08-30 - Highlight Actionable Command in Setup Tip
 **Learning:** Users easily miss text-based commands in terminal tip messages if they visually blend in with surrounding instructions.
 **Action:** When providing actionable commands within CLI '💡 Tip' messages, format the executable command string in a distinct color and weight (e.g., `fg='cyan', bold=True` with `click.style`) to ensure it stands out for easy copy-pasting.
+
+## 2024-09-10 - Dark Mode Custom CSS Tooltip Contrast
+**Learning:** Custom CSS tooltips created with pseudo-elements (like `::after` with `content: attr(title)`) inherit or explicitly use dark backgrounds (e.g., `#333`) in light mode. If these tooltips are not explicitly updated in a `@media (prefers-color-scheme: dark)` block, they remain dark and become nearly invisible against dark mode body backgrounds (like `#121212`), completely breaking accessibility for sighted keyboard users.
+**Action:** When creating custom CSS tooltips, always add explicit dark mode overrides in your `@media (prefers-color-scheme: dark)` block to invert the tooltip background (e.g., to `#e0e0e0`) and text colors, as well as any associated pseudo-element arrows (e.g., `border-top-color`), ensuring WCAG contrast requirements are consistently met.
