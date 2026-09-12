@@ -172,7 +172,9 @@ class WaterTrendsVisualizer:
 
         # Explicitly define text color dynamically based on the active theme
         # to ensure WCAG AA contrast requirements are met across all environments.
-        text_color = '#e0e0e0' if self.theme and 'dark' in self.theme.lower() else '#555555'
+        text_color = (
+            "#e0e0e0" if self.theme and "dark" in self.theme.lower() else "#555555"
+        )
 
         fig.add_annotation(
             text=f"⚠️ {message}",

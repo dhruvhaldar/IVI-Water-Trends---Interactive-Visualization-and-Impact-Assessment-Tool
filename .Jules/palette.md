@@ -205,3 +205,7 @@
 ## 2024-09-10 - Dark Mode Custom CSS Tooltip Contrast
 **Learning:** Custom CSS tooltips created with pseudo-elements (like `::after` with `content: attr(title)`) inherit or explicitly use dark backgrounds (e.g., `#333`) in light mode. If these tooltips are not explicitly updated in a `@media (prefers-color-scheme: dark)` block, they remain dark and become nearly invisible against dark mode body backgrounds (like `#121212`), completely breaking accessibility for sighted keyboard users.
 **Action:** When creating custom CSS tooltips, always add explicit dark mode overrides in your `@media (prefers-color-scheme: dark)` block to invert the tooltip background (e.g., to `#e0e0e0`) and text colors, as well as any associated pseudo-element arrows (e.g., `border-top-color`), ensuring WCAG contrast requirements are consistently met.
+
+## 2026-09-12 - Consistent High-Contrast Focus Rings
+**Learning:** Using brand colors (like `#226699`) for keyboard focus rings often results in inconsistent focus visibility, especially in dark mode where the brand color may lack sufficient contrast against dark backgrounds.
+**Action:** Always use a dedicated, high-contrast focus color (like `#ff7f0e` orange) consistently across all interactive elements (buttons, links, badges, containers) to guarantee WCAG contrast compliance for keyboard users in both light and dark themes.
