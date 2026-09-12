@@ -636,7 +636,7 @@ class ExportUtils:
                 .badge-list {{ list-style-type: none; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; margin: 0; }}
                 .badge {{ background-color: #e9ecef; color: #495057; padding: 4px 8px; border-radius: 4px; font-size: 0.9em; cursor: help; transition: background-color 0.2s ease; position: relative; }}
                 .badge:hover, .badge:focus-visible {{ background-color: #dee2e6; color: #212529; }}
-                .badge:focus-visible {{ outline: 2px solid #226699; outline-offset: 2px; }}
+                .badge:focus-visible {{ outline: 3px solid #ff7f0e; outline-offset: 2px; }}
                 .badge[title]:focus-visible::after, .print-button[title]:focus-visible::after, .copy-button[title]:focus-visible::after {{ content: attr(title); position: absolute; bottom: 130%; left: 50%; transform: translateX(-50%); background-color: #333; color: #fff; padding: 6px 10px; border-radius: 4px; white-space: normal; width: max-content; max-width: 250px; z-index: 10; pointer-events: none; font-size: 12px; line-height: 1.4; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }}
                 .badge[title]:focus-visible::before, .print-button[title]:focus-visible::before, .copy-button[title]:focus-visible::before {{ content: ''; position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%); border: 6px solid transparent; border-top-color: #333; }}
                 .summary-table td:not(:first-child), .summary-table th:not(:first-child) {{ text-align: right; font-variant-numeric: tabular-nums; }}
@@ -693,7 +693,7 @@ class ExportUtils:
                 <header>
                     <div class="header-wrapper">
                         <h1 id="report-title" tabindex="-1">Water Trends Summary Report</h1>
-                        <div class="button-group">
+                        <div class="button-group" role="group" aria-label="Report Actions">
                             <button onclick='if(this.dataset.active) return; this.dataset.active = "1"; const table = document.querySelector(".summary-table"); navigator.clipboard.writeText(table.innerText); const originalHTML = this.innerHTML; const originalTitle = this.title; this.removeAttribute("title"); this.innerHTML = `&lt;span aria-hidden="true"&gt;✅&lt;/span&gt; Copied!`; setTimeout(() =&gt; {{ this.innerHTML = originalHTML; this.setAttribute("title", originalTitle); delete this.dataset.active; }}, 2000);' class="copy-button" aria-live="polite" title="Copy Table Data"><span aria-hidden="true">📋</span> Copy Data</button>
                             <button onClick="window.print()" class="print-button" aria-keyshortcuts="Control+p Meta+p" title="Print Report (Keyboard: Ctrl+P / Cmd+P)"><span aria-hidden="true">🖨️</span> Print Report</button>
                         </div>
