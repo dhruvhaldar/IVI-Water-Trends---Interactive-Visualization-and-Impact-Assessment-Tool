@@ -322,7 +322,7 @@ def get_spatial_units(
         click.echo(
             "\n"
             + click.style(f"💡 Tip: Use these location IDs with ", fg="yellow")
-            + click.style("ivi-water fetch-water-data", fg="cyan", bold=True)
+            + click.style("ivi-water fetch-water-data --locations <id1>,<id2>", fg="cyan", bold=True)
         )
 
         # Log completion
