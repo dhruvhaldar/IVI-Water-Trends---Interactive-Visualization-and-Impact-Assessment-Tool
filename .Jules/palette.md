@@ -209,3 +209,7 @@
 ## 2026-09-12 - Consistent High-Contrast Focus Rings
 **Learning:** Using brand colors (like `#226699`) for keyboard focus rings often results in inconsistent focus visibility, especially in dark mode where the brand color may lack sufficient contrast against dark backgrounds.
 **Action:** Always use a dedicated, high-contrast focus color (like `#ff7f0e` orange) consistently across all interactive elements (buttons, links, badges, containers) to guarantee WCAG contrast compliance for keyboard users in both light and dark themes.
+
+## 2024-11-20 - Actionable CLI Tips with Full Syntax
+**Learning:** Providing just the command name in a CLI "Tip" message (e.g., "Use ivi-water fetch-water-data") forces users to consult the help menu to discover the required flags, introducing friction into the workflow.
+**Action:** Always provide a complete, actionable copy-paste command format (e.g., "ivi-water fetch-water-data --locations <id1>,<id2>") in CLI tips to improve discoverability and provide a seamless next step for the user.
