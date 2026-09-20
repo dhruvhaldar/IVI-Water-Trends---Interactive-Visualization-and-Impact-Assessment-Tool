@@ -890,10 +890,15 @@ def generate_report(ctx, data, report_type, output):
 
         click.echo(
             "\n"
-            + click.style(f"💡 Tip: Open the generated report file ", fg="yellow")
+            + click.style(f"💡 Tip: Opening the generated report ", fg="yellow")
             + click.style(f"{output_path}", fg="cyan", bold=True)
-            + click.style(" in your browser to view the insights.", fg="yellow")
+            + click.style(" in your browser...", fg="yellow")
         )
+
+        try:
+            click.launch(output_path)
+        except Exception as launch_e:
+            logger.warning(f"Could not automatically open the report: {launch_e}")
 
     except Exception as e:
         click.echo(click.style(f"❌ Error: {e}", fg="red"), err=True)
