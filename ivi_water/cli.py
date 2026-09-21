@@ -322,7 +322,11 @@ def get_spatial_units(
         click.echo(
             "\n"
             + click.style(f"💡 Tip: Use these location IDs with ", fg="yellow")
-            + click.style("ivi-water fetch-water-data --locations <id1>,<id2>", fg="cyan", bold=True)
+            + click.style(
+                "ivi-water fetch-water-data --locations <id1>,<id2>",
+                fg="cyan",
+                bold=True,
+            )
         )
 
         # Log completion
@@ -736,6 +740,19 @@ def visualize(ctx, data, location_id, chart_type, output, format):
             )
         )
 
+        output_path = f"{ctx.obj['output_dir']}/{output}.{format}"
+        click.echo(
+            "\n"
+            + click.style(f"💡 Tip: Opening the generated chart ", fg="yellow")
+            + click.style(f"{output_path}", fg="cyan", bold=True)
+            + click.style(" in your browser...", fg="yellow")
+        )
+
+        try:
+            click.launch(output_path)
+        except Exception as launch_e:
+            logger.warning(f"Could not automatically open the chart: {launch_e}")
+
         click.echo(
             "\n"
             + click.style(f"💡 Tip: Generate a full report with ", fg="yellow")
@@ -815,6 +832,19 @@ def dashboard(ctx, data, locations, output):
         click.echo(
             click.style(f"  Included locations: {', '.join(location_list)}", dim=True)
         )
+
+        output_path = f"{ctx.obj['output_dir']}/{output}.html"
+        click.echo(
+            "\n"
+            + click.style(f"💡 Tip: Opening the generated dashboard ", fg="yellow")
+            + click.style(f"{output_path}", fg="cyan", bold=True)
+            + click.style(" in your browser...", fg="yellow")
+        )
+
+        try:
+            click.launch(output_path)
+        except Exception as launch_e:
+            logger.warning(f"Could not automatically open the dashboard: {launch_e}")
 
         click.echo(
             "\n"
