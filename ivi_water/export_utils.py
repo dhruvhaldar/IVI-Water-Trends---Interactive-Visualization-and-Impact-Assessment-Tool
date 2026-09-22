@@ -714,7 +714,7 @@ class ExportUtils:
                         <p style="margin: 0;">Total records: <strong>{len(df):,}</strong></p>
                     </div>
                     <p id="columns-label" style="margin-bottom: 8px;">Columns:</p>
-                    <ul class="badge-list" aria-labelledby="columns-label">
+                    <ul class="badge-list" aria-labelledby="columns-label" role="list">
                         {badges_html}
                     </ul>
                 </section>
