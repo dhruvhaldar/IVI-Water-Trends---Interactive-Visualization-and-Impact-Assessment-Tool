@@ -524,7 +524,15 @@ class ExportUtils:
         summary_df = self._create_summary_table(df)
 
         # Convert DataFrame to table data
-        table_data = [summary_df.columns.tolist()] + summary_df.values.tolist()
+        table_data = [summary_df.columns.tolist()]
+        for row in summary_df.itertuples(index=False):
+            formatted_row = []
+            for val in row:
+                if isinstance(val, (int, float)) and not isinstance(val, bool):
+                    formatted_row.append(f"{val:,.2f}" if isinstance(val, float) else f"{val:,}")
+                else:
+                    formatted_row.append(str(val))
+            table_data.append(formatted_row)
         table = Table(table_data)
         table.setStyle(
             TableStyle(
