@@ -218,3 +218,6 @@
 ## 2026-09-22 - Restoring List Semantics
 **Learning:** CSS properties like `list-style: none` can cause certain screen readers (like VoiceOver on Safari) to remove the list semantics, meaning the user won't be announced that they are entering a list or how many items it has.
 **Action:** Always explicitly add `role="list"` to `<ul>` or `<ol>` elements when removing their default list styling to ensure assistive technologies consistently announce them as lists.
+## 2026-09-25 - [Added custom hover tooltips for interactive elements]
+**Learning:** Since native `title` tooltips do not reliably display on keyboard focus, implement custom CSS tooltips (e.g., using `:focus-visible::after` and `:hover::after` with `content: attr(title);` and `position: relative;`) on focusable elements to ensure tooltip text is consistently styled and accessible to both sighted keyboard and mouse users.
+**Action:** When creating custom tooltips using the `:focus-visible` pseudo-class, always ensure to include the `:hover` pseudo-class so that the stylized tooltips are available consistently for mouse users as well.
