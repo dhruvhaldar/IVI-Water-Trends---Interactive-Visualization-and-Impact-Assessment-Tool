@@ -645,8 +645,8 @@ class ExportUtils:
                 .badge {{ background-color: #e9ecef; color: #495057; padding: 4px 8px; border-radius: 4px; font-size: 0.9em; cursor: help; transition: background-color 0.2s ease; position: relative; }}
                 .badge:hover, .badge:focus-visible {{ background-color: #dee2e6; color: #212529; }}
                 .badge:focus-visible {{ outline: 3px solid #ff7f0e; outline-offset: 2px; }}
-                .badge[title]:focus-visible::after, .print-button[title]:focus-visible::after, .copy-button[title]:focus-visible::after {{ content: attr(title); position: absolute; bottom: 130%; left: 50%; transform: translateX(-50%); background-color: #333; color: #fff; padding: 6px 10px; border-radius: 4px; white-space: normal; width: max-content; max-width: 250px; z-index: 10; pointer-events: none; font-size: 12px; line-height: 1.4; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }}
-                .badge[title]:focus-visible::before, .print-button[title]:focus-visible::before, .copy-button[title]:focus-visible::before {{ content: ''; position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%); border: 6px solid transparent; border-top-color: #333; }}
+                .badge[title]:hover::after, .badge[title]:focus-visible::after, .print-button[title]:hover::after, .print-button[title]:focus-visible::after, .copy-button[title]:hover::after, .copy-button[title]:focus-visible::after {{ content: attr(title); position: absolute; bottom: 130%; left: 50%; transform: translateX(-50%); background-color: #333; color: #fff; padding: 6px 10px; border-radius: 4px; white-space: normal; width: max-content; max-width: 250px; z-index: 10; pointer-events: none; font-size: 12px; line-height: 1.4; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }}
+                .badge[title]:hover::before, .badge[title]:focus-visible::before, .print-button[title]:hover::before, .print-button[title]:focus-visible::before, .copy-button[title]:hover::before, .copy-button[title]:focus-visible::before {{ content: ''; position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%); border: 6px solid transparent; border-top-color: #333; }}
                 .summary-table td:not(:first-child), .summary-table th:not(:first-child) {{ text-align: right; font-variant-numeric: tabular-nums; }}
                 .header-wrapper {{ display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }}
                 .print-button, .copy-button {{ background: #226699; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; transition: background-color 0.2s ease, transform 0.1s ease; position: relative; }}
@@ -678,8 +678,8 @@ class ExportUtils:
                     .print-button:hover, .copy-button:hover {{ background-color: #1d4ed8; }}
                     .back-to-top {{ color: #60a5fa; }}
                     .back-to-top:hover {{ background-color: #1e1e1e; }}
-                    .badge[title]:focus-visible::after, .print-button[title]:focus-visible::after, .copy-button[title]:focus-visible::after {{ background-color: #e0e0e0; color: #121212; }}
-                    .badge[title]:focus-visible::before, .print-button[title]:focus-visible::before, .copy-button[title]:focus-visible::before {{ border-top-color: #e0e0e0; }}
+                    .badge[title]:hover::after, .badge[title]:focus-visible::after, .print-button[title]:hover::after, .print-button[title]:focus-visible::after, .copy-button[title]:hover::after, .copy-button[title]:focus-visible::after {{ background-color: #e0e0e0; color: #121212; }}
+                    .badge[title]:hover::before, .badge[title]:focus-visible::before, .print-button[title]:hover::before, .print-button[title]:focus-visible::before, .copy-button[title]:hover::before, .copy-button[title]:focus-visible::before {{ border-top-color: #e0e0e0; }}
                 }}
                 @keyframes fadeIn {{
                     from {{ opacity: 0; transform: translateY(10px); }}
