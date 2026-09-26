@@ -221,3 +221,6 @@
 ## 2026-09-25 - [Added custom hover tooltips for interactive elements]
 **Learning:** Since native `title` tooltips do not reliably display on keyboard focus, implement custom CSS tooltips (e.g., using `:focus-visible::after` and `:hover::after` with `content: attr(title);` and `position: relative;`) on focusable elements to ensure tooltip text is consistently styled and accessible to both sighted keyboard and mouse users.
 **Action:** When creating custom tooltips using the `:focus-visible` pseudo-class, always ensure to include the `:hover` pseudo-class so that the stylized tooltips are available consistently for mouse users as well.
+## 2026-09-26 - Interactive Column Badges
+**Learning:** Users often need to copy column names from data reports for downstream scripts, but static badges require manual text selection, which is tedious and error-prone.
+**Action:** Made column badges interactive by adding `role="button"`, `cursor: copy`, and an inline `onclick` handler to copy the column name to the clipboard, providing a delightful and accessible UX enhancement.

@@ -587,7 +587,16 @@ class ExportUtils:
 
         # Safe column names with tooltips
         badges_html = "".join(
-            f'<li class="badge" title="{html.escape(self._get_column_tooltip(str(col)))}" aria-label="Column {html.escape(str(col))}: {html.escape(self._get_column_tooltip(str(col)))}" tabindex="0">{html.escape(str(col))}</li>'
+            f'<li class="badge" role="button" title="{html.escape(self._get_column_tooltip(str(col)))} (Click to copy)" '
+            f'aria-label="Column {html.escape(str(col))}: {html.escape(self._get_column_tooltip(str(col)))}. Click to copy column name." '
+            f'tabindex="0" aria-live="polite" data-col="{html.escape(str(col))}" '
+            f'onclick=\'if(this.dataset.active) return; this.dataset.active = "1"; '
+            f'navigator.clipboard.writeText(this.dataset.col); '
+            f'const origHTML = this.innerHTML; const origTitle = this.title; '
+            f'this.removeAttribute("title"); this.innerHTML = `<span aria-hidden="true">✅</span> Copied!`; '
+            f'setTimeout(() => {{ this.innerHTML = origHTML; this.setAttribute("title", origTitle); delete this.dataset.active; }}, 1500);\' '
+            f'onkeydown="if(event.key === &quot;Enter&quot; || event.key === &quot; &quot;) {{ event.preventDefault(); this.click(); }}" '
+            f'>{html.escape(str(col))}</li>'
             for col in df.columns
         )
 
@@ -642,7 +651,7 @@ class ExportUtils:
                 tr:nth-child(even) {{ background-color: #f9f9f9; }}
                 tr:hover {{ background-color: #f1f1f1; }}
                 .badge-list {{ list-style-type: none; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; margin: 0; }}
-                .badge {{ background-color: #e9ecef; color: #495057; padding: 4px 8px; border-radius: 4px; font-size: 0.9em; cursor: help; transition: background-color 0.2s ease; position: relative; }}
+                .badge {{ background-color: #e9ecef; color: #495057; padding: 4px 8px; border-radius: 4px; font-size: 0.9em; cursor: copy; transition: background-color 0.2s ease; position: relative; }}
                 .badge:hover, .badge:focus-visible {{ background-color: #dee2e6; color: #212529; }}
                 .badge:focus-visible {{ outline: 3px solid #ff7f0e; outline-offset: 2px; }}
                 .badge[title]:hover::after, .badge[title]:focus-visible::after, .print-button[title]:hover::after, .print-button[title]:focus-visible::after, .copy-button[title]:hover::after, .copy-button[title]:focus-visible::after {{ content: attr(title); position: absolute; bottom: 130%; left: 50%; transform: translateX(-50%); background-color: #333; color: #fff; padding: 6px 10px; border-radius: 4px; white-space: normal; width: max-content; max-width: 250px; z-index: 10; pointer-events: none; font-size: 12px; line-height: 1.4; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }}
