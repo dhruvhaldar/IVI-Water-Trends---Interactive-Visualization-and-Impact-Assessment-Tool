@@ -592,9 +592,9 @@ class ExportUtils:
             f'tabindex="0" aria-live="polite" data-col="{html.escape(str(col))}" '
             f'onclick=\'if(this.dataset.active) return; this.dataset.active = "1"; '
             f'navigator.clipboard.writeText(this.dataset.col); '
-            f'const origHTML = this.innerHTML; const origTitle = this.title; '
-            f'this.removeAttribute("title"); this.innerHTML = `<span aria-hidden="true">✅</span> Copied!`; '
-            f'setTimeout(() => {{ this.innerHTML = origHTML; this.setAttribute("title", origTitle); delete this.dataset.active; }}, 1500);\' '
+            f'const origHTML = this.innerHTML; const origTitle = this.title; const origAria = this.getAttribute("aria-label"); '
+            f'this.removeAttribute("title"); this.removeAttribute("aria-label"); this.innerHTML = `<span aria-hidden="true">✅</span> Copied!`; '
+            f'setTimeout(() => {{ this.innerHTML = origHTML; this.setAttribute("title", origTitle); if (origAria) this.setAttribute("aria-label", origAria); else this.removeAttribute("aria-label"); delete this.dataset.active; }}, 1500);\' '
             f'onkeydown="if(event.key === &quot;Enter&quot; || event.key === &quot; &quot;) {{ event.preventDefault(); this.click(); }}" '
             f'>{html.escape(str(col))}</li>'
             for col in df.columns
