@@ -224,3 +224,6 @@
 ## 2026-09-26 - Interactive Column Badges
 **Learning:** Users often need to copy column names from data reports for downstream scripts, but static badges require manual text selection, which is tedious and error-prone.
 **Action:** Made column badges interactive by adding `role="button"`, `cursor: copy`, and an inline `onclick` handler to copy the column name to the clipboard, providing a delightful and accessible UX enhancement.
+## 2026-09-28 - Dynamic Text State Changes in aria-live Regions
+**Learning:** When implementing interactive elements with dynamic text states inside `aria-live` regions (like a column badge temporarily updating to 'Copied!'), static `aria-label`s will mask the dynamic text changes for screen readers. The screen reader will announce the static label instead of the newly updated visible text.
+**Action:** Temporarily remove the `aria-label` during the active state (using `removeAttribute("aria-label")` and storing the original value) and restore it afterward to ensure the state change is reliably announced to screen reader users.
