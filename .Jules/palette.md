@@ -227,3 +227,11 @@
 ## 2026-09-28 - Dynamic Text State Changes in aria-live Regions
 **Learning:** When implementing interactive elements with dynamic text states inside `aria-live` regions (like a column badge temporarily updating to 'Copied!'), static `aria-label`s will mask the dynamic text changes for screen readers. The screen reader will announce the static label instead of the newly updated visible text.
 **Action:** Temporarily remove the `aria-label` during the active state (using `removeAttribute("aria-label")` and storing the original value) and restore it afterward to ensure the state change is reliably announced to screen reader users.
+
+## 2026-10-04 - Accessible Secondary HTML Artifacts
+**Learning:** When dynamically generating secondary HTML artifacts (like multi-location dashboard HTML templates exported from CLI), developers often rely on barebones string concatenation (e.g. `<html><body>`) that lacks critical metadata. This results in inaccessible, non-responsive pages that lack dark mode support, focus styles, language definitions, and semantic tags, creating jarring UX inconsistencies compared to the primary application reports.
+**Action:** Always inject comprehensive HTML boilerplate (including `<html lang="en">`, `<meta name="viewport">`, `<meta name="color-scheme">`, `<meta name="description">`, keyboard focus styles, native dark mode CSS variables, and semantic `<main>` wrappers) into ALL generated HTML artifacts to guarantee a uniformly accessible and cohesive user experience.
+
+## 2026-10-04 - Preventing Keyboard Traps in Inline JS
+**Learning:** When writing inline JavaScript inside HTML attributes like `onkeydown`, using HTML entity references like `&quot;` for double quotes inside double-quoted attributes works during initial parsing. However, escaping literal strings with `'` inside double quotes is cleaner, more readable, and less prone to parsing errors by syntax highlighters and tooling.
+**Action:** Use single quotes for inner string literals inside double-quoted HTML attributes to prevent potential escaping confusion or syntax errors.

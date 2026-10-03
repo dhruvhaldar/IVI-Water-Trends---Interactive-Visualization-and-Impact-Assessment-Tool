@@ -529,7 +529,9 @@ class ExportUtils:
             formatted_row = []
             for val in row:
                 if isinstance(val, (int, float)) and not isinstance(val, bool):
-                    formatted_row.append(f"{val:,.2f}" if isinstance(val, float) else f"{val:,}")
+                    formatted_row.append(
+                        f"{val:,.2f}" if isinstance(val, float) else f"{val:,}"
+                    )
                 else:
                     formatted_row.append(str(val))
             table_data.append(formatted_row)
@@ -591,12 +593,12 @@ class ExportUtils:
             f'aria-label="Column {html.escape(str(col))}: {html.escape(self._get_column_tooltip(str(col)))}. Click to copy column name." '
             f'tabindex="0" aria-live="polite" data-col="{html.escape(str(col))}" '
             f'onclick=\'if(this.dataset.active) return; this.dataset.active = "1"; '
-            f'navigator.clipboard.writeText(this.dataset.col); '
+            f"navigator.clipboard.writeText(this.dataset.col); "
             f'const origHTML = this.innerHTML; const origTitle = this.title; const origAria = this.getAttribute("aria-label"); '
             f'this.removeAttribute("title"); this.removeAttribute("aria-label"); this.innerHTML = `<span aria-hidden="true">✅</span> Copied!`; '
             f'setTimeout(() => {{ this.innerHTML = origHTML; this.setAttribute("title", origTitle); this.setAttribute("aria-label", origAria); delete this.dataset.active; }}, 1500);\' '
-            f'onkeydown="if(event.key === &quot;Enter&quot; || event.key === &quot; &quot;) {{ event.preventDefault(); this.click(); }}" '
-            f'>{html.escape(str(col))}</li>'
+            f"onkeydown=\"if(event.key === 'Enter' || event.key === ' ') {{ event.preventDefault(); this.click(); }}\" "
+            f">{html.escape(str(col))}</li>"
             for col in df.columns
         )
 
