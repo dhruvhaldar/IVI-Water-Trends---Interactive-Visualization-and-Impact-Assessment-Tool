@@ -227,3 +227,6 @@
 ## 2026-09-28 - Dynamic Text State Changes in aria-live Regions
 **Learning:** When implementing interactive elements with dynamic text states inside `aria-live` regions (like a column badge temporarily updating to 'Copied!'), static `aria-label`s will mask the dynamic text changes for screen readers. The screen reader will announce the static label instead of the newly updated visible text.
 **Action:** Temporarily remove the `aria-label` during the active state (using `removeAttribute("aria-label")` and storing the original value) and restore it afterward to ensure the state change is reliably announced to screen reader users.
+## 2026-10-04 - Added aria-label state restoration to Copy Data button
+**Learning:** When implementing interactive elements with dynamic text states inside `aria-live` regions (like a 'Copy' button temporarily updating to 'Copied!'), static `aria-label`s will mask the dynamic text changes for screen readers. The screen reader will announce the static label instead of the newly updated visible text.
+**Action:** Removed the static `aria-label` when updating the button's visible text to 'Copied!', and added logic to restore the `aria-label` after the temporary state has cleared.
