@@ -227,3 +227,6 @@
 ## 2026-09-28 - Dynamic Text State Changes in aria-live Regions
 **Learning:** When implementing interactive elements with dynamic text states inside `aria-live` regions (like a column badge temporarily updating to 'Copied!'), static `aria-label`s will mask the dynamic text changes for screen readers. The screen reader will announce the static label instead of the newly updated visible text.
 **Action:** Temporarily remove the `aria-label` during the active state (using `removeAttribute("aria-label")` and storing the original value) and restore it afterward to ensure the state change is reliably announced to screen reader users.
+## 2026-10-01 - Removed line-height from typography step
+**Learning:** Checking the actual source file is required to see if CSS rules already exist, as they can differ from what is in memory logs. The body line-height was already perfectly set to 1.6 in the codebase.
+**Action:** Always verify the actual file content before attempting to fix CSS styles mentioned in memory.
