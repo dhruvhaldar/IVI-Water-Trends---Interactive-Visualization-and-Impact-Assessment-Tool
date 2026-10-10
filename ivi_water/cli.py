@@ -1001,7 +1001,7 @@ def setup_notebooks(ctx, template, output_dir, force):
                     f"💡 Tip: Start Jupyter notebook to begin your analysis. ",
                     fg="yellow",
                 )
-                + click.style("jupyter notebook", fg="cyan", bold=True)
+                + click.style(f"jupyter notebook {notebook_dir}", fg="cyan", bold=True)
             )
 
     except Exception as e:
