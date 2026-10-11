@@ -230,3 +230,6 @@
 ## 2026-10-01 - Removed line-height from typography step
 **Learning:** Checking the actual source file is required to see if CSS rules already exist, as they can differ from what is in memory logs. The body line-height was already perfectly set to 1.6 in the codebase.
 **Action:** Always verify the actual file content before attempting to fix CSS styles mentioned in memory.
+## 2024-11-20 - Dark Mode Button Contrast
+**Learning:** When styling elements for dark mode, use lighter shades to maintain proper visibility against dark backgrounds. Using deeper shades (e.g., changing `#3b82f6` to `#2563eb`) against dark backgrounds (like `#121212`) actively reduces the contrast ratio and harms accessibility.
+**Action:** When styling buttons for dark mode, use lighter shades like `#3b82f6` (with dark text for contrast) to ensure they stand out clearly against the dark background.
