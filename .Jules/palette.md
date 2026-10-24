@@ -234,3 +234,6 @@
 ## 2026-10-12 - Dark Mode Button Background Contrast
 **Learning:** When styling elements for dark mode, using deeper shades (like `#2563eb`) against dark backgrounds (like `#121212`) actively reduces the contrast ratio. This harms accessibility. Using lighter shades is better, but you must ensure the text inside the button uses a dark color to maintain contrast compliance.
 **Action:** When using lighter button backgrounds in dark mode, explicitly define the button text color to a dark shade (e.g., `#121212`) to ensure readability and accessibility.
+## 2026-10-24 - Use Native Interactive Elements over ARIA Roles for Lists
+**Learning:** When making list items (<li>) interactive by adding role="button", it breaks the semantic structure of the parent <ul> or <ol> for screen readers, as the list no longer contains list items.
+**Action:** Always wrap native interactive elements (like <button>) *inside* the <li> element instead of applying interactive ARIA roles directly to the <li>. This preserves the accessibility tree hierarchy and eliminates the need for custom keyboard event handlers (onkeydown).
