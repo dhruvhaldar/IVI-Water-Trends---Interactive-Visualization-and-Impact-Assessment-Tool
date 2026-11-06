@@ -237,3 +237,6 @@
 ## 2026-10-24 - Use Native Interactive Elements over ARIA Roles for Lists
 **Learning:** When making list items (<li>) interactive by adding role="button", it breaks the semantic structure of the parent <ul> or <ol> for screen readers, as the list no longer contains list items.
 **Action:** Always wrap native interactive elements (like <button>) *inside* the <li> element instead of applying interactive ARIA roles directly to the <li>. This preserves the accessibility tree hierarchy and eliminates the need for custom keyboard event handlers (onkeydown).
+## 2026-11-06 - Show Defaults in CLI Help
+**Learning:** When building CLI tools with optional parameters that have predefined fallback values (e.g., using `default=` in `click`), users can often guess incorrectly or are forced to consult external documentation if the defaults are not explicitly stated in the built-in help menu (`--help`).
+**Action:** When building Python CLI applications using `click`, improve discoverability and reduce user guesswork by explicitly adding `show_default=True` to `click.option` decorators that define a `default` value, ensuring they automatically appear in the `--help` menu.
