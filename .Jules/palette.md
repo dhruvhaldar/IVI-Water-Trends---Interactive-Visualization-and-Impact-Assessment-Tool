@@ -237,3 +237,6 @@
 ## 2026-10-24 - Use Native Interactive Elements over ARIA Roles for Lists
 **Learning:** When making list items (<li>) interactive by adding role="button", it breaks the semantic structure of the parent <ul> or <ol> for screen readers, as the list no longer contains list items.
 **Action:** Always wrap native interactive elements (like <button>) *inside* the <li> element instead of applying interactive ARIA roles directly to the <li>. This preserves the accessibility tree hierarchy and eliminates the need for custom keyboard event handlers (onkeydown).
+## 2024-11-25 - [Expose Default Values in CLI Help Menus]
+**Learning:** By default, Click does not show the default values of options in the help menu, leaving users to guess the default behavior.
+**Action:** Always add `show_default=True` to `click.option` when a `default` is provided to improve CLI discoverability.
