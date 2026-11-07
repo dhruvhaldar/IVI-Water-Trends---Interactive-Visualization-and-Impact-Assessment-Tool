@@ -597,7 +597,7 @@ class ExportUtils:
             f'const origHTML = this.innerHTML; const origTitle = this.title; const origAria = this.getAttribute("aria-label"); '
             f'this.removeAttribute("title"); this.removeAttribute("aria-label"); this.innerHTML = `<span aria-hidden="true">✅</span> Copied!`; '
             f'setTimeout(() => {{ this.innerHTML = origHTML; this.setAttribute("title", origTitle); this.setAttribute("aria-label", origAria); delete this.dataset.active; }}, 1500);\' '
-            f'>{html.escape(str(col))}</button></li>'
+            f">{html.escape(str(col))}</button></li>"
             for col in df.columns
         )
 
@@ -802,7 +802,9 @@ class ExportUtils:
             # Optimization: Use boolean masking for nunique calculation on binary subsets (~3x faster than groupby.nunique())
             # Boolean masking directly filters arrays while bypassing pandas' slower groupby execution paths
             ponds_with_val = df.loc[df["pond_presence"] == 1, "location_id"].nunique()
-            ponds_without_val = df.loc[df["pond_presence"] == 0, "location_id"].nunique()
+            ponds_without_val = df.loc[
+                df["pond_presence"] == 0, "location_id"
+            ].nunique()
 
             ponds_with = f"{ponds_with_val:,}"
             ponds_without = f"{ponds_without_val:,}"
