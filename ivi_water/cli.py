@@ -175,12 +175,14 @@ def cli(
     default=DEFAULT_UNIT_TYPE,
     type=click.Choice(VALID_UNIT_TYPES, case_sensitive=False),
     help=f"Spatial unit type. Options: {VALID_UNIT_TYPES}",
+    show_default=True,
 )
 @click.option("--state", help="State filter (optional). Specify state name or code.")
 @click.option(
     "--output",
     default=DEFAULT_SPATIAL_UNITS_OUTPUT,
     help="Output filename for spatial units CSV",
+    show_default=True,
 )
 @click.pass_context
 def get_spatial_units(
@@ -365,6 +367,7 @@ def get_spatial_units(
     "--output",
     default=DEFAULT_WATER_DATA_OUTPUT,
     help="Output filename for water data CSV",
+    show_default=True,
 )
 @click.pass_context
 def fetch_water_data(
@@ -595,7 +598,9 @@ def fetch_water_data(
 @click.option(
     "--nrm-data", type=click.Path(exists=True), help="NRM impact data CSV file"
 )
-@click.option("--output", default="merged_data.csv", help="Output filename")
+@click.option(
+    "--output", default="merged_data.csv", help="Output filename", show_default=True
+)
 @click.pass_context
 def merge_data(ctx, water_data, nrm_data, output):
     """Merge water data with NRM impact data"""
@@ -677,6 +682,7 @@ def merge_data(ctx, water_data, nrm_data, output):
     default="seasonal",
     type=click.Choice(["seasonal", "comparison", "distribution", "heatmap"]),
     help="Type of chart to create",
+    show_default=True,
 )
 @click.option("--output", help="Output filename (without extension)")
 @click.option(
@@ -684,6 +690,7 @@ def merge_data(ctx, water_data, nrm_data, output):
     default="html",
     type=click.Choice(["html", "png", "svg"]),
     help="Output format",
+    show_default=True,
 )
 @click.pass_context
 def visualize(ctx, data, location_id, chart_type, output, format):
@@ -771,7 +778,9 @@ def visualize(ctx, data, location_id, chart_type, output, format):
     "--data", required=True, type=click.Path(exists=True), help="Input data CSV file"
 )
 @click.option("--locations", help="Comma-separated location IDs for dashboard")
-@click.option("--output", default="dashboard", help="Output filename")
+@click.option(
+    "--output", default="dashboard", help="Output filename", show_default=True
+)
 @click.pass_context
 def dashboard(ctx, data, locations, output):
     """Create comprehensive dashboard for multiple locations"""
@@ -868,6 +877,7 @@ def dashboard(ctx, data, locations, output):
     default="summary",
     type=click.Choice(["summary", "detailed", "short"]),
     help="Type of report to generate",
+    show_default=True,
 )
 @click.option("--output", help="Output filename")
 @click.pass_context
