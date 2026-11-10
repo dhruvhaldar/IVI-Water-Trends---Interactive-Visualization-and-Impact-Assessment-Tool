@@ -173,6 +173,7 @@ def cli(
 @click.option(
     "--unit-type",
     default=DEFAULT_UNIT_TYPE,
+    show_default=True,
     type=click.Choice(VALID_UNIT_TYPES, case_sensitive=False),
     help=f"Spatial unit type. Options: {VALID_UNIT_TYPES}",
 )
@@ -180,6 +181,7 @@ def cli(
 @click.option(
     "--output",
     default=DEFAULT_SPATIAL_UNITS_OUTPUT,
+    show_default=True,
     help="Output filename for spatial units CSV",
 )
 @click.pass_context
@@ -364,6 +366,7 @@ def get_spatial_units(
 @click.option(
     "--output",
     default=DEFAULT_WATER_DATA_OUTPUT,
+    show_default=True,
     help="Output filename for water data CSV",
 )
 @click.pass_context
@@ -595,7 +598,9 @@ def fetch_water_data(
 @click.option(
     "--nrm-data", type=click.Path(exists=True), help="NRM impact data CSV file"
 )
-@click.option("--output", default="merged_data.csv", help="Output filename")
+@click.option(
+    "--output", default="merged_data.csv", show_default=True, help="Output filename"
+)
 @click.pass_context
 def merge_data(ctx, water_data, nrm_data, output):
     """Merge water data with NRM impact data"""
@@ -675,6 +680,7 @@ def merge_data(ctx, water_data, nrm_data, output):
 @click.option(
     "--chart-type",
     default="seasonal",
+    show_default=True,
     type=click.Choice(["seasonal", "comparison", "distribution", "heatmap"]),
     help="Type of chart to create",
 )
@@ -682,6 +688,7 @@ def merge_data(ctx, water_data, nrm_data, output):
 @click.option(
     "--format",
     default="html",
+    show_default=True,
     type=click.Choice(["html", "png", "svg"]),
     help="Output format",
 )
@@ -771,7 +778,9 @@ def visualize(ctx, data, location_id, chart_type, output, format):
     "--data", required=True, type=click.Path(exists=True), help="Input data CSV file"
 )
 @click.option("--locations", help="Comma-separated location IDs for dashboard")
-@click.option("--output", default="dashboard", help="Output filename")
+@click.option(
+    "--output", default="dashboard", show_default=True, help="Output filename"
+)
 @click.pass_context
 def dashboard(ctx, data, locations, output):
     """Create comprehensive dashboard for multiple locations"""
@@ -866,6 +875,7 @@ def dashboard(ctx, data, locations, output):
 @click.option(
     "--report-type",
     default="summary",
+    show_default=True,
     type=click.Choice(["summary", "detailed", "short"]),
     help="Type of report to generate",
 )
